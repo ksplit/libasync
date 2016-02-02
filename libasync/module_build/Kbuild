@@ -1,0 +1,4 @@
+OBJS_DIR=../src/common
+obj-m := libasync.o
+libasync-objs := $(OBJS_DIR)/main.o $(OBJS_DIR)/awe-mapper.o $(OBJS_DIR)/thc.o $(OBJS_DIR)/thcsync.o
+cflags-y += -I../src/include -fno-ipa-cp -fno-ipa-sra
