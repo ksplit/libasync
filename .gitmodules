@@ -1,0 +1,3 @@
+[submodule "fast-ipc-module"]
+	path = fast-ipc-module
+	url = git@gitlab.flux.utah.edu:ramstore/fast-ipc-module.git
