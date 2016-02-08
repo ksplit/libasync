@@ -5,7 +5,7 @@
 
 //#include <stdint.h>
 //#include <stdlib.h>
-#include <lcd-domains/types.h>
+#include <types.h>
 #include <linux/sched.h>
 #include <linux/types.h>
 

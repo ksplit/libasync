@@ -7,7 +7,7 @@
 //#include <string.h>
 //#include <assert.h>
 
-#include <lcd-domains/thc.h>
+#include <thc.h>
 
 #define NOT_REACHED assert(0 && "Not reached")
 #define DEBUGPRINTF debug_printf

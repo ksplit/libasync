@@ -12,7 +12,7 @@
 
 #include <linux/bug.h>
 #include <linux/string.h>
-#include <lcd-domains/awe-mapper.h>
+#include <awe-mapper.h>
 #define AWE_TABLE_COUNT 64
 
 /*

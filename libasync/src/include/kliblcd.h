@@ -12,7 +12,7 @@
 #ifndef LCD_DOMAINS_LCD_DOMAINS_H
 #define LCD_DOMAINS_LCD_DOMAINS_H
 
-#include <lcd-domains/types.h>
+#include <types.h>
 #include <linux/sched.h>
 
 /* KLCD-SPECIFIC STUFF -------------------------------------------------- */

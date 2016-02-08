@@ -26,10 +26,10 @@
 #include <barrelfish/waitset.h>
 #include <thc/thc.h>
 #else
-#include <lcd-domains/thc.h>
-#include <lcd-domains/thcsync.h>
-#include <lcd-domains/thcinternal.h>
-#include <lcd-domains/awe-mapper.h>
+#include <thc.h>
+#include <thcsync.h>
+#include <thcinternal.h>
+#include <awe-mapper.h>
 #endif
 
 #ifdef linux
@@ -486,6 +486,7 @@ static void thc_exit_dispatch_loop(void) {
   //assert(!pts->shouldExit);
   pts->shouldExit = 1;
   // Wait for idle loop to finish
+  printk(KERN_ERR "PTSTATE NOT NULL\n");
   while (pts->aweHead.next != &(pts->aweTail)) {
     THCYield();
   }

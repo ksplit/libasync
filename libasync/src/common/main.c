@@ -9,9 +9,9 @@
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/slab.h>
-#include <lcd-domains/thc.h>
-#include <lcd-domains/thcinternal.h>
-#include <lcd-domains/thcsync.h>
+#include <thc.h>
+#include <thcinternal.h>
+#include <thcsync.h>
 void foo1(void);
 void foo2(void);
 
@@ -34,6 +34,9 @@ noinline void foo2(void) {
 
 static int __init api_init(void)
 {
+//	void ** frame = (void**)__builtin_frame_address(0);
+//	void *ret_addr = *(frame + 1);
+//	*(frame + 1) = NULL;
 	current->ptstate = kzalloc(sizeof(struct ptstate_t), GFP_KERNEL);
 	thc_latch_init(&(current->ptstate->latch));
 	thc_init();
@@ -41,14 +44,15 @@ static int __init api_init(void)
 	printk(KERN_ERR "lcd async entering module ptstate allocated");
 	DO_FINISH(ASYNC(foo1();); printk(KERN_ERR "lcd async apit_init coming back\n"); ASYNC(foo2();););
     printk(KERN_ERR "lcd async end of DO_FINISH");
+	thc_done();
+	kfree(current->ptstate);
+//	*(frame + 1) = ret_addr;
 	return 0;
 }
 
 static void __exit api_exit(void)
 {
-	printk(KERN_ERR "lcd async exiting module and deleting ptstate");
-	thc_done();
-	kfree(current->ptstate);
+	printk(KERN_ERR "lcd async exiting module");
 	return;
 }
 
