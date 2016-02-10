@@ -129,10 +129,8 @@ static void InitPTS(void) {
 
 static void thc_pts_lock(PTState_t *t) {
 #ifndef NDEBUG
-  printk(KERN_ERR "DEREFFING LOCK\n");
   t->lock++;
 #endif
-  printk(KERN_ERR "DEREFFING LATCH\n");
   thc_latch_acquire(&t->latch);
 }
 
@@ -486,7 +484,6 @@ static void thc_exit_dispatch_loop(void) {
   //assert(!pts->shouldExit);
   pts->shouldExit = 1;
   // Wait for idle loop to finish
-  printk(KERN_ERR "PTSTATE NOT NULL\n");
   while (pts->aweHead.next != &(pts->aweTail)) {
     THCYield();
   }
@@ -535,7 +532,6 @@ static void thc_end_rts(void) {
     pts->stackMemoriesDeallocated ++;
 #endif
   }
-
   // Done
   thc_print_pts_stats(PTS(), 0);
   PTS()->doneInit = 0;
@@ -639,10 +635,7 @@ static void check_for_lazy_awe (void * ebp) {
 		printk(KERN_ERR "\nlazy_awe_initialzed.\n");
 		//break;
     	}
-    printk(KERN_ERR "trying to get ebp\n");
     frame_ptr = (void **) THC_LAZY_FRAME_PREV(frame_ptr);
-    printk(KERN_ERR "frame_ptr is %llx\n", (unsigned long long)frame_ptr);
-    printk(KERN_ERR "got ebp\n");
 	if (frame_ptr != NULL) {
 		ret_addr   = THC_LAZY_FRAME_RET(frame_ptr);	
     	}
@@ -828,7 +821,6 @@ void _thc_endfinishblock(finish_t *fb, void *stack) {
     printk(KERN_ERR "lcd async endfinishblock count is zero\n");
   } else {
     // Non-zero first time, add ourselves as the waiting AWE.
-    printk(KERN_ERR "FB COUNT IS: %d\n", (int)fb->count);
     printk(KERN_ERR "lcd async endfinishblock has pending AWE\n");
     CALL_CONT_LAZY((unsigned char*)&_thc_endfinishblock0, fb);
   }
@@ -1032,10 +1024,7 @@ static void thc_yieldto_with_cont(void *a, void *arg) {
 
 void THCYieldToId(uint32_t id_to, uint32_t id_from) {
   awe_t *awe_ptr = (awe_t *)awe_mapper_get_awe_ptr(id_to);
-  printk(KERN_ERR "PTS ADDRESS: %lx\n", (unsigned long) awe_ptr->pts);
-  printk(KERN_ERR "AWE PTR IN YIELD TO IS: %lx\n", (unsigned long) awe_ptr);
   if (PTS() == awe_ptr->pts) {
-  printk(KERN_ERR "IN IF\n");
     CALL_CONT_LAZY_AND_SAVE((void*)&thc_yieldto_with_cont, id_from, (void*)awe_ptr);
   }
   //NOTE: for multiple threads, the code in the 'else' 
@@ -1043,20 +1032,15 @@ void THCYieldToId(uint32_t id_to, uint32_t id_from) {
   // using IDs for AWEs is threadsafe. For LCDs, this should be fine
   //as long as we are assuming our single threaded model. 
   else {
-    printk(KERN_ERR "IN ELSE\n");
     THCSchedule(awe_ptr);
   }
 }
 EXPORT_SYMBOL(THCYieldToId);
 
 void THCYieldTo(awe_t *awe_ptr) {
-  printk(KERN_ERR "PTS ADDRESS: %lx\n", (unsigned long) awe_ptr->pts);
-  printk(KERN_ERR "AWE PTR IN YIELD TO IS: %lx\n", (unsigned long) awe_ptr);
   if (PTS() == awe_ptr->pts) {
-  printk(KERN_ERR "IN IF\n");
     CALL_CONT_LAZY((void*)&thc_yieldto_with_cont, (void*)awe_ptr);
   } else {
-    printk(KERN_ERR "IN ELSE\n");
     THCSchedule(awe_ptr);
   }
 }
