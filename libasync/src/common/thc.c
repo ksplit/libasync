@@ -1288,11 +1288,11 @@ static void thc_init(void) {
 */
 
 void thc_init(void) {
-  awe_mapper_init();
   thc_start_rts();
   PTS()->idle_fn = IdleFn;
   PTS()->idle_args = NULL;
   PTS()->idle_stack = NULL;	
+  awe_mapper_init();
 }
 EXPORT_SYMBOL(thc_init);
 

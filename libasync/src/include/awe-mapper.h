@@ -13,6 +13,10 @@
 //#include <stdint.h>
 //#include <stdbool.h>
 #include <linux/types.h>
+#include <linux/sched.h>
+#include <linux/slab.h>
+#include <thc.h>
+#include <thcinternal.h>
 
 #ifndef AWE_MAPPER_H
 #define AWE_MAPPER_H
@@ -46,5 +50,15 @@ void awe_mapper_set_id(uint32_t id, void* awe_ptr);
  * Returns awe_ptr that corresponds to id.
  */
 void* awe_mapper_get_awe_ptr(uint32_t id);
+
+static inline awe_table_t* get_awe_map(void)
+{
+    return current->ptstate->awe_map;
+}
+
+static inline void set_awe_map(awe_table_t * map_ptr)
+{
+    current->ptstate->awe_map = map_ptr;
+}
 
 #endif

@@ -84,6 +84,18 @@ struct thcstack_t {
   struct thcstack_t *next;
 };
 
+
+#define AWE_TABLE_COUNT 64
+
+struct awe_table
+{
+    void* awe_list[AWE_TABLE_COUNT];
+    uint32_t used_slots;
+    uint32_t next_id;
+};
+
+typedef struct awe_table awe_table_t;
+
 struct ptstate_t {
 
   // Thread-local fields: .............................................
@@ -159,6 +171,9 @@ struct ptstate_t {
   // this thread
   struct awe_t aweRemoteHead;
   struct awe_t aweRemoteTail;
+
+  //map for holding awe IDs
+  awe_table_t *awe_map;
 };
 
 typedef void (*THCContFn_t)(void *cont, void *args);

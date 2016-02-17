@@ -22,22 +22,20 @@
  * storage size requirements.
  */
 
-static void* awe_table[AWE_TABLE_COUNT];
-static uint32_t used_slots = 0;
-
-//The address of this is used to indicate that something is
-//allocated and not set to an awe_ptr yet.
-static uint32_t allocated_marker = 0;
-
-
 
 /*
  * Initilaizes awe mapper.
  */
 void awe_mapper_init(void)
 {
-	used_slots = 0;
-	memset(&awe_table[0], 0, sizeof(void*) * AWE_TABLE_COUNT);
+    void* awe_map_ptr = kzalloc(sizeof(awe_table_t), GFP_KERNEL);
+    if( !awe_map_ptr )
+    {
+        pr_err("No space left for awe_map_ptr\n");
+        return;
+    }
+
+    set_awe_map((awe_table_t*) awe_map_ptr);
 }
 
 
@@ -45,13 +43,18 @@ void awe_mapper_init(void)
 /*
  * Uninitilaizes awe mapper.
  */
-void awe_mapper_uninit(void){/*Does nothing for now.*/}
+void awe_mapper_uninit(void)
+{
+    awe_table_t *awe_map =  get_awe_map();
+    kfree(awe_map);
+}
 
 
 
 static bool is_slot_allocated(uint32_t id)
 {
-    return awe_table[id] != NULL;
+    awe_table_t *awe_map =  get_awe_map();
+    return ((awe_map->awe_list)[id] != NULL);
 }
 
 
@@ -61,21 +64,20 @@ static bool is_slot_allocated(uint32_t id)
  */
 uint32_t awe_mapper_create_id(void)
 {
-    static uint32_t next_id = 0;
-
-    BUG_ON((used_slots >= AWE_TABLE_COUNT) && "Too many slots have been requested.");
+    awe_table_t *awe_map =  get_awe_map();
+    BUG_ON((awe_map->used_slots >= AWE_TABLE_COUNT) && "Too many slots have been requested.");
     
     do
     {
-        next_id = (next_id + 1) % AWE_TABLE_COUNT;
+        awe_map->next_id = (awe_map->next_id + 1) % AWE_TABLE_COUNT;
     } 
-    while( is_slot_allocated(next_id) );
+    while( is_slot_allocated(awe_map->next_id) );
 
-    awe_table[next_id] = (void*)0xdeadbeef;//&allocated_marker;
+    (awe_map->awe_list)[awe_map->next_id] = (void*)0xdeadbeef;
 
-    used_slots++;
+    awe_map->used_slots++;
 
-    return next_id;
+    return awe_map->next_id;
 }  
 EXPORT_SYMBOL(awe_mapper_create_id);
 
@@ -85,14 +87,15 @@ EXPORT_SYMBOL(awe_mapper_create_id);
  */
 void awe_mapper_remove_id(uint32_t id)
 {
+    awe_table_t *awe_map =  get_awe_map();
     BUG_ON(id >= AWE_TABLE_COUNT);
     
-    if(used_slots > 0)
+    if( awe_map->used_slots > 0 )
     {
-        used_slots--;
+        awe_map->used_slots--;
     }
     
-    awe_table[id] = NULL;
+    (awe_map->awe_list)[id] = NULL;
 }
 EXPORT_SYMBOL(awe_mapper_remove_id);
 
@@ -102,8 +105,9 @@ EXPORT_SYMBOL(awe_mapper_remove_id);
  */
 void awe_mapper_set_id(uint32_t id, void* awe_ptr)
 {
+    awe_table_t *awe_map =  get_awe_map();
     BUG_ON(id >= AWE_TABLE_COUNT);
-    awe_table[id] = awe_ptr;
+    (awe_map->awe_list)[id] = awe_ptr;
 }
 
 
@@ -113,9 +117,10 @@ void awe_mapper_set_id(uint32_t id, void* awe_ptr)
  */
 void* awe_mapper_get_awe_ptr(uint32_t id)
 {
+    awe_table_t *awe_map =  get_awe_map();
     BUG_ON(id >= AWE_TABLE_COUNT);
 
-    return awe_table[id];
+    return (awe_map->awe_list)[id];
 }
 
 
