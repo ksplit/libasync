@@ -61,4 +61,8 @@ static inline void set_awe_map(awe_table_t * map_ptr)
     current->ptstate->awe_map = map_ptr;
 }
 
+
+
+void awe_mapper_print_list(void);
+
 #endif

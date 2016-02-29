@@ -85,7 +85,7 @@ struct thcstack_t {
 };
 
 
-#define AWE_TABLE_COUNT 64
+#define AWE_TABLE_COUNT 128
 
 struct awe_table
 {

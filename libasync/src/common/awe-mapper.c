@@ -13,7 +13,6 @@
 #include <linux/bug.h>
 #include <linux/string.h>
 #include <awe-mapper.h>
-#define AWE_TABLE_COUNT 64
 
 /*
  * NOTE: This implementation right now is just a ring buffer.
@@ -124,3 +123,18 @@ void* awe_mapper_get_awe_ptr(uint32_t id)
 }
 
 
+void awe_mapper_print_list(void)
+{
+    int i,j;
+    awe_table_t *awe_map =  get_awe_map();
+    for(i = 0; i < AWE_TABLE_COUNT; i+= 8)
+    {
+        printk(KERN_ERR "\n");
+        for(j = i; j < i + 8; j++)
+        {
+            printk(KERN_ERR "0x%p ", (awe_map->awe_list)[j]);
+        }
+    }
+    printk(KERN_ERR "\n");
+}
+EXPORT_SYMBOL(awe_mapper_print_list);
