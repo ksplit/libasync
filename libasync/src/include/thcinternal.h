@@ -323,6 +323,7 @@ extern int _end_text_nx;
   __asm__ volatile (							\
     " movq %rbp, %rsp            \n\t" /* free frame                 */ \
     " popq %rbp                  \n\t" /* restore rbp                */ \
+    " addq $8, %rsp              \n\t"                                  \
     " jmp  " JMP_ADDR "          \n\t" /* jump to continuation       */ \
     );
 #elif defined(__i386__)
