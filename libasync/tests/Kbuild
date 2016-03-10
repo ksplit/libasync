@@ -1,0 +1,10 @@
+ASYNC_OBJS_DIR=../src/common
+RPC_OBJS_DIR=../../fast-ipc-module/src/common
+CFLAGS_ipc.o = -O2 -DPOLL -fno-ipa-cp -fno-ipa-sra
+#CFLAGS_ring-channel.o = -I$(RPC_OBJS_DIR)../../IPC -I$(RING_CHAN_DIR) -fno-ipa-cp -fno-ipa-sra
+EXTRA_CFLAGS=-DDEBUG_OUTPUT
+
+obj-m := libasync_test.o
+ccflags-y += -O0 -fno-ipa-cp -fno-ipa-sra -I$(LIB_TEST_ASYNC_DIR)/../src/include -I$(LIB_TEST_ASYNC_DIR)/../../fast-ipc-module/src/include -I$(LIB_TEST_ASYNC_DIR)/../../fast-ipc-module/src/platform/kernel/include -DUSE_ASYNC -DCONFIG_LAZY_THC
+
+libasync_test-objs = $(ASYNC_OBJS_DIR)/awe-mapper.o $(ASYNC_OBJS_DIR)/thc.o $(ASYNC_OBJS_DIR)/thc_ipc.o $(ASYNC_OBJS_DIR)/thcsync.o $(RPC_OBJS_DIR)/ipc.o callee.o caller.o main.o
