@@ -2,18 +2,28 @@
 // Synchronization primitives
 //
 
-//#include <stdlib.h>
-//#include <stdio.h>
-//#include <string.h>
-//#include <assert.h>
+#ifndef LINUX_KERNEL
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <assert.h>
+#endif
+
+#ifdef LCD_ISOLATE
+#include <lcd_config/pre_hook.h>
+#endif
 
 #include <thc.h>
+
+#ifdef LCD_ISOLATE
+#include <lcd_config/post_hook.h>
+#endif
 
 #define NOT_REACHED assert(0 && "Not reached")
 #define DEBUGPRINTF debug_printf
 
 #define DEBUG_SYNC(XX)
-//#define DEBUG_SYNC(XX) do{ XX; } while (0)
+#define DEBUG_SYNC(XX) do{ XX; } while (0)
 #define DEBUG_SYNC_PREFIX         "         sync:    "
 
 //......................................................................
@@ -34,6 +44,7 @@ void thc_sem_init(thc_sem_t *s, int val) {
   s->val = val;
   s->q = NULL;
 }
+EXPORT_SYMBOL(thc_sem_init);
 
 static void thc_sem_p0(void *s) {
   thc_sem_t *sem = (thc_sem_t*)s;
@@ -56,6 +67,7 @@ void thc_sem_p(thc_sem_t *s) {
   DEBUG_SYNC(DEBUGPRINTF(DEBUG_SYNC_PREFIX "thc_sem_p(%p) done\n", s));
   thc_latch_release(&s->l);
 }
+EXPORT_SYMBOL(thc_sem_p);
 
 // Information passed to a semaphore wait cancel function: we need a
 // reference to the semaphore (so we can walk down its list to remove
@@ -100,11 +112,11 @@ static void thc_sem_p_x_cancel_fn(void *c) {
     while ((*qptr) != NULL && *qptr != cinf->waiter_info) {
       qptr = &((*qptr)->next);
     }
-    //assert((*qptr) != NULL && "Could not find waiter entry on cancel");
+    assert((*qptr) != NULL && "Could not find waiter entry on cancel");
     DEBUG_SYNC(DEBUGPRINTF(DEBUG_SYNC_PREFIX "Removed wait-queue entry (now %p -> %p)\n", qptr, (*qptr)->next));
     *qptr = (*qptr)->next;
 
-    //DEBUG_SYNC(DEBUGPRINTF(DEBUG_SYNC_PREFIX "Waking p_x operation\n"));
+    DEBUG_SYNC(DEBUGPRINTF(DEBUG_SYNC_PREFIX "Waking p_x operation\n"));
     THCSchedule(cinf->waiter_info->waiter);
   }
 
@@ -149,6 +161,7 @@ errval_t thc_sem_p_x(thc_sem_t *s) {
   thc_latch_release(&s->l);
   return canceled ? THC_CANCELED : SYS_ERR_OK;
 }
+EXPORT_SYMBOL(thc_sem_p_x);
 
 void thc_sem_v(thc_sem_t *s) {
   thc_latch_acquire(&s->l);
@@ -171,6 +184,7 @@ void thc_sem_v(thc_sem_t *s) {
   }
   thc_latch_release(&s->l);
 }
+EXPORT_SYMBOL(thc_sem_v);
 
 //......................................................................
 //
@@ -180,18 +194,21 @@ void thc_sem_v(thc_sem_t *s) {
 void thc_lock_init(thc_lock_t *l) {
   thc_sem_init(&(l->sem), 1);
 }
+EXPORT_SYMBOL(thc_lock_init);
 
 void thc_lock_acquire(thc_lock_t *l) {
   DEBUG_SYNC(DEBUGPRINTF(DEBUG_SYNC_PREFIX "thc_lock_acquire %p\n", l));
   thc_sem_p(&(l->sem));
   DEBUG_SYNC(DEBUGPRINTF(DEBUG_SYNC_PREFIX "thc_lock_acquire done\n"));
 }
+EXPORT_SYMBOL(thc_lock_acquire);
 
 void thc_lock_release(thc_lock_t *l) {
   DEBUG_SYNC(DEBUGPRINTF(DEBUG_SYNC_PREFIX "thc_lock_release %p\n", l));
   thc_sem_v(&(l->sem));
   DEBUG_SYNC(DEBUGPRINTF(DEBUG_SYNC_PREFIX "thc_lock_release done\n"));
 }
+EXPORT_SYMBOL(thc_lock_release);
 #endif
 
 //......................................................................
@@ -202,6 +219,7 @@ void thc_condvar_init(thc_condvar_t *cv) {
   thc_latch_init(&cv->l);
   cv->q = NULL;
 }
+EXPORT_SYMBOL(thc_condvar_init);
 
 typedef struct {
   thc_condvar_t *cv;
@@ -231,6 +249,7 @@ void thc_condvar_wait(thc_condvar_t *cv, thc_lock_t *lock) {
   thc_lock_acquire(lock);
   thc_latch_release(&cv->l);
 }
+EXPORT_SYMBOL(thc_condvar_wait);
 
 // Information passed to a condvar wait cancel function: we need a
 // reference to the condvar (so we can walk down its list to remove
@@ -262,17 +281,17 @@ static void thc_condvar_wait_x_cancel_fn(void *c) {
     struct thc_waiter **qptr = &(cinf->cv->q);
 	// Cancelation won any wake/cancel race: remove the waiter so
     // that it cannot receive a subsequent notify.
-    //DEBUG_SYNC(DEBUGPRINTF(DEBUG_SYNC_PREFIX "Looking for wait-queue entry %p\n", cinf->waiter_info));
+    DEBUG_SYNC(DEBUGPRINTF(DEBUG_SYNC_PREFIX "Looking for wait-queue entry %p\n", cinf->waiter_info));
     cinf -> was_canceled = 1;
     
     while ((*qptr) != NULL && *qptr != cinf->waiter_info) {
       qptr = &((*qptr)->next);
     }
     //assert((*qptr) != NULL && "Could not find waiter entry on cancel");
-    //DEBUG_SYNC(DEBUGPRINTF(DEBUG_SYNC_PREFIX "Removed wait-queue entry (now %p -> %p)\n", qptr, (*qptr)->next));
+    DEBUG_SYNC(DEBUGPRINTF(DEBUG_SYNC_PREFIX "Removed wait-queue entry (now %p -> %p)\n", qptr, (*qptr)->next));
     *qptr = (*qptr)->next;
 
-    //DEBUG_SYNC(DEBUGPRINTF(DEBUG_SYNC_PREFIX "Waking condvar_wait_x operation\n"));
+    DEBUG_SYNC(DEBUGPRINTF(DEBUG_SYNC_PREFIX "Waking condvar_wait_x operation\n"));
     THCSchedule(cinf->waiter_info->waiter);
   }
 
@@ -291,33 +310,34 @@ errval_t thc_condvar_wait_x(thc_condvar_t *cv, thc_lock_t *lock) {
   }
 
   thc_latch_acquire(&cv->l);
-  //DEBUG_SYNC(DEBUGPRINTF(DEBUG_SYNC_PREFIX "thc_condvar_wait(%p,%p)\n", cv, lock));
+  DEBUG_SYNC(DEBUGPRINTF(DEBUG_SYNC_PREFIX "thc_condvar_wait(%p,%p)\n", cv, lock));
   cinf.waiter_info = &w;
   cinf.cv = cv;
   cinf.was_canceled = 0;
   w.next = cv->q;
   cv->q = &w;
-  //DEBUG_SYNC(DEBUGPRINTF(DEBUG_SYNC_PREFIX "thc_condvar_wait sleeping %p\n", &w));
+  DEBUG_SYNC(DEBUGPRINTF(DEBUG_SYNC_PREFIX "thc_condvar_wait sleeping %p\n", &w));
   info.cv = cv;
   info.lock = lock;
   THCAddCancelItem(&ci, &thc_condvar_wait_x_cancel_fn, (void*)&cinf);
-  //DEBUG_SYNC(DEBUGPRINTF(DEBUG_SYNC_PREFIX "Adding cancel item\n"));
+  DEBUG_SYNC(DEBUGPRINTF(DEBUG_SYNC_PREFIX "Adding cancel item\n"));
   THCSuspendThen(&w.waiter, thc_condvar_wait0, (void*)&info); // Sleep ......
   canceled = cinf.was_canceled;
   if (!canceled) {
     if (!THCCancelItemRan(&ci)) {
-      //DEBUG_SYNC(DEBUGPRINTF(DEBUG_SYNC_PREFIX "Removing cancel item\n"));
+      DEBUG_SYNC(DEBUGPRINTF(DEBUG_SYNC_PREFIX "Removing cancel item\n"));
       THCRemoveCancelItem(&ci);
     }
   }
 
-  //DEBUG_SYNC(DEBUGPRINTF(DEBUG_SYNC_PREFIX "thc_condvar_wait retaking lock %p\n", lock));
+  DEBUG_SYNC(DEBUGPRINTF(DEBUG_SYNC_PREFIX "thc_condvar_wait retaking lock %p\n", lock));
   thc_latch_acquire(&cv->l);
   thc_lock_acquire(lock);
   thc_latch_release(&cv->l);
 
   return canceled ? THC_CANCELED : SYS_ERR_OK;
 }
+EXPORT_SYMBOL(thc_condvar_wait_x);
 
 void thc_condvar_signal(thc_condvar_t *cv) {
   thc_latch_acquire(&cv->l);
@@ -333,6 +353,7 @@ void thc_condvar_signal(thc_condvar_t *cv) {
   }
   thc_latch_release(&cv->l);
 }
+EXPORT_SYMBOL(thc_condvar_signal);
 
 void thc_condvar_broadcast(thc_condvar_t *cv) {
   struct thc_waiter *w;
@@ -350,6 +371,7 @@ void thc_condvar_broadcast(thc_condvar_t *cv) {
   cv->q = NULL;
   thc_latch_release(&cv->l);
 }
+EXPORT_SYMBOL(thc_condvar_broadcast);
 
 //......................................................................
 //
@@ -364,6 +386,7 @@ void thc_queue_init(thc_queue_t *tq) {
   tq->start.next = &(tq->end);
   tq->end.prev = &(tq->start);
 }
+EXPORT_SYMBOL(thc_queue_init);
 
 void thc_queue_enter(thc_queue_t *tq,
                      thc_queue_entry_t *te) {
@@ -376,6 +399,7 @@ void thc_queue_enter(thc_queue_t *tq,
   tq->end.prev = te;
   thc_lock_release(&tq->l);
 }
+EXPORT_SYMBOL(thc_queue_enter);
 
 void thc_queue_await_turn(thc_queue_t *tq,
                           thc_queue_entry_t *te) {
@@ -386,6 +410,7 @@ void thc_queue_await_turn(thc_queue_t *tq,
   te->served = 1;
   thc_lock_release(&tq->l);
 }
+EXPORT_SYMBOL(thc_queue_await_turn);
 
 errval_t thc_queue_await_turn_x(thc_queue_t *tq,
                                 thc_queue_entry_t *te) {
@@ -401,6 +426,7 @@ errval_t thc_queue_await_turn_x(thc_queue_t *tq,
   thc_lock_release(&tq->l);
   return result;
 }
+EXPORT_SYMBOL(thc_queue_await_turn_x);
 
 int thc_queue_leave(thc_queue_t *tq,
                     thc_queue_entry_t *te) {
@@ -434,7 +460,7 @@ int thc_queue_leave(thc_queue_t *tq,
   thc_lock_release(&tq->l);
   return result;
 }
-
+EXPORT_SYMBOL(thc_queue_leave);
 
 //......................................................................
 //
@@ -445,6 +471,7 @@ void thc_ec_init(thc_ec_t *ec) {
   ec->n = 0;
   ec->waiters = NULL;
 }
+EXPORT_SYMBOL(thc_ec_init);
 
 // Return current value
 uint64_t thc_ec_read(thc_ec_t *ec) {
@@ -455,6 +482,7 @@ uint64_t thc_ec_read(thc_ec_t *ec) {
   thc_latch_release(&ec->l);
   return result;
 }
+EXPORT_SYMBOL(thc_ec_read);
 
 static void thc_ec_await0(void *e) {
   thc_ec_t *ec = (thc_ec_t*)e;
@@ -477,6 +505,7 @@ void thc_ec_await(thc_ec_t *ec, uint64_t v) {
 
   thc_latch_release(&ec->l);
 }
+EXPORT_SYMBOL(thc_ec_await);
 
 // Advance the count by n
 void thc_ec_advance(thc_ec_t *ec, uint64_t n) {
@@ -499,6 +528,7 @@ void thc_ec_advance(thc_ec_t *ec, uint64_t n) {
   }
   thc_latch_release(&ec->l);
 }
+EXPORT_SYMBOL(thc_ec_advance);
 
 //......................................................................
 
@@ -507,10 +537,12 @@ void thc_ec_advance(thc_ec_t *ec, uint64_t n) {
 void thc_seq_init(thc_seq_t *seq) {
   seq->n = 0;
 }
+EXPORT_SYMBOL(thc_seq_init);
 
 uint64_t thc_seq_read(thc_seq_t *seq) {
   return seq->n;
 }
+EXPORT_SYMBOL(thc_seq_read);
 
 uint64_t thc_seq_ticket(thc_seq_t *seq) {
 #ifdef _MSC_VER
@@ -524,7 +556,8 @@ uint64_t thc_seq_ticket(thc_seq_t *seq) {
       break;
     }
   } while(1);
-  //assert((result >= 0) && "URK!  Sequencer wrapped");
+  assert((result >= 0) && "URK!  Sequencer wrapped");
   return result;
 #endif
 }
+EXPORT_SYMBOL(thc_seq_ticket);

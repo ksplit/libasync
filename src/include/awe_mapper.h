@@ -1,5 +1,5 @@
 /*
- * awe-mapper.h
+ * awe_mapper.h
  *
  * This file is part of the asynchronous ipc for xcap.
  * This file is responsible for providing mappings
@@ -9,17 +9,21 @@
  * Author: Michael Quigley
  * Date: January 2016 
  */
-//#include <stddef.h>
-//#include <stdint.h>
-//#include <stdbool.h>
-#include <linux/types.h>
-#include <linux/sched.h>
-#include <linux/slab.h>
-#include <thc.h>
-#include <thcinternal.h>
-
 #ifndef AWE_MAPPER_H
 #define AWE_MAPPER_H
+
+#ifdef LINUX_KERNEL
+
+#define AWE_TABLE_COUNT 128
+
+struct awe_table
+{
+    void* awe_list[AWE_TABLE_COUNT];
+    uint32_t used_slots;
+    uint32_t next_id;
+};
+
+typedef struct awe_table awe_table_t;
 
 /*
  * Initilaizes awe mapper.
@@ -53,16 +57,16 @@ void* awe_mapper_get_awe_ptr(uint32_t id);
 
 static inline awe_table_t* get_awe_map(void)
 {
-    return current->ptstate->awe_map;
+    return PTS()->awe_map;
 }
 
 static inline void set_awe_map(awe_table_t * map_ptr)
 {
-    current->ptstate->awe_map = map_ptr;
+    PTS()->awe_map = map_ptr;
 }
 
-
-
 void awe_mapper_print_list(void);
+
+#endif /* LINUX_KERNEL */
 
 #endif

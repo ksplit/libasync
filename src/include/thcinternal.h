@@ -84,17 +84,7 @@ struct thcstack_t {
   struct thcstack_t *next;
 };
 
-
-#define AWE_TABLE_COUNT 128
-
-struct awe_table
-{
-    void* awe_list[AWE_TABLE_COUNT];
-    uint32_t used_slots;
-    uint32_t next_id;
-};
-
-typedef struct awe_table awe_table_t;
+struct awe_table;
 
 struct ptstate_t {
 
@@ -172,9 +162,12 @@ struct ptstate_t {
   struct awe_t aweRemoteHead;
   struct awe_t aweRemoteTail;
 
-  //map for holding awe IDs
-  awe_table_t *awe_map;
+  // Map for resolving integer IDs to awe's. This is used in the
+  // async ipc code.
+  struct awe_table *awe_map;
 };
+
+PTState_t *PTS(void);
 
 typedef void (*THCContFn_t)(void *cont, void *args);
 
@@ -323,7 +316,7 @@ extern int _end_text_nx;
   __asm__ volatile (							\
     " movq %rbp, %rsp            \n\t" /* free frame                 */ \
     " popq %rbp                  \n\t" /* restore rbp                */ \
-    " addq $8, %rsp              \n\t"                                  \
+    " addq $8, %rsp              \n\t" /* clean up stack for callee  */	\
     " jmp  " JMP_ADDR "          \n\t" /* jump to continuation       */ \
     );
 #elif defined(__i386__)
@@ -371,28 +364,6 @@ extern int _end_text_nx;
 #endif
 
 /***********************************************************************/
-#if 0
-#define SCHEDULE_CONT(_AWE_PTR, NESTED_FUNC)			\
-  ({								\
-    KILL_CALLEE_SAVES();					\
-	uint64_t savedRAX; \
-	__asm__ __volatile__( \
-	"movq %%rbx, %0\n\t" \
-    "movq %1, %%rbx\n\t" \
-    "push %%rbx\n\t" \
-	"movq %0, %%rbx\n\t" \
-	:"=r"(savedRAX) \
-	:"r"(_AWE_PTR) : "rbx" \
-    ); \
-    NESTED_FUNC(FORCE_ARGS_STACK_CALL _AWE_PTR);               \
-	__asm__ __volatile__( \
-	"movq %%rbx, %0\n\t" \
-    "pop %%rbx\n\t" \
-	"movq %0, %%rbx\n\t" \
-	:"=r"(savedRAX) : : "rbx" \
-    ); \
-  })
-#endif
 
 #define SCHEDULE_CONT(_AWE_PTR, NESTED_FUNC)			\
   ({								\
@@ -409,8 +380,6 @@ extern int _end_text_nx;
     _thc_callcont(&_awe, (THCContFn_t)(_FN), (_ARG));           \
   } while (0)
 
-
-
 #define CALL_CONT_LAZY_AND_SAVE(_FN,_IDNUM,_ARG)                \
   do {                                                          \
     awe_t _awe;                                                 \
@@ -420,9 +389,6 @@ extern int _end_text_nx;
     KILL_CALLEE_SAVES();                                        \
     _thc_callcont(&_awe, (THCContFn_t)(_FN), (_ARG));           \
   } while (0)
-
-
-
 
 #define CALL_CONT_LAZY(_FN,_ARG)                                \
   do {                                                          \

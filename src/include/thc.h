@@ -3,20 +3,19 @@
 #ifndef _THC_H_
 #define _THC_H_
 
-//#include <stdint.h>
-//#include <stdlib.h>
-#include <types.h>
-#include <linux/sched.h>
+#ifdef LINUX_KERNEL
 #include <linux/types.h>
+#include <linux/printk.h>
+#else
+#include <stdint.h>
+#include <stdlib.h>
+#endif
 
 #ifndef BARRELFISH
 typedef int errval_t;
 #define SYS_ERR_OK   0
 #define THC_CANCELED 1
 #endif
-
-void thc_init(void);
-void thc_done(void);
 
 // The implementation of do..finish relies on shadowing so that 
 // _fb_info always refers to the closest enclosing do..finish block.
@@ -61,7 +60,7 @@ void thc_done(void);
     finish_t *_fb_info __attribute__((unused)) = &_fb;                  \
     finish_t *_fb_info_ ## _TAG __attribute__((unused)) = _fb_info;     \
     void *_fb_curr_stack __attribute__((unused));			\
-	FORCE_FRAME_POINTER_USE;						\
+    FORCE_FRAME_POINTER_USE;						\
     GET_STACK_POINTER(_fb_info->old_sp);				\
     _thc_startfinishblock(_fb_info, _IS_NX);				\
     do { _CODE } while (0);                                             \
@@ -106,12 +105,11 @@ void thc_done(void);
 									\
     _awe.status     = LAZY_AWE;						\
     _awe.lazy_stack = NULL;						\
-    /*_awe.pts        = NULL;*/						\
     _awe.pts        = NULL;						\
 									\
     /* Define nested function containing the body */			\
-      noinline auto void _thc_nested_async(FORCE_ARGS_STACK awe_t *awe) __asm__(NESTED_FN_STRING(_C)); \
-	  noinline void _thc_nested_async(FORCE_ARGS_STACK awe_t *awe) {  \
+    noinline auto void _thc_nested_async(FORCE_ARGS_STACK awe_t *awe) __asm__(NESTED_FN_STRING(_C)); \
+    noinline void _thc_nested_async(FORCE_ARGS_STACK awe_t *awe) {	\
       void *_my_fb = _fb_info;						\
       _awe.current_fb = _my_fb;						\
       INIT_LAZY_AWE(awe, &_thc_lazy_awe_marker);			\
@@ -257,7 +255,7 @@ void THCScheduleBack(awe_t *awe_ptr);
 // Finish the current AWE, returning to the scheduler.
 void THCFinish(void);
 
-//Yields and saves awe_ptr to correspond to the provided id number
+// Yields and saves awe_ptr to correspond to the provided id number
 void THCYieldAndSave(uint32_t id_num);
 
 // Finish the current AWE, creating a new AWE from its continuation, and
