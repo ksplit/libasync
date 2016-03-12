@@ -1,6 +1,9 @@
 #ifndef THC_IPC_TYPES_H
 #define THC_IPC_TYPES_H
 
+#ifdef LINUX_KERNEL
+
+#include <libfipc.h>
 #include <linux/list.h>
 
 typedef enum {
@@ -28,5 +31,7 @@ struct thc_channel_group
     struct list_head head;
     int size;
 };
+
+#endif
 
 #endif

@@ -1,2 +1,0 @@
-/local/sda4/xcap-async-module/libasync/tests/libasync_test.ko
-/local/sda4/xcap-async-module/libasync/tests/../src/common/awe-mapper.o /local/sda4/xcap-async-module/libasync/tests/../src/common/thc.o /local/sda4/xcap-async-module/libasync/tests/../src/common/thc_ipc.o /local/sda4/xcap-async-module/libasync/tests/../src/common/thcsync.o /local/sda4/xcap-async-module/libasync/tests/../../fast-ipc-module/src/common/ipc.o /local/sda4/xcap-async-module/libasync/tests/callee.o /local/sda4/xcap-async-module/libasync/tests/caller.o /local/sda4/xcap-async-module/libasync/tests/main.o
