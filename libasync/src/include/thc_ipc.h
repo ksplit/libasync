@@ -20,6 +20,6 @@ int thc_poll_recv(struct thc_channel_group_item* item,
 
 int thc_channel_group_init(struct thc_channel_group* channel_group);
 
-int thc_channel_group_add(struct thc_channel_group* channel_group,
+int thc_channel_group_item_add(struct thc_channel_group* channel_group,
                           struct thc_channel_group_item* item);
 #endif

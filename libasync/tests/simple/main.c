@@ -8,7 +8,7 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/delay.h>
-#include "../../fast-ipc-module/src/platform/kernel/tests/test_helpers.h"
+#include "../../../fast-ipc-module/src/platform/kernel/tests/test_helpers.h"
 #include "rpc.h"
 
 #define CALLER_CPU 1

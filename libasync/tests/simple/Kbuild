@@ -1,5 +1,5 @@
-ASYNC_OBJS_DIR=../src/common
-RPC_OBJS_DIR=../../fast-ipc-module/src/common
+ASYNC_OBJS_DIR=../../src/common
+RPC_OBJS_DIR=../../../fast-ipc-module/src/common
 CFLAGS_ipc.o = -O2 -DPOLL -fno-ipa-cp -fno-ipa-sra
 #CFLAGS_ring-channel.o = -I$(RPC_OBJS_DIR)../../IPC -I$(RING_CHAN_DIR) -fno-ipa-cp -fno-ipa-sra
 EXTRA_CFLAGS=-DDEBUG_OUTPUT

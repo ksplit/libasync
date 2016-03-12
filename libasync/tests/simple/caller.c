@@ -12,7 +12,7 @@
 #include <thc.h>
 #include <thcinternal.h>
 #include <awe-mapper.h>
-#include "../../fast-ipc-module/src/platform/kernel/tests/test_helpers.h"
+#include "../../../fast-ipc-module/src/platform/kernel/tests/test_helpers.h"
 
 static inline int send_and_get_response(
 	struct fipc_ring_channel *chan,

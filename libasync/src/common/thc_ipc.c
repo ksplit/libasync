@@ -146,7 +146,7 @@ int thc_channel_group_init(struct thc_channel_group* channel_group)
 EXPORT_SYMBOL(thc_channel_group_init);
 
 
-int thc_channel_group_add(struct thc_channel_group* channel_group, 
+int thc_channel_group_item_add(struct thc_channel_group* channel_group, 
                           struct thc_channel_group_item* item)
 {
     list_add_tail(&(item->list), &(channel_group->head));
