@@ -15,6 +15,10 @@
 #define FB_KIND_FINISH        0
 #define FB_KIND_TOP_FINISH    1
 
+#ifdef LINUX_KERNEL
+#undef linux
+#endif
+
 #ifndef LINUX_KERNEL
 #include <stdlib.h>
 #include <stdio.h>
@@ -39,10 +43,12 @@
 #include <linux/slab.h>
 #include <linux/types.h>
 #include <linux/bug.h>
-#include <awe-mapper.h>
+#include <linux/sched.h>
+#include <awe_mapper.h>
 #ifdef LCD_ISOLATE
 #include <lcd_config/post_hook.h>
 #endif
+#undef DEBUG_STACK
 #endif
 
 #ifdef linux
@@ -59,7 +65,7 @@
 
 #ifdef BARRELFISH
 #define DEBUGPRINTF debug_printf
-#elif LINUX_KENREL
+#elif defined(LINUX_KERNEL)
 #define DEBUGPRINTF printk
 #else
 #define DEBUGPRINTF printf
@@ -133,14 +139,14 @@ PTState_t *PTS(void) {
 
 static void InitPTS(void) {
 #ifdef LINUX_KERNEL
-  PTState *pts = kzalloc(sizeof(PTState_t), GFP_KERNEL);
+  PTState_t *pts = kzalloc(sizeof(PTState_t), GFP_KERNEL);
 #else
-  PTState *pts = malloc(sizeof(PTState_t));
+  PTState_t *pts = malloc(sizeof(PTState_t));
   memset(pts, 0, sizeof(PTState_t));
 #endif
-  thc_latch_init(&(current->ptstate->latch));
+  thc_latch_init(&(pts->latch));
   assert((PTS() == NULL) && "PTS already initialized");
-  thc_set_pts_0(current->ptstate);
+  thc_set_pts_0(pts);
 }
 
 static void thc_pts_lock(PTState_t *t) {
@@ -254,8 +260,8 @@ void *_thc_allocstack(void) {
   DEBUG_STACK(DEBUGPRINTF(DEBUG_STACK_PREFIX "> AllocStack\n"));
   if (pts->free_stacks != NULL) {
     // Re-use previously freed stack
-    DEBUG_STACK(DEBUGPRINTF(DEBUG_STACK_PREFIX "  Re-using free stack\n"));
     struct thcstack_t *r = pts->free_stacks;
+    DEBUG_STACK(DEBUGPRINTF(DEBUG_STACK_PREFIX "  Re-using free stack\n"));
     pts->free_stacks = pts->free_stacks->next;
     result = ((void*)r) + sizeof(struct thcstack_t);
   } else {
@@ -416,7 +422,7 @@ static void thc_dispatch_loop(void) {
 
   // Pick up work passed to us from other threads
   if (pts->aweRemoteHead.next != &pts->aweRemoteTail) {
-	awe_t *tmp = pts->aweHead.next;
+    awe_t *tmp = pts->aweHead.next;
     thc_pts_lock(pts);
     // Move remote list into our local list
     pts->aweHead.next = pts->aweRemoteHead.next;
@@ -958,8 +964,8 @@ static void remove_awe_from_list(awe_t* awe)
 {
   	PTState_t *pts = awe->pts;
   	//if awe is on front of queue
-	int isHead = (awe == &((pts->aweHead).next));
-	int isTail = (awe == &((pts->aweTail).prev));
+	int isHead = (awe == pts->aweHead.next);
+	int isTail = (awe == pts->aweTail.prev);
 	if(isHead)
 	{
 		pts->aweHead.next = awe->next;
@@ -1011,6 +1017,10 @@ static void thc_yieldto_with_cont(void *a, void *arg) {
   awe->pts->curr_lazy_stack = awe->lazy_stack;
   awe->pts->current_fb = awe->current_fb;
 
+  // Bug in original Barrelfish version; awe wasn't removed from
+  // dispatch queue when we yielded to it here. (Note that in
+  // dispatch loop awe's are removed from the dispatch queue
+  // when we yield to them.)
   remove_awe_from_list(awe);
   thc_awe_execute_0(awe);
 }
@@ -1252,7 +1262,7 @@ int THCRun(THCFn_t fn,
 // Start-of-day code for Barrelfish, where we initialize THC before
 // entry to main.
 
-#ifndef LINUX_KERNEL
+#ifdef LINUX_KERNEL
 
 static void IdleFn(void *arg) {
   PTState_t *pts = PTS();

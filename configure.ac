@@ -2,7 +2,7 @@
 
 AC_PREREQ([2.68])
 AC_INIT([libasync], [0.1])
-AC_CONFIG_SRCDIR([libasync/src/common/thc.c])
+AC_CONFIG_SRCDIR([src/common/thc.c])
 AC_CONFIG_AUX_DIR(autoconf)
 AC_CONFIG_HEADERS([config.h])
 
@@ -26,12 +26,12 @@ AM_COND_IF([ENABLE_KERNEL_TESTS_BUILD],
     [AC_MSG_NOTICE([Building kernel tests.])],
     [AC_MSG_NOTICE([Not building kernel tests.])])
 
-# Build libcap as kernel module? (in addition to static lib.a)
+# Build libasync as kernel module? (in addition to static lib.a)
 AC_ARG_ENABLE([kernel_module],
-    [AS_HELP_STRING([--disable-kernel-module],
-        [Disable kernel module build (default=no)])],
+    [AS_HELP_STRING([--enable-kernel-module],
+        [Enable kernel module build (default=no)])],
     [],
-    [enable_kernel_module="yes"])
+    [enable_kernel_module="no"])
 AM_CONDITIONAL(ENABLE_KERNEL_MODULE, 
     [test "x$enable_kernel_module" = "xyes"])
 
@@ -62,7 +62,7 @@ AC_ARG_WITH([libfipc],
             [LIBFIPC_DIR="$with_libfipc"])
 
 AS_IF([test "x$LIBFIPC_DIR" = "x"],
-        [AC_MSG_ERR([libfipc (--with-libfipc) is required])])
+        [AC_MSG_ERROR([libfipc (--with-libfipc) is required])])
 
 AC_CHECK_FILE($LIBFIPC_DIR/include/libfipc.h,
             [AC_MSG_NOTICE([Found libfipc.h in $LIBFIPC_DIR/include])],
@@ -117,8 +117,9 @@ AC_CONFIG_FILES(
   Makefile
 
   src/Makefile
-  src/common/Makefile
+  src/Kbuild
 
+  src/common/Makefile
   src/include/Makefile
 
 )

@@ -16,6 +16,7 @@
 
 #include <linux/bug.h>
 #include <linux/string.h>
+#include <linux/slab.h>
 #include <awe_mapper.h>
 
 #ifdef LCD_ISOLATE

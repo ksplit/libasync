@@ -12,6 +12,8 @@
 #ifndef AWE_MAPPER_H
 #define AWE_MAPPER_H
 
+#include <thc.h>
+
 #ifdef LINUX_KERNEL
 
 #define AWE_TABLE_COUNT 128

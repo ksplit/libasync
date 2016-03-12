@@ -8,7 +8,6 @@ typedef struct ptstate_t PTState_t;
 typedef struct thcstack_t thcstack_t;
 typedef struct finish_t finish_t;
 struct thc_latch;
-typedef void (*THCIdleFn_t)(void *);
 // Definition of an AWE, asynchronous work element.  This definition must
 // match the assembly-language definitions at the bottom of thc.c which
 // access fields in the AWE structure.

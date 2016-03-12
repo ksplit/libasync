@@ -15,7 +15,7 @@ AM_CPPFLAGS = \
 	-I$(abs_top_builddir)/src/include \
 	-I$(LIBFIPC_DIR)/include
 
-AM_CFLAGS = -fno-ipa-cp -fno-ipa-sra
+AM_CFLAGS = -fno-ipa-cp -fno-ipa-sra -DLINUX_KERNEL -DCONFIG_LAZY_THC
 
 COMMON_SRCS= \
 	common/thc.c \
@@ -110,7 +110,7 @@ clean: clean-lib $(MAYBE_CLEAN_TESTS) $(MAYBE_CLEAN_MODULE)
 clean-tests:
 	$(MAKE) -C $(KDIR) M=$(LIBASYNC_TESTS_KBUILD) clean
 
-clean-tests:
+clean-module:
 	$(MAKE) -C $(KDIR) M=$(LIBASYNC_KERNEL_MODULE_KBUILD) clean
 
 clean-lib:

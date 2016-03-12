@@ -20,9 +20,13 @@
 #endif
 
 #define NOT_REACHED assert(0 && "Not reached")
+#ifdef LINUX_KERNEL
+#define DEBUGPRINTF printk
+#else
 #define DEBUGPRINTF debug_printf
+#endif
 
-#define DEBUG_SYNC(XX)
+//#define DEBUG_SYNC(XX)
 #define DEBUG_SYNC(XX) do{ XX; } while (0)
 #define DEBUG_SYNC_PREFIX         "         sync:    "
 
