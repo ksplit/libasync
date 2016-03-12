@@ -11,8 +11,8 @@
 #include <thc_ipc.h>
 #include <thc.h>
 #include <thcinternal.h>
-#include <awe-mapper.h>
-#include "../../../fast-ipc-module/src/platform/kernel/tests/test_helpers.h"
+#include <awe_mapper.h>
+#include "../test_helpers.h"
 
 static inline int send_and_get_response(
 	struct fipc_ring_channel *chan,
@@ -144,7 +144,6 @@ int caller(void *_caller_channel_header)
 {
     struct fipc_ring_channel *chan = _caller_channel_header;
 	unsigned long transaction_id = 0;
-	unsigned long start, end;
 	int ret = 0;
     volatile void ** frame = (volatile void**)__builtin_frame_address(0);
     volatile void *ret_addr = *(frame + 1);

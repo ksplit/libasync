@@ -9,7 +9,7 @@
 #include <linux/kernel.h>
 #include <libfipc.h>
 #include "rpc.h"
-#include "../../../fast-ipc-module/src/platform/kernel/tests/test_helpers.h"
+#include "../test_helpers.h"
 #include <thc_ipc.h>
 
 /*

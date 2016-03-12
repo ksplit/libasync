@@ -108,6 +108,10 @@ AC_CONFIG_FILES(
 
   src/common/Makefile
   src/include/Makefile
+  
+  src/tests/Kbuild
+  src/tests/Makefile
+  src/tests/simple/Kbuild
 
 )
 AC_OUTPUT

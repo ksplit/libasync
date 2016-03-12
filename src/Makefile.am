@@ -33,7 +33,7 @@ LIBASYNC_TESTS_KBUILD=@abs_top_builddir@/src/tests
 # are relative to this directory (the build version).
 LIBASYNC_PATH=libasync.a
 LIBFIPC_LIB=$(shell @abs_top_srcdir@/scripts/relpath.py \
-	$(LIBFIPC_DIR)/lib/libfipc.a @abs_top_builddir@)
+	$(LIBFIPC_DIR)/lib/libfipc.a @abs_top_builddir@/src)
 
 export LIBASYNC_TESTS_KBUILD LIBASYNC_PATH LIBFIPC_LIB
 

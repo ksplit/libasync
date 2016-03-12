@@ -110,12 +110,9 @@ typedef int errval_t;
     awe_t _awe;                                                         \
     extern void * CONT_RET_FN_NAME(_C) (void);	         		\
 									\
-    _awe.status     = LAZY_AWE;						\
-    _awe.lazy_stack = NULL;						\
-    _awe.pts        = NULL;						\
-									\
     /* Define nested function containing the body */			\
     noinline auto void _thc_nested_async(FORCE_ARGS_STACK awe_t *awe) __asm__(NESTED_FN_STRING(_C)); \
+									\
     noinline void _thc_nested_async(FORCE_ARGS_STACK awe_t *awe) {	\
       void *_my_fb = _fb_info;						\
       _awe.current_fb = _my_fb;						\
@@ -130,6 +127,11 @@ typedef int errval_t;
       /* Otherwise, return */						\
       RETURN_CONT(CONT_RET_FN_STRING(_C));				\
     }									\
+									\
+    _awe.status     = LAZY_AWE;						\
+    _awe.lazy_stack = NULL;						\
+    _awe.pts        = NULL;						\
+									\
     SCHEDULE_CONT(&_awe, _thc_nested_async);                            \
     __asm__ volatile (							\
       "      .globl  " CONT_RET_FN_STRING(_C) "\n\t"			\
@@ -243,6 +245,10 @@ typedef void (*THCIdleFn_t)(void *);
 // An AWE is an asynchronous work element.  It runs to completion,
 // possibly producing additional AWEs which may be run subsequently.
 typedef struct awe_t awe_t;
+
+// Invoke these to initialize/tear down the thc runtime
+void thc_init(void);
+void thc_done(void);
 
 // Finish the current AWE, and initialize (*awe_ptr_ptr) with a pointer
 // to an AWE for its continuation.  Typically, this will be stashed

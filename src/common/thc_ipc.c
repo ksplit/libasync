@@ -163,5 +163,5 @@ int thc_channel_group_item_add(struct thc_channel_group* channel_group,
 
     return 0;
 }
-EXPORT_SYMBOL(thc_channel_group_add);
+EXPORT_SYMBOL(thc_channel_group_item_add);
 
