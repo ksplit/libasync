@@ -6,13 +6,13 @@ src = @abs_top_srcdir@/src/tests/simple
 
 obj-m = libasync_test_simple.o
 
-# Path are relative to root test/ dir
+# Paths are relative to simple/ build dir
 libasync_test_simple-y += main.o callee.o caller.o
 
-# libasync.a is relative to src/
+# LIBASYNC_PATH and LIBFIPC_LIB are defined (and exported) in
+# src/Makefile.am.
 libasync_test_simple-y += ../../$(LIBASYNC_PATH) 
 
-# libfipc.a is relative to src/
 libasync_test_simple-y += ../../$(LIBFIPC_LIB) 
 
 # Add -DCHECK_MESSAGES to check that message values contain what is expected
