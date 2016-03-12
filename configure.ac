@@ -26,19 +26,6 @@ AM_COND_IF([ENABLE_KERNEL_TESTS_BUILD],
     [AC_MSG_NOTICE([Building kernel tests.])],
     [AC_MSG_NOTICE([Not building kernel tests.])])
 
-# Build libasync as kernel module? (in addition to static lib.a)
-AC_ARG_ENABLE([kernel_module],
-    [AS_HELP_STRING([--enable-kernel-module],
-        [Enable kernel module build (default=no)])],
-    [],
-    [enable_kernel_module="no"])
-AM_CONDITIONAL(ENABLE_KERNEL_MODULE, 
-    [test "x$enable_kernel_module" = "xyes"])
-
-AM_COND_IF([ENABLE_KERNEL_MODULE],
-    [AC_MSG_NOTICE([Building kernel module.])],
-    [AC_MSG_NOTICE([Not building kernel module.])])
-
 # --------------------------------------------------
 # Checks for programs.
 # --------------------------------------------------

@@ -2,9 +2,9 @@
 # phony targets to link the kernel build system in with this one.
 
 # Include all dirs for distribution/tarball
-DIST_SUBDIRS = module tests include
+DIST_SUBDIRS = tests include
 
-SUBDIRS = include # we manually recur into module and tests
+SUBDIRS = include # we manually recur into tests
 
 # Add includes to include search path. (The root of the builddir is necessary to
 # add explicitly for the kernel build, because some of the headers are
@@ -28,7 +28,6 @@ export AM_CPPFLAGS AM_CFLAGS COMMON_SRCS
 
 LIBASYNC_KBUILD=@abs_top_builddir@/src
 LIBASYNC_TESTS_KBUILD=@abs_top_builddir@/src/tests
-LIBASYNC_KERNEL_MODULE_KBUILD=@abs_top_builddir@/src/module
 
 # These are used in Kbuilds, so they need to be relative paths (boo). They
 # are relative to this directory (the build version).
@@ -36,8 +35,7 @@ LIBASYNC_PATH=libasync.a
 LIBFIPC_LIB=$(shell @abs_top_srcdir@/scripts/relpath.py \
 	$(LIBFIPC_DIR)/lib/libfipc.a @abs_top_builddir@)
 
-export LIBASYNC_TESTS_KBUILD LIBASYNC_KERNEL_MODULE_KBUILD LIBASYNC_PATH
-export LIBFIPC_LIB
+export LIBASYNC_TESTS_KBUILD LIBASYNC_PATH LIBFIPC_LIB
 
 if ENABLE_KERNEL_TESTS_BUILD
 
@@ -48,25 +46,13 @@ MAYBE_CLEAN_TESTS = clean-tests
 
 endif
 
-if ENABLE_KERNEL_MODULE
-
-MAYBE_ALL_MODULE = all-module
-MAYBE_INSTALL_MODULE = install-tests
-MAYBE_DO_MODULES_INSTALL_MODULE = do-modules-install-module
-MAYBE_CLEAN_MODULE = clean-module
-
-endif
-
 # BUILD ------------------------------------------------------------
 
-# Sequence the build, so we build libfipc first
-all: all-lib-cp $(MAYBE_ALL_TESTS) $(MAYBE_ALL_MODULE)
+# Sequence the build, so we build libasync first
+all: all-lib-cp $(MAYBE_ALL_TESTS)
 
 all-tests: all-lib-cp
 	$(MAKE) -C $(KDIR) M=$(LIBASYNC_TESTS_KBUILD) modules
-
-all-module: all-lib-cp
-	$(MAKE) -C $(KDIR) M=$(LIBASYNC_KERNEL_MODULE_KBUILD) modules
 
 all-lib-cp: all-lib
 	cp $(LIBASYNC_KBUILD)/lib.a $(LIBASYNC_KBUILD)/libasync.a
@@ -77,15 +63,10 @@ all-lib:
 # INSTALL ------------------------------------------------------------
 
 # Move libasync.a into install dir, and conditionally move modules
-install-exec-hook: install-libasync $(MAYBE_INSTALL_TESTS) \
-	$(MAYBE_INSTALL_MODULE)
+install-exec-hook: install-libasync $(MAYBE_INSTALL_TESTS)
 
 install-tests: install-setup-dir
 	$(MAKE) -C tests install-tests D=$(DESTDIR)$(libdir) # manually recur
-
-install-module: install-setup-dir
-	cp $(LIBASYNC_KERNEL_MODULE_KBUILD)/module/libasync.ko  \
-	$(DESTDIR)$(libdir)	
 
 install-libasync: install-setup-dir
 	cp $(LIBASYNC_KBUILD)/libasync.a $(DESTDIR)$(libdir)
@@ -95,9 +76,6 @@ install-setup-dir:
 
 # MODULES INSTALL --------------------------------------------------
 
-do-modules-install-module:
-	$(MAKE) -C $(KDIR) M=$(LIBASYNC_KERNEL_MODULE_KBUILD) modules_install
-
 do-modules-install:
 	$(MAKE) -C $(KDIR) M=$(LIBASYNC_TESTS_KBUILD) modules_install
 
@@ -105,20 +83,17 @@ modules_install: $(MAYBE_DO_MODULES_INSTALL) $(MAYBE_DO_MODULES_INSTALL_MODULE)
 
 # CLEAN ------------------------------------------------------------
 
-clean: clean-lib $(MAYBE_CLEAN_TESTS) $(MAYBE_CLEAN_MODULE)
+clean: clean-lib $(MAYBE_CLEAN_TESTS)
 
 clean-tests:
 	$(MAKE) -C $(KDIR) M=$(LIBASYNC_TESTS_KBUILD) clean
-
-clean-module:
-	$(MAKE) -C $(KDIR) M=$(LIBASYNC_KERNEL_MODULE_KBUILD) clean
 
 clean-lib:
 	$(MAKE) -C $(KDIR) M=$(LIBASYNC_KBUILD) clean
 	rm -f $(LIBASYNC_KBUILD)/libasync.a
 
-.PHONY: all-tests all-module all-lib all-lib-cp \
-	install-tests install-module install-libasync install-setup-dir \
-	do-modules-install do-modules-install-module modules_install \
-	clean-tests clean-lib clean-module
+.PHONY: all-tests all-lib all-lib-cp \
+	install-tests install-libasync install-setup-dir \
+	do-modules-install modules_install \
+	clean-tests clean-lib
 
