@@ -14,62 +14,30 @@ AM_INIT_AUTOMAKE([subdir-objects foreign])
 # libasync features, packages, and config
 # --------------------------------------------------
 
-# Platform = kernel
-# (other platforms to be added later ... )
-AC_ARG_VAR([PLATFORM],
-    [The platform to build for @{:@kernel@:}@ (default=kernel)])
-AS_CASE([$PLATFORM],
-    [kernel],
-    [PLATFORM_DIR=platform/kernel],
-    [*],
-    [
-        AC_MSG_NOTICE([PLATFORM (val=$PLATFORM) unset or invalid.])
-        AC_MSG_NOTICE([Defaulting to PLATFORM=kernel.])
-        PLATFORM=kernel
-        PLATFORM_DIR=platform/kernel
-    ])
-AC_MSG_NOTICE([Building for PLATFORM=$PLATFORM.])
-AC_SUBST(PLATFORM)
-AC_SUBST(PLATFORM_DIR)
+# Build kernel tests?
+AC_ARG_ENABLE([kernel_tests_build],
+    [AS_HELP_STRING([--enable-kernel-tests-build],
+        [Enable building kernel test modules (default=no)])],
+        [],
+        [enable_kernel_tests_build="no"])
+AM_CONDITIONAL(ENABLE_KERNEL_TESTS_BUILD, 
+    [test "x$enable_kernel_tests_build" = "xyes"])
+AM_COND_IF([ENABLE_KERNEL_TESTS_BUILD],
+    [AC_MSG_NOTICE([Building kernel tests.])],
+    [AC_MSG_NOTICE([Not building kernel tests.])])
 
-AS_IF([test "x$PLATFORM" = "xkernel"],
+# Build libcap as kernel module? (in addition to static lib.a)
+AC_ARG_ENABLE([kernel_module],
+    [AS_HELP_STRING([--disable-kernel-module],
+        [Disable kernel module build (default=no)])],
+    [],
+    [enable_kernel_module="yes"])
+AM_CONDITIONAL(ENABLE_KERNEL_MODULE, 
+    [test "x$enable_kernel_module" = "xyes"])
 
-    [
-        # Build kernel tests?
-        AC_ARG_ENABLE([kernel_tests_build],
-            [AS_HELP_STRING([--enable-kernel-tests-build],
-                [Enable building kernel test modules (default=no)])],
-                [],
-                [enable_kernel_tests_build="no"])
-        AM_CONDITIONAL(ENABLE_KERNEL_TESTS_BUILD, 
-            [test "x$enable_kernel_tests_build" = "xyes"])
-        AM_COND_IF([ENABLE_KERNEL_TESTS_BUILD],
-            [AC_MSG_NOTICE([Building kernel tests.])],
-            [AC_MSG_NOTICE([Not building kernel tests.])])
-
-        # Build libcap as kernel module? (in addition to static lib.a)
-        AC_ARG_ENABLE([kernel_module],
-            [AS_HELP_STRING([--disable-kernel-module],
-                [Disable kernel module build (default=no)])],
-            [],
-            [enable_kernel_module="yes"])
-        AM_CONDITIONAL(ENABLE_KERNEL_MODULE, 
-            [test "x$enable_kernel_module" = "xyes"])
-
-        AM_COND_IF([ENABLE_KERNEL_MODULE],
-            [AC_MSG_NOTICE([Building kernel module.])],
-            [AC_MSG_NOTICE([Not building kernel module.])])
-
-    ],
-
-    [
-
-        AM_CONDITIONAL(ENABLE_KERNEL_TESTS_BUILD, 
-            [false])
-        AM_CONDITIONAL(ENABLE_KERNEL_MODULE, 
-            [false])
-
-    ])
+AM_COND_IF([ENABLE_KERNEL_MODULE],
+    [AC_MSG_NOTICE([Building kernel module.])],
+    [AC_MSG_NOTICE([Not building kernel module.])])
 
 # --------------------------------------------------
 # Checks for programs.
@@ -102,27 +70,20 @@ AC_CHECK_FILE($LIBFIPC_DIR/include/libfipc.h,
 
 AC_SUBST(LIBFIPC_DIR)
 
-# Check for kernel build system
-AS_IF([test "x$PLATFORM" = "xkernel"],
+KDIR=/lib/modules/`uname -r`/build # default location of build system
 
-    [
-        KDIR=/lib/modules/`uname -r`/build # default location of build system
+AC_ARG_WITH([kernel-headers],
+    [AS_HELP_STRING([--with-kernel-headers=DIRECTORY],
+        [find Linux kernel build stuff in DIRECTORY])],
+    [KDIR="$with_kernel_headers"])
 
-        AC_ARG_WITH([kernel-headers],
-            [AS_HELP_STRING([--with-kernel-headers=DIRECTORY],
-                [find Linux kernel build stuff in DIRECTORY])],
-            [KDIR="$with_kernel_headers"])
+# Sanity check it (in the future, we could maybe check the
+# kernel version in the top of the kernel Makefile)
+AC_CHECK_FILE($KDIR/Makefile,
+    [AC_MSG_NOTICE([Found kernel Makefile in $KDIR])],
+    [AC_MSG_ERROR([Could not find kernel Makefile in $KDIR!])])
 
-        # Sanity check it (in the future, we could maybe check the
-        # kernel version in the top of the kernel Makefile)
-        AC_CHECK_FILE($KDIR/Makefile,
-            [AC_MSG_NOTICE([Found kernel Makefile in $KDIR])],
-            [AC_MSG_ERROR([Could not find kernel Makefile in $KDIR!])])
-
-
-        AC_SUBST(KDIR)
-
-    ])
+AC_SUBST(KDIR)
 
 # --------------------------------------------------
 # Checks for types
@@ -160,14 +121,6 @@ AC_CONFIG_FILES(
 
   src/include/Makefile
 
-  src/platform/Makefile
-  src/platform/kernel/Makefile
-  src/platform/kernel/Kbuild
-  src/platform/kernel/include/Makefile
-  src/platform/kernel/tests/Makefile
-  src/platform/kernel/tests/Kbuild
-  src/platform/kernel/tests/rpc/Kbuild
-  src/platform/kernel/tests/empty_msg/Kbuild
 )
 AC_OUTPUT
 

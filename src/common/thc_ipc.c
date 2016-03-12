@@ -1,7 +1,16 @@
+
+#ifdef LCD_ISOLATE
+#include <lcd_config/pre_hook.h>
+#endif
+
 #include <thc_ipc.h>
 #include <thc_ipc_types.h>
 #include <libfipc_types.h>
-#include <awe-mapper.h>
+#include <awe_mapper.h>
+
+#ifdef LCD_ISOLATE
+#include <lcd_config/post_hook.h>
+#endif
 
 //assumes msg is a valid received message
 static int thc_recv_predicate(struct fipc_message* msg, void* data)

@@ -10,9 +10,17 @@
  * Date: January 2016 
  */
 
+#ifdef LCD_ISOLATE
+#include <lcd_config/pre_hook.h>
+#endif
+
 #include <linux/bug.h>
 #include <linux/string.h>
-#include <awe-mapper.h>
+#include <awe_mapper.h>
+
+#ifdef LCD_ISOLATE
+#include <lcd_config/post_hook.h>
+#endif
 
 /*
  * NOTE: This implementation right now is just a ring buffer.

@@ -6,9 +6,16 @@
 #ifdef LINUX_KERNEL
 #include <linux/types.h>
 #include <linux/printk.h>
+#define assert(XX) do {							\
+		if (!(XX)) {						\
+			printk("assertion failure at %s:%d\n",		\
+				__FILE__, __LINE__);			\
+		}							\
+	} while(0)
 #else
 #include <stdint.h>
 #include <stdlib.h>
+#define EXPORT_SYMBOL(x)
 #endif
 
 #ifndef BARRELFISH
