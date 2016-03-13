@@ -10,7 +10,7 @@
  * Date: January 2016 
  */
 
-#ifdef LCD_ISOLATE
+#ifdef LCD_DOMAINS
 #include <lcd_config/pre_hook.h>
 #endif
 
@@ -19,7 +19,7 @@
 #include <linux/slab.h>
 #include <awe_mapper.h>
 
-#ifdef LCD_ISOLATE
+#ifdef LCD_DOMAINS
 #include <lcd_config/post_hook.h>
 #endif
 

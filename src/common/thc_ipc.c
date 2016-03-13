@@ -1,5 +1,5 @@
 
-#ifdef LCD_ISOLATE
+#ifdef LCD_DOMAINS
 #include <lcd_config/pre_hook.h>
 #endif
 
@@ -8,7 +8,7 @@
 #include <libfipc_types.h>
 #include <awe_mapper.h>
 
-#ifdef LCD_ISOLATE
+#ifdef LCD_DOMAINS
 #include <lcd_config/post_hook.h>
 #endif
 

@@ -36,7 +36,7 @@
 #endif
 
 #ifdef LINUX_KERNEL
-#ifdef LCD_ISOLATE
+#ifdef LCD_DOMAINS
 #include <lcd_config/pre_hook.h>
 #endif
 #include <asm/page.h>
@@ -45,7 +45,7 @@
 #include <linux/bug.h>
 #include <linux/sched.h>
 #include <awe_mapper.h>
-#ifdef LCD_ISOLATE
+#ifdef LCD_DOMAINS
 #include <lcd_config/post_hook.h>
 #endif
 #undef DEBUG_STACK

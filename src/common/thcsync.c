@@ -9,13 +9,13 @@
 #include <assert.h>
 #endif
 
-#ifdef LCD_ISOLATE
+#ifdef LCD_DOMAINS
 #include <lcd_config/pre_hook.h>
 #endif
 
 #include <thc.h>
 
-#ifdef LCD_ISOLATE
+#ifdef LCD_DOMAINS
 #include <lcd_config/post_hook.h>
 #endif
 
