@@ -3,9 +3,9 @@
 #include <linux/module.h>
 #include <linux/delay.h>
 #include <thc_ipc_types.h>
+#include <thc_ipc.h>
 
-#include "../../../fast-ipc-module/src/platform/kernel/tests/test_helpers.h"
-#include "rpc.h"
+#include "../test_helpers.h"
 #include "thread_fn_util.h"
 
 
@@ -68,7 +68,7 @@ static int setup_and_run_test(void)
 				&thread_2_to_3_header);
 	if (ret) {
 		pr_err("Error creating channel, ret = %d\n", ret);
-		goto failN_i;
+		goto fail2;
 	}
 	
 

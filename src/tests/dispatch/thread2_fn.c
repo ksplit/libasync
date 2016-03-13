@@ -1,9 +1,13 @@
 #include <thc.h>
 #include <libfipc.h>
 #include <thcinternal.h>
+#include <thc_ipc.h>
+#include <thc_ipc_types.h>
+#include "rpc.h"
 #include "thc_dispatch_test.h"
+#include "../test_helpers.h"
 #include "thread_fn_util.h"
-#include <awe-mapper.h>
+#include <awe_mapper.h>
 #define THREAD2_FNS_LENGTH 2
 
 static struct thc_channel_group* rx_group;
@@ -14,7 +18,7 @@ static int add_2_fn(struct fipc_ring_channel* chan, struct fipc_message* msg)
     unsigned long result = fipc_get_reg0(msg) + fipc_get_reg1(msg);
 	struct fipc_message* out_msg;
 
-	if( test_ipc_blocking_send_start(chan, &out_msg) )
+	if( test_fipc_blocking_send_start(chan, &out_msg) )
     {
         printk(KERN_ERR "Error getting send message for add_2_fn.\n");
     }
@@ -37,30 +41,52 @@ static int add_2_fn(struct fipc_ring_channel* chan, struct fipc_message* msg)
 //Receives a value from thread1, then passes it to thread 3 and returns that result to thread 1
 static int add_10_fn(struct fipc_ring_channel* thread1_chan, struct fipc_message* msg)
 {
-    struct fipc_ring_channel * thread3_chan = rx_group->chans[1]; 
- 	struct fipc_message* thread3_msg = get_send_slot(thread3_chan);
+    struct thc_channel_group_item *thread3_item;
  	struct fipc_message* thread1_result;
-    unsigned long saved_msg_id = msg->msg_id;
+ 	struct fipc_message* thread3_msg;
+
+    fipc_recv_msg_end(thread1_chan, msg);
+
+    if( thc_channel_group_item_get(rx_group, 1, &thread3_item) )
+    {
+        printk(KERN_ERR "invalid index for group_item_get\n");
+        return 1;
+    }
+    struct fipc_ring_channel * thread3_chan = thread3_item->channel;
+
+	if( test_fipc_blocking_send_start(thread3_chan, &thread3_msg) )
+    {
+        printk(KERN_ERR "Error getting send message for add_10_fn.\n");
+    }
+
+    unsigned long saved_msg_id = THC_MSG_ID(msg);
     unsigned long new_msg_id   = awe_mapper_create_id();
-    transaction_complete(msg);
-	thread3_msg->fn_type  = msg->fn_type;
-	thread3_msg->reg1     = msg->reg1;
-	thread3_msg->reg2     = msg->reg2;
-	thread3_msg->msg_id   = new_msg_id;
-    thread3_msg->msg_type = msg_type_request;
-	send(thread3_chan,thread3_msg);
 
-	msg = async_recv(thread3_chan, new_msg_id);
-    transaction_complete(msg);
+	set_fn_type(thread3_msg, get_fn_type(msg));
+	fipc_set_reg0(thread3_msg, fipc_get_reg0(msg));
+	fipc_set_reg1(thread3_msg, fipc_get_reg1(msg));
+	THC_MSG_ID(thread3_msg)   = new_msg_id;
+    THC_MSG_TYPE(thread3_msg) = msg_type_request;
 
-    thread1_result = get_send_slot(thread1_chan);
-	thread1_result->fn_type  = msg->fn_type;
-	thread1_result->reg1     = msg->reg1;
-	thread1_result->reg2     = msg->reg2;
-	thread1_result->msg_id   = saved_msg_id;
-    thread1_result->msg_type = msg_type_response;
-	send(thread1_chan,thread1_result);
+    send_and_get_response(thread3_chan, thread3_msg, &msg, new_msg_id);
+    fipc_recv_msg_end(thread3_chan, msg);
 
+    if( test_fipc_blocking_send_start(thread1_chan, &thread1_result) )
+    {
+        printk(KERN_ERR "Error getting send message for add_10_fn.\n");
+    }
+
+	set_fn_type(thread1_result, get_fn_type(msg));
+	fipc_set_reg0(thread1_result, fipc_get_reg0(msg));
+	fipc_set_reg1(thread1_result, fipc_get_reg1(msg));
+	THC_MSG_ID(thread1_result)   = saved_msg_id;
+    THC_MSG_TYPE(thread1_result) = msg_type_response;
+
+    if( fipc_send_msg_end(thread1_chan, thread1_result) )
+    {
+        printk(KERN_ERR "Error sending message for add_10_fn.\n");
+    }
+    
     return 0;
 }
 
@@ -74,17 +100,19 @@ static int thread1_dispatch_fn(struct fipc_ring_channel* chan, struct fipc_messa
         case ADD_10_FN:
             return add_10_fn(chan, msg);
         default:
-            printk(KERN_ERR "FN: %lu is not a valid function type\n", msg->fn_type);
+            printk(KERN_ERR "FN: %lu is not a valid function type\n", get_fn_type(msg));
     }
     return 1;
 }
 
-int thread2_fn1(void* group)
+int thread2_fn(void* group)
 {
+    struct thc_channel_group_item *thrd1_item;
     thc_init();
     rx_group = (struct thc_channel_group*)group;
-    rx_group->chans[0]->dispatch_fn = thread1_dispatch_fn;
-    ipc_dispatch_loop(rx_group, TRANSACTIONS);
+    thc_channel_group_item_get(rx_group, 0, &thrd1_item);
+    thrd1_item->dispatch_fn = thread1_dispatch_fn;
+    thc_dispatch_loop_test(rx_group, TRANSACTIONS);
     thc_done();
 
     return 1;

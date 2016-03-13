@@ -77,7 +77,6 @@ int thc_ipc_recv(struct fipc_ring_channel *chnl,
         }
         else if( ret == -EWOULDBLOCK ) //no message, Yield
         {
-            printk(KERN_ERR "yielding\n");
             THCYieldAndSave((uint32_t) msg_id); 
         }
         else
@@ -165,3 +164,22 @@ int thc_channel_group_item_add(struct thc_channel_group* channel_group,
 }
 EXPORT_SYMBOL(thc_channel_group_item_add);
 
+
+int thc_channel_group_item_get(struct thc_channel_group* channel_group, 
+                               int index, 
+                               struct thc_channel_group_item **out_item)
+{
+
+    int curr_index = 0;
+    list_for_each_entry((*out_item), &(channel_group->head), list)
+    {
+        if( curr_index == index )
+        {
+            return 0;
+        }
+        curr_index++;
+    }
+
+    return 1;
+}
+EXPORT_SYMBOL(thc_channel_group_item_get);

@@ -2,7 +2,7 @@
 #include <thc.h>
 #include <thcinternal.h>
 #include <libfipc.h>
-#include <awe-mapper.h>
+#include <awe_mapper.h>
 #include <linux/types.h>
 #include <thc_ipc.h>
 
@@ -49,4 +49,4 @@ int thc_dispatch_loop_test(struct thc_channel_group* rx_group, int max_recv_ct)
 
     return 0;
 }
-EXPORT_SYMBOL(ipc_dispatch_loop);
+EXPORT_SYMBOL(thc_dispatch_loop_test);

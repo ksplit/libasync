@@ -1,6 +1,8 @@
+#include <thc_ipc.h>
 #include "thread_fn_util.h"
 
-static inline int send_and_get_response(
+
+int send_and_get_response(
 	struct fipc_ring_channel *chan,
 	struct fipc_message *request,
 	struct fipc_message **response,

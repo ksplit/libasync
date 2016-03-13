@@ -113,6 +113,7 @@ AC_CONFIG_FILES(
   src/tests/Makefile
   src/tests/simple/Kbuild
 
+  src/tests/dispatch/Kbuild
 )
 AC_OUTPUT
 

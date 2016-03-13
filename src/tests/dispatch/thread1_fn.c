@@ -4,8 +4,11 @@
 #include <thcinternal.h>
 #include "thc_dispatch_test.h"
 #include "thread_fn_util.h"
-#include <awe-mapper.h>
+#include "../test_helpers.h"
+#include "rpc.h"
+#include <awe_mapper.h>
 #include <linux/delay.h>
+
 
 #define BATCH_INTERVAL 100
 
@@ -16,16 +19,16 @@ static unsigned long add_nums_async(unsigned long lhs, unsigned long rhs, unsign
 	struct fipc_message *msg;
     struct fipc_message *response;
 	unsigned long result;
-	if( test_ipc_blocking_send_start(channel, &msg) )
+	if( test_fipc_blocking_send_start(channel, &msg) )
     {
         printk(KERN_ERR "Error getting send message for add_nums_async.\n");
     }
 	set_fn_type(msg, fn_type);
-	fipc_set_reg0(lhs);
-	fipc_set_reg1(rhs);
+	fipc_set_reg0(msg, lhs);
+	fipc_set_reg1(msg, rhs);
 	THC_MSG_ID(msg)   = msg_id;
     THC_MSG_TYPE(msg) = msg_type_request;
-    send_and_get_response(channel, msg, &response);
+    send_and_get_response(channel, msg, &response, msg_id);
     fipc_recv_msg_end(channel, response);
 	result = fipc_get_reg0(response);
     printk(KERN_ERR "result is %lu\n", result);
