@@ -15,7 +15,6 @@
 #else
 #include <stdint.h>
 #include <stdlib.h>
-#define EXPORT_SYMBOL(x)
 #endif
 
 #ifndef BARRELFISH

@@ -51,6 +51,11 @@
 #undef DEBUG_STACK
 #endif
 
+#ifndef LINUX_KERNEL_MODULE
+#undef EXPORT_SYMBOL
+#define EXPORT_SYMBOL(x)
+#endif
+
 #ifdef linux
 #include <pthread.h>
 #endif

@@ -12,6 +12,11 @@
 #include <lcd_config/post_hook.h>
 #endif
 
+#ifndef LINUX_KERNEL_MODULE
+#undef EXPORT_SYMBOL
+#define EXPORT_SYMBOL(x)
+#endif
+
 //assumes msg is a valid received message
 static int thc_recv_predicate(struct fipc_message* msg, void* data)
 {

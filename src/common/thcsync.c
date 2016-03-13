@@ -19,6 +19,11 @@
 #include <lcd_config/post_hook.h>
 #endif
 
+#ifndef LINUX_KERNEL_MODULE
+#undef EXPORT_SYMBOL
+#define EXPORT_SYMBOL(x)
+#endif
+
 #define NOT_REACHED assert(0 && "Not reached")
 #ifdef LINUX_KERNEL
 #define DEBUGPRINTF printk

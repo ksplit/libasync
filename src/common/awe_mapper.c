@@ -23,6 +23,11 @@
 #include <lcd_config/post_hook.h>
 #endif
 
+#ifndef LINUX_KERNEL_MODULE
+#undef EXPORT_SYMBOL
+#define EXPORT_SYMBOL(x)
+#endif
+
 /*
  * NOTE: This implementation right now is just a ring buffer.
  * In the future, we probably want to change this to something
