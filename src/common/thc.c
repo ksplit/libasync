@@ -1343,6 +1343,18 @@ void thc_done(void) {
 }
 EXPORT_SYMBOL(thc_done);
 
+int thc_global_init(void)
+{
+	return 0; // no-op for now
+}
+EXPORT_SYMBOL(thc_global_init);
+
+void thc_global_fini(void)
+{
+	return; // no-op for now
+}
+EXPORT_SYMBOL(thc_global_fini);
+
 //struct run_args {
 //  int argc;
 //  char **argv;

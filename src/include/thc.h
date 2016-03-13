@@ -245,8 +245,16 @@ typedef void (*THCIdleFn_t)(void *);
 // possibly producing additional AWEs which may be run subsequently.
 typedef struct awe_t awe_t;
 
-// Invoke these to initialize/tear down the thc runtime
+// Invoke this before using any other code in the thc interface
+int thc_global_init(void);
+
+// Invoke this when you are finished using the thc code
+void thc_global_fini(void);
+
+// Invoke this to initialize the context for a *single thread*
 void thc_init(void);
+
+// Invoke this to destroy the context for a *single thread*
 void thc_done(void);
 
 // Finish the current AWE, and initialize (*awe_ptr_ptr) with a pointer
