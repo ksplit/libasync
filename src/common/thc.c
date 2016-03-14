@@ -76,11 +76,12 @@
 #define DEBUGPRINTF printf
 #endif
 
-//#define DEBUG_STATS(XX)
+#ifdef NDEBUG
+#define DEBUG_STATS(XX)
+#else
 #define DEBUG_STATS(XX) do{ XX; } while (0)
 #define DEBUG_STATS_PREFIX        "         stats:    "
-
-//#define VERBOSE_DEBUG
+#endif
 
 #ifdef VERBOSE_DEBUG
 #define DEBUG_YIELD(XX) do{ XX; } while (0)

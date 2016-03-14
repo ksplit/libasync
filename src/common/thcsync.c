@@ -31,9 +31,12 @@
 #define DEBUGPRINTF debug_printf
 #endif
 
-//#define DEBUG_SYNC(XX)
+#ifdef NDEBUG
+#define DEBUG_SYNC(XX)
+#else
 #define DEBUG_SYNC(XX) do{ XX; } while (0)
 #define DEBUG_SYNC_PREFIX         "         sync:    "
+#endif
 
 //......................................................................
 //
