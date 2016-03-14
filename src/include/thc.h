@@ -110,9 +110,17 @@ typedef int errval_t;
     extern void * CONT_RET_FN_NAME(_C) (void);	         		\
 									\
     /* Define nested function containing the body */			\
-    noinline auto void _thc_nested_async(FORCE_ARGS_STACK awe_t *awe) __asm__(NESTED_FN_STRING(_C)); \
+                                                                        \
+    /* XXX: With these attributes, we're no longer portable with other  \
+     * compilers ... */                                                 \
+    auto void                                                           \
+    noinline				                                \
+    __attribute__((optimize("no-ipa-sra","no-ipa-cp")))                 \
+    _thc_nested_async(FORCE_ARGS_STACK awe_t *awe)                      \
+    __asm__(NESTED_FN_STRING(_C));                                      \
 									\
-    noinline void _thc_nested_async(FORCE_ARGS_STACK awe_t *awe) {	\
+    noinline                                                            \
+    void _thc_nested_async(FORCE_ARGS_STACK awe_t *awe) {	        \
       void *_my_fb = _fb_info;						\
       _awe.current_fb = _my_fb;						\
       INIT_LAZY_AWE(awe, &_thc_lazy_awe_marker);			\
