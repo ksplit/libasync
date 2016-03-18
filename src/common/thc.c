@@ -133,7 +133,9 @@ static inline void thc_schedule_local(awe_t *awe);
 
 // Per-thread state
 
-PTState_t *PTS(void) {
+PTState_t *
+LIBASYNC_FUNC_ATTR 
+PTS(void) {
   PTState_t *pts = thc_get_pts_0();
 #ifndef NDEBUG
   if (pts!=NULL) {
@@ -260,7 +262,9 @@ static void thc_print_pts_stats(PTState_t *t, int clear)
 // There is currently no support for extending a stack, or allowing it
 // to be discontiguous
 
-void *_thc_allocstack(void) {
+void *
+LIBASYNC_FUNC_ATTR 
+_thc_allocstack(void) {
   PTState_t *pts = PTS();
   void *result = NULL;
   DEBUG_STACK(DEBUGPRINTF(DEBUG_STACK_PREFIX "> AllocStack\n"));
@@ -285,7 +289,9 @@ void *_thc_allocstack(void) {
 
 // De-allocate a stack back to THC's pool of free stacks
 
-void _thc_freestack(void *s) {
+void 
+LIBASYNC_FUNC_ATTR 
+_thc_freestack(void *s) {
   PTState_t *pts = PTS();
   struct thcstack_t *stack = (struct thcstack_t*)(s - sizeof(struct thcstack_t));
   DEBUG_STACK(DEBUGPRINTF(DEBUG_STACK_PREFIX "> FreeStack(%p)\n", stack));
@@ -307,7 +313,9 @@ static void thc_pendingfree(PTState_t * pts) {
   }
 }
 
-void _thc_pendingfree(void) {
+void 
+LIBASYNC_FUNC_ATTR 
+_thc_pendingfree(void) {
   thc_pendingfree(PTS());
 }
 EXPORT_SYMBOL(_thc_pendingfree);
@@ -361,7 +369,9 @@ static inline void check_lazy_stack_finished (PTState_t *pts, awe_t *awe) {
 // Execute "fn(args)" on the stack growing down from "stacktop".  This is
 // just a wrapper around the arch-os specific function.
 
-void _thc_onaltstack(void *stacktop, void *fn, void *args) {
+void 
+LIBASYNC_FUNC_ATTR 
+_thc_onaltstack(void *stacktop, void *fn, void *args) {
   DEBUG_STACK(DEBUGPRINTF(DEBUG_STACK_PREFIX "> OnAltStack(%p, %p, %p)\n",
                           stacktop, fn, args));
 
@@ -600,7 +610,9 @@ void _thc_schedulecont_c(awe_t *awe) {
 // C "used" attribute is not currently maintained through Clang & LLVM
 // with the C backend, so we cannot rely on that.
 extern void _thc_callcont_c(awe_t *awe, THCContFn_t fn, void *args);
-void _thc_callcont_c(awe_t *awe,
+void 
+LIBASYNC_FUNC_ATTR 
+_thc_callcont_c(awe_t *awe,
                      THCContFn_t fn,
                      void *args) {
   PTState_t *pts = PTS();
@@ -673,7 +685,9 @@ static inline void check_for_lazy_awe (void * ebp) { }
 // fb->finish_awe which will be resumed when the final async
 // call finsihes.  _thc_endasync picks this up.
 
-void _thc_startfinishblock(finish_t *fb, int fb_kind) {
+void 
+LIBASYNC_FUNC_ATTR 
+_thc_startfinishblock(finish_t *fb, int fb_kind) {
   PTState_t *pts = PTS();
   finish_t *current_fb;
 
@@ -778,7 +792,9 @@ static void thc_run_cancel_actions(PTState_t *pts, finish_t *fb) {
   }
 }
 
-void _thc_do_cancel_request(finish_t *fb) {
+void 
+LIBASYNC_FUNC_ATTR 
+_thc_do_cancel_request(finish_t *fb) {
   PTState_t *pts = PTS();
   finish_list_t *fl;
   // Set own cancellation request flag
@@ -817,7 +833,9 @@ void _thc_do_cancel_request(finish_t *fb) {
 }
 EXPORT_SYMBOL(_thc_do_cancel_request);
 
-void _thc_endfinishblock(finish_t *fb, void *stack) {
+void 
+LIBASYNC_FUNC_ATTR 
+_thc_endfinishblock(finish_t *fb, void *stack) {
   PTState_t *pts = PTS();
   DEBUG_FINISH(DEBUGPRINTF(DEBUG_FINISH_PREFIX "> EndFinishBlock(%p)\n",
                            fb));
@@ -865,7 +883,9 @@ void _thc_endfinishblock(finish_t *fb, void *stack) {
 EXPORT_SYMBOL(_thc_endfinishblock);
 
 
-void _thc_startasync(void *f, void *stack) {
+void 
+LIBASYNC_FUNC_ATTR 
+_thc_startasync(void *f, void *stack) {
   finish_t *fb = (finish_t*)f;
   DEBUG_FINISH(DEBUGPRINTF(DEBUG_FINISH_PREFIX "> StartAsync(%p,%p)\n",
                            fb, stack));
@@ -878,7 +898,9 @@ void _thc_startasync(void *f, void *stack) {
 }
 EXPORT_SYMBOL(_thc_startasync);
 
-void _thc_endasync(void *f, void *s) {
+void 
+LIBASYNC_FUNC_ATTR 
+_thc_endasync(void *f, void *s) {
   finish_t *fb = (finish_t*)f;
   PTState_t *pts = PTS();
 #ifndef NDEBUG
@@ -921,12 +943,16 @@ EXPORT_SYMBOL(_thc_endasync);
 
 // Operations for use by application code
 
-void THCDumpStats(int clear_stats) {
+void 
+LIBASYNC_FUNC_ATTR 
+THCDumpStats(int clear_stats) {
   thc_print_pts_stats(PTS(), clear_stats);
 }
 EXPORT_SYMBOL(THCDumpStats);
 
-void THCIncSendCount(void) {
+void 
+LIBASYNC_FUNC_ATTR 
+THCIncSendCount(void) {
 #ifndef NDEBUG
   if (PTS() != NULL) {
     PTS()->sendCount++;
@@ -935,7 +961,9 @@ void THCIncSendCount(void) {
 }
 EXPORT_SYMBOL(THCIncSendCount);
 
-void THCIncRecvCount(void) {
+void 
+LIBASYNC_FUNC_ATTR 
+THCIncRecvCount(void) {
 #ifndef NDEBUG
   if (PTS() != NULL) {
     PTS()->recvCount++;
@@ -955,13 +983,17 @@ static void thc_yield_with_cont(void *a, void *arg) {
 }
 
 // Yields and saves awe_ptr to correspond to the provided id number
-void THCYieldAndSave(uint32_t id_num)
+void 
+LIBASYNC_FUNC_ATTR 
+THCYieldAndSave(uint32_t id_num)
 {
   CALL_CONT_LAZY_AND_SAVE((void*)&thc_yield_with_cont, id_num, NULL);
 }
 EXPORT_SYMBOL(THCYieldAndSave);
 
-void THCYield(void) {
+void 
+LIBASYNC_FUNC_ATTR 
+THCYield(void) {
   CALL_CONT_LAZY((void*)&thc_yield_with_cont, NULL);
 }
 EXPORT_SYMBOL(THCYield);
@@ -1031,7 +1063,9 @@ static void thc_yieldto_with_cont(void *a, void *arg) {
   thc_awe_execute_0(awe);
 }
 
-void THCYieldToIdAndSave(uint32_t id_to, uint32_t id_from) {
+void 
+LIBASYNC_FUNC_ATTR 
+THCYieldToIdAndSave(uint32_t id_to, uint32_t id_from) {
   awe_t *awe_ptr = (awe_t *)awe_mapper_get_awe_ptr(id_to);
   if (PTS() == awe_ptr->pts) {
     CALL_CONT_LAZY_AND_SAVE((void*)&thc_yieldto_with_cont, id_from, (void*)awe_ptr);
@@ -1046,7 +1080,9 @@ void THCYieldToIdAndSave(uint32_t id_to, uint32_t id_from) {
 }
 EXPORT_SYMBOL(THCYieldToIdAndSave);
 
-void THCYieldToId(uint32_t id_to)
+void 
+LIBASYNC_FUNC_ATTR 
+THCYieldToId(uint32_t id_to)
 {
   awe_t *awe_ptr = (awe_t *)awe_mapper_get_awe_ptr(id_to);
   if (PTS() == awe_ptr->pts) {
@@ -1059,7 +1095,9 @@ void THCYieldToId(uint32_t id_to)
 EXPORT_SYMBOL(THCYieldToId);
 
 
-void THCYieldTo(awe_t *awe_ptr) {
+void 
+LIBASYNC_FUNC_ATTR 
+THCYieldTo(awe_t *awe_ptr) {
   if (PTS() == awe_ptr->pts) {
     CALL_CONT_LAZY((void*)&thc_yieldto_with_cont, (void*)awe_ptr);
   } else {
@@ -1068,7 +1106,9 @@ void THCYieldTo(awe_t *awe_ptr) {
 }
 EXPORT_SYMBOL(THCYieldTo);
 
-void THCFinish(void) {
+void 
+LIBASYNC_FUNC_ATTR 
+THCFinish(void) {
   thc_dispatch(PTS());
 }
 EXPORT_SYMBOL(THCFinish);
@@ -1089,7 +1129,9 @@ static void thc_suspend_with_cont(void *a, void *arg) {
   thc_dispatch(awe->pts);
 }
 
-void THCSuspend(awe_t **awe_ptr_ptr) {
+void 
+LIBASYNC_FUNC_ATTR 
+THCSuspend(awe_t **awe_ptr_ptr) {
   CALL_CONT_LAZY(&thc_suspend_with_cont, awe_ptr_ptr);
 }
 EXPORT_SYMBOL(THCSuspend);
@@ -1119,7 +1161,9 @@ static void thc_suspendthen_with_cont(void *a, void *arg) {
   thc_dispatch(awe->pts);
 }
 
-void THCSuspendThen(awe_t **awe_ptr_ptr, THCThenFn_t fn, void *arg) {
+void 
+LIBASYNC_FUNC_ATTR 
+THCSuspendThen(awe_t **awe_ptr_ptr, THCThenFn_t fn, void *arg) {
   then_args_t t;
   t.awe_addr = awe_ptr_ptr;
   t.then_fn = fn;
@@ -1149,7 +1193,9 @@ static inline void thc_schedule_local(awe_t *awe) {
   DEBUG_AWE(DEBUGPRINTF(DEBUG_AWE_PREFIX "< THCSchedule\n"));
 }
 
-void THCSchedule(awe_t *awe) {
+void 
+LIBASYNC_FUNC_ATTR 
+THCSchedule(awe_t *awe) {
   PTState_t *awe_pts;
   DEBUG_AWE(DEBUGPRINTF(DEBUG_AWE_PREFIX "> THCSchedule(%p)\n",
                         awe));
@@ -1177,7 +1223,9 @@ EXPORT_SYMBOL(THCSchedule);
 
 // Add the supplied AWE to the tail of the dispatch queue (for THCYield)
 
-void THCScheduleBack(awe_t *awe) {
+void 
+LIBASYNC_FUNC_ATTR 
+THCScheduleBack(awe_t *awe) {
   PTState_t *awe_pts = awe->pts;
   DEBUG_AWE(DEBUGPRINTF(DEBUG_AWE_PREFIX "> THCSchedule(%p)\n",
                         awe));
@@ -1190,7 +1238,9 @@ void THCScheduleBack(awe_t *awe) {
 }
 EXPORT_SYMBOL(THCScheduleBack);
 
-void THCAddCancelItem(cancel_item_t *ci, THCCancelFn_t fn, void *arg) {
+void 
+LIBASYNC_FUNC_ATTR 
+THCAddCancelItem(cancel_item_t *ci, THCCancelFn_t fn, void *arg) {
   PTState_t *pts = PTS();
   finish_t *fb;
   DEBUG_CANCEL(DEBUGPRINTF(DEBUG_CANCEL_PREFIX "> THCAddCancelItem(%p)\n", ci));
@@ -1209,7 +1259,9 @@ void THCAddCancelItem(cancel_item_t *ci, THCCancelFn_t fn, void *arg) {
 }
 EXPORT_SYMBOL(THCAddCancelItem);
 
-void THCRemoveCancelItem(cancel_item_t *ci) {
+void 
+LIBASYNC_FUNC_ATTR 
+THCRemoveCancelItem(cancel_item_t *ci) {
   PTState_t *pts = PTS();
   finish_t *fb = pts->current_fb;
   cancel_item_t **cip = &(fb->cancel_item);
@@ -1230,14 +1282,18 @@ void THCRemoveCancelItem(cancel_item_t *ci) {
 }
 EXPORT_SYMBOL(THCRemoveCancelItem);
 
-int THCCancelItemRan(cancel_item_t *ci) {
+int 
+LIBASYNC_FUNC_ATTR 
+THCCancelItemRan(cancel_item_t *ci) {
   DEBUG_CANCEL(DEBUGPRINTF(DEBUG_CANCEL_PREFIX "> THCCancelItemRan(%p) = %d\n",
                            ci, ci->was_run));
   return ci->was_run;
 }
 EXPORT_SYMBOL(THCCancelItemRan);
 
-int THCIsCancelRequested(void) {
+int 
+LIBASYNC_FUNC_ATTR 
+THCIsCancelRequested(void) {
   PTState_t *pts = PTS();
   finish_t *fb = pts->current_fb;
   int result = fb->cancel_requested;
@@ -1322,7 +1378,9 @@ static void IdleFn(void *arg) {
 #ifndef LINUX_KERNEL
 __attribute__((constructor))
 #endif
-void thc_init(void) {
+void 
+LIBASYNC_FUNC_ATTR 
+thc_init(void) {
   thc_start_rts();
   PTS()->idle_fn = IdleFn;
   PTS()->idle_args = NULL;
@@ -1336,7 +1394,9 @@ EXPORT_SYMBOL(thc_init);
 #ifndef LINUX_KERNEL
 __attribute__((destructor))
 #endif
-void thc_done(void) {
+void 
+LIBASYNC_FUNC_ATTR 
+thc_done(void) {
 #ifdef LINUX_KERNEL
   awe_mapper_uninit();
 #endif
@@ -1344,13 +1404,17 @@ void thc_done(void) {
 }
 EXPORT_SYMBOL(thc_done);
 
-int thc_global_init(void)
+int 
+LIBASYNC_FUNC_ATTR 
+thc_global_init(void)
 {
 	return 0; // no-op for now
 }
 EXPORT_SYMBOL(thc_global_init);
 
-void thc_global_fini(void)
+void 
+LIBASYNC_FUNC_ATTR 
+thc_global_fini(void)
 {
 	return; // no-op for now
 }

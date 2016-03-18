@@ -42,7 +42,9 @@
 //
 // Latches
 
-void thc_latch_init(struct thc_latch *l) {
+void 
+LIBASYNC_FUNC_ATTR 
+thc_latch_init(struct thc_latch *l) {
   l->c = 0;
 }
 EXPORT_SYMBOL(thc_latch_init);
@@ -51,7 +53,9 @@ EXPORT_SYMBOL(thc_latch_init);
 //
 // Semaphores
 
-void thc_sem_init(thc_sem_t *s, int val) {
+void 
+LIBASYNC_FUNC_ATTR 
+thc_sem_init(thc_sem_t *s, int val) {
   thc_latch_init(&s->l);
   s->val = val;
   s->q = NULL;
@@ -63,7 +67,9 @@ static void thc_sem_p0(void *s) {
   thc_latch_release(&sem->l);
 }
 
-void thc_sem_p(thc_sem_t *s) {
+void 
+LIBASYNC_FUNC_ATTR 
+thc_sem_p(thc_sem_t *s) {
   thc_latch_acquire(&s->l);
   DEBUG_SYNC(DEBUGPRINTF(DEBUG_SYNC_PREFIX "thc_sem_p(%p) %d\n", s, s->val));
   if (s->val == 0) {
@@ -135,7 +141,9 @@ static void thc_sem_p_x_cancel_fn(void *c) {
   thc_latch_release(&cinf->sem->l);
 }
 
-errval_t thc_sem_p_x(thc_sem_t *s) {
+errval_t 
+LIBASYNC_FUNC_ATTR 
+thc_sem_p_x(thc_sem_t *s) {
   int canceled = 0;
   // Return THC_CANCELED if already requested
   if (THCIsCancelRequested()) {
@@ -175,7 +183,9 @@ errval_t thc_sem_p_x(thc_sem_t *s) {
 }
 EXPORT_SYMBOL(thc_sem_p_x);
 
-void thc_sem_v(thc_sem_t *s) {
+void 
+LIBASYNC_FUNC_ATTR 
+thc_sem_v(thc_sem_t *s) {
   thc_latch_acquire(&s->l);
   DEBUG_SYNC(DEBUGPRINTF(DEBUG_SYNC_PREFIX "thc_sem_v(%p)\n", s));
   if (s->q != NULL) {
@@ -203,19 +213,25 @@ EXPORT_SYMBOL(thc_sem_v);
 // Locks
 
 #ifndef MUTEX_IS_LATCH
-void thc_lock_init(thc_lock_t *l) {
+void 
+LIBASYNC_FUNC_ATTR 
+thc_lock_init(thc_lock_t *l) {
   thc_sem_init(&(l->sem), 1);
 }
 EXPORT_SYMBOL(thc_lock_init);
 
-void thc_lock_acquire(thc_lock_t *l) {
+void 
+LIBASYNC_FUNC_ATTR 
+thc_lock_acquire(thc_lock_t *l) {
   DEBUG_SYNC(DEBUGPRINTF(DEBUG_SYNC_PREFIX "thc_lock_acquire %p\n", l));
   thc_sem_p(&(l->sem));
   DEBUG_SYNC(DEBUGPRINTF(DEBUG_SYNC_PREFIX "thc_lock_acquire done\n"));
 }
 EXPORT_SYMBOL(thc_lock_acquire);
 
-void thc_lock_release(thc_lock_t *l) {
+void 
+LIBASYNC_FUNC_ATTR 
+thc_lock_release(thc_lock_t *l) {
   DEBUG_SYNC(DEBUGPRINTF(DEBUG_SYNC_PREFIX "thc_lock_release %p\n", l));
   thc_sem_v(&(l->sem));
   DEBUG_SYNC(DEBUGPRINTF(DEBUG_SYNC_PREFIX "thc_lock_release done\n"));
@@ -227,7 +243,9 @@ EXPORT_SYMBOL(thc_lock_release);
 //
 // Condition variables
 
-void thc_condvar_init(thc_condvar_t *cv) {
+void 
+LIBASYNC_FUNC_ATTR 
+thc_condvar_init(thc_condvar_t *cv) {
   thc_latch_init(&cv->l);
   cv->q = NULL;
 }
@@ -245,7 +263,9 @@ static void thc_condvar_wait0(void *v) {
   thc_lock_release(info->lock);
 }
 
-void thc_condvar_wait(thc_condvar_t *cv, thc_lock_t *lock) {
+void 
+LIBASYNC_FUNC_ATTR 
+thc_condvar_wait(thc_condvar_t *cv, thc_lock_t *lock) {
   struct thc_waiter w;
   thc_condvar_wait0_info_t info;
   thc_latch_acquire(&cv->l);
@@ -310,7 +330,9 @@ static void thc_condvar_wait_x_cancel_fn(void *c) {
   thc_latch_release(&cinf->cv->l);
 }
 
-errval_t thc_condvar_wait_x(thc_condvar_t *cv, thc_lock_t *lock) {
+errval_t 
+LIBASYNC_FUNC_ATTR 
+thc_condvar_wait_x(thc_condvar_t *cv, thc_lock_t *lock) {
   int canceled = 0;
   struct thc_cv_cancel_info cinf;
   cancel_item_t ci;
@@ -351,7 +373,9 @@ errval_t thc_condvar_wait_x(thc_condvar_t *cv, thc_lock_t *lock) {
 }
 EXPORT_SYMBOL(thc_condvar_wait_x);
 
-void thc_condvar_signal(thc_condvar_t *cv) {
+void 
+LIBASYNC_FUNC_ATTR 
+thc_condvar_signal(thc_condvar_t *cv) {
   thc_latch_acquire(&cv->l);
   if (cv->q != NULL) {
     struct thc_waiter *w = cv->q;
@@ -367,7 +391,9 @@ void thc_condvar_signal(thc_condvar_t *cv) {
 }
 EXPORT_SYMBOL(thc_condvar_signal);
 
-void thc_condvar_broadcast(thc_condvar_t *cv) {
+void 
+LIBASYNC_FUNC_ATTR 
+thc_condvar_broadcast(thc_condvar_t *cv) {
   struct thc_waiter *w;
   thc_latch_acquire(&cv->l);
   w = cv->q;
@@ -389,7 +415,9 @@ EXPORT_SYMBOL(thc_condvar_broadcast);
 //
 // FIFO queue
 
-void thc_queue_init(thc_queue_t *tq) {
+void 
+LIBASYNC_FUNC_ATTR 
+thc_queue_init(thc_queue_t *tq) {
   thc_lock_init(&tq->l);
   thc_condvar_init(&tq->cv);
   tq->start.bailed = tq->end.bailed = 0;
@@ -400,8 +428,10 @@ void thc_queue_init(thc_queue_t *tq) {
 }
 EXPORT_SYMBOL(thc_queue_init);
 
-void thc_queue_enter(thc_queue_t *tq,
-                     thc_queue_entry_t *te) {
+void 
+LIBASYNC_FUNC_ATTR 
+thc_queue_enter(thc_queue_t *tq,
+		thc_queue_entry_t *te) {
   thc_lock_acquire(&tq->l);
   te->bailed = 0;
   te->served = 0;
@@ -413,8 +443,10 @@ void thc_queue_enter(thc_queue_t *tq,
 }
 EXPORT_SYMBOL(thc_queue_enter);
 
-void thc_queue_await_turn(thc_queue_t *tq,
-                          thc_queue_entry_t *te) {
+void 
+LIBASYNC_FUNC_ATTR 
+thc_queue_await_turn(thc_queue_t *tq,
+		thc_queue_entry_t *te) {
   thc_lock_acquire(&tq->l);
   while (tq->start.next != te) {
     thc_condvar_wait(&tq->cv, &tq->l);
@@ -424,8 +456,10 @@ void thc_queue_await_turn(thc_queue_t *tq,
 }
 EXPORT_SYMBOL(thc_queue_await_turn);
 
-errval_t thc_queue_await_turn_x(thc_queue_t *tq,
-                                thc_queue_entry_t *te) {
+errval_t 
+LIBASYNC_FUNC_ATTR 
+thc_queue_await_turn_x(thc_queue_t *tq,
+		thc_queue_entry_t *te) {
   errval_t result = SYS_ERR_OK;
   thc_lock_acquire(&tq->l);
   while (tq->start.next != te && 
@@ -440,8 +474,10 @@ errval_t thc_queue_await_turn_x(thc_queue_t *tq,
 }
 EXPORT_SYMBOL(thc_queue_await_turn_x);
 
-int thc_queue_leave(thc_queue_t *tq,
-                    thc_queue_entry_t *te) {
+int 
+LIBASYNC_FUNC_ATTR 
+thc_queue_leave(thc_queue_t *tq,
+		thc_queue_entry_t *te) {
   int result;
 
   thc_lock_acquire(&tq->l);
@@ -478,7 +514,9 @@ EXPORT_SYMBOL(thc_queue_leave);
 //
 // Event counts
 
-void thc_ec_init(thc_ec_t *ec) {
+void 
+LIBASYNC_FUNC_ATTR 
+thc_ec_init(thc_ec_t *ec) {
   thc_latch_init(&ec->l);
   ec->n = 0;
   ec->waiters = NULL;
@@ -486,7 +524,9 @@ void thc_ec_init(thc_ec_t *ec) {
 EXPORT_SYMBOL(thc_ec_init);
 
 // Return current value
-uint64_t thc_ec_read(thc_ec_t *ec) {
+uint64_t 
+LIBASYNC_FUNC_ATTR 
+thc_ec_read(thc_ec_t *ec) {
   uint64_t result;
 
   thc_latch_acquire(&ec->l);
@@ -502,7 +542,9 @@ static void thc_ec_await0(void *e) {
 }
 
 // Wait until the count reaches or exceeds v
-void thc_ec_await(thc_ec_t *ec, uint64_t v) {
+void 
+LIBASYNC_FUNC_ATTR 
+thc_ec_await(thc_ec_t *ec, uint64_t v) {
   thc_latch_acquire(&ec->l);
   if (ec->n < v) {
     // We need to actually wait
@@ -520,7 +562,9 @@ void thc_ec_await(thc_ec_t *ec, uint64_t v) {
 EXPORT_SYMBOL(thc_ec_await);
 
 // Advance the count by n
-void thc_ec_advance(thc_ec_t *ec, uint64_t n) {
+void 
+LIBASYNC_FUNC_ATTR 
+thc_ec_advance(thc_ec_t *ec, uint64_t n) {
   thc_ec_wait_list_t **ptr_w;
 
   thc_latch_acquire(&ec->l);
@@ -546,17 +590,23 @@ EXPORT_SYMBOL(thc_ec_advance);
 
 // Sequencers
 
-void thc_seq_init(thc_seq_t *seq) {
+void 
+LIBASYNC_FUNC_ATTR 
+thc_seq_init(thc_seq_t *seq) {
   seq->n = 0;
 }
 EXPORT_SYMBOL(thc_seq_init);
 
-uint64_t thc_seq_read(thc_seq_t *seq) {
+uint64_t 
+LIBASYNC_FUNC_ATTR 
+thc_seq_read(thc_seq_t *seq) {
   return seq->n;
 }
 EXPORT_SYMBOL(thc_seq_read);
 
-uint64_t thc_seq_ticket(thc_seq_t *seq) {
+uint64_t 
+LIBASYNC_FUNC_ATTR 
+thc_seq_ticket(thc_seq_t *seq) {
 #ifdef _MSC_VER
     C_ASSERT(sizeof(LONGLONG) == sizeof(seq->n));
     return InterlockedIncrement64(reinterpret_cast<volatile LONGLONG*>(&seq->n)) - 1;

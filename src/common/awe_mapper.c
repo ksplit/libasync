@@ -39,7 +39,9 @@
 /*
  * Initilaizes awe mapper.
  */
-void awe_mapper_init(void)
+void 
+LIBASYNC_FUNC_ATTR 
+awe_mapper_init(void)
 {
     void* awe_map_ptr = kzalloc(sizeof(awe_table_t), GFP_KERNEL);
     if( !awe_map_ptr )
@@ -56,7 +58,9 @@ void awe_mapper_init(void)
 /*
  * Uninitilaizes awe mapper.
  */
-void awe_mapper_uninit(void)
+void 
+LIBASYNC_FUNC_ATTR 
+awe_mapper_uninit(void)
 {
     awe_table_t *awe_map =  get_awe_map();
     kfree(awe_map);
@@ -75,7 +79,9 @@ static bool is_slot_allocated(uint32_t id)
 /*
  * Returns new available id.
  */
-uint32_t awe_mapper_create_id(void)
+uint32_t 
+LIBASYNC_FUNC_ATTR 
+awe_mapper_create_id(void)
 {
     awe_table_t *awe_map =  get_awe_map();
     BUG_ON((awe_map->used_slots >= AWE_TABLE_COUNT) && "Too many slots have been requested.");
@@ -98,7 +104,9 @@ EXPORT_SYMBOL(awe_mapper_create_id);
 /*
  * Marks provided id as available
  */
-void awe_mapper_remove_id(uint32_t id)
+void 
+LIBASYNC_FUNC_ATTR 
+awe_mapper_remove_id(uint32_t id)
 {
     awe_table_t *awe_map =  get_awe_map();
     BUG_ON(id >= AWE_TABLE_COUNT);
@@ -116,7 +124,9 @@ EXPORT_SYMBOL(awe_mapper_remove_id);
 /*
  * Links awe_ptr with id.
  */
-void awe_mapper_set_id(uint32_t id, void* awe_ptr)
+void 
+LIBASYNC_FUNC_ATTR 
+awe_mapper_set_id(uint32_t id, void* awe_ptr)
 {
     awe_table_t *awe_map =  get_awe_map();
     BUG_ON(id >= AWE_TABLE_COUNT);
@@ -128,7 +138,9 @@ void awe_mapper_set_id(uint32_t id, void* awe_ptr)
 /*
  * Returns awe_ptr that corresponds to id.
  */
-void* awe_mapper_get_awe_ptr(uint32_t id)
+void* 
+LIBASYNC_FUNC_ATTR 
+awe_mapper_get_awe_ptr(uint32_t id)
 {
     awe_table_t *awe_map =  get_awe_map();
     BUG_ON(id >= AWE_TABLE_COUNT);
@@ -137,7 +149,9 @@ void* awe_mapper_get_awe_ptr(uint32_t id)
 }
 
 
-void awe_mapper_print_list(void)
+void 
+LIBASYNC_FUNC_ATTR 
+awe_mapper_print_list(void)
 {
     int i,j;
     awe_table_t *awe_map =  get_awe_map();

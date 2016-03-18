@@ -56,9 +56,11 @@ static int poll_recv_predicate(struct fipc_message* msg, void* data)
     }
 }
 
-int thc_ipc_recv(struct fipc_ring_channel *chnl, 
-                 unsigned long msg_id, 
-                 struct fipc_message** out_msg)
+int 
+LIBASYNC_FUNC_ATTR 
+thc_ipc_recv(struct fipc_ring_channel *chnl, 
+	unsigned long msg_id, 
+	struct fipc_message** out_msg)
 {
     struct predicate_payload payload = {
         .expected_msg_id = msg_id
@@ -93,9 +95,11 @@ int thc_ipc_recv(struct fipc_ring_channel *chnl,
 }
 EXPORT_SYMBOL(thc_ipc_recv);
 
-int thc_poll_recv_group(struct thc_channel_group* chan_group, 
-                        struct thc_channel_group_item** chan_group_item, 
-                        struct fipc_message** out_msg)
+int 
+LIBASYNC_FUNC_ATTR 
+thc_poll_recv_group(struct thc_channel_group* chan_group, 
+		struct thc_channel_group_item** chan_group_item, 
+		struct fipc_message** out_msg)
 {
     struct thc_channel_group_item* curr_item;
     struct fipc_message* recv_msg;
@@ -118,8 +122,10 @@ int thc_poll_recv_group(struct thc_channel_group* chan_group,
 }
 EXPORT_SYMBOL(thc_poll_recv_group);
 
-int thc_poll_recv(struct thc_channel_group_item* item,
-                 struct fipc_message** out_msg)
+int 
+LIBASYNC_FUNC_ATTR 
+thc_poll_recv(struct thc_channel_group_item* item,
+	struct fipc_message** out_msg)
 {
     struct predicate_payload payload;
     int ret;
@@ -149,7 +155,9 @@ int thc_poll_recv(struct thc_channel_group_item* item,
 }
 EXPORT_SYMBOL(thc_poll_recv);
 
-int thc_channel_group_init(struct thc_channel_group* channel_group)
+int 
+LIBASYNC_FUNC_ATTR 
+thc_channel_group_init(struct thc_channel_group* channel_group)
 {
     INIT_LIST_HEAD(&(channel_group->head));
     channel_group->size = 0;
@@ -159,7 +167,9 @@ int thc_channel_group_init(struct thc_channel_group* channel_group)
 EXPORT_SYMBOL(thc_channel_group_init);
 
 
-int thc_channel_group_item_add(struct thc_channel_group* channel_group, 
+int 
+LIBASYNC_FUNC_ATTR 
+thc_channel_group_item_add(struct thc_channel_group* channel_group, 
                           struct thc_channel_group_item* item)
 {
     list_add_tail(&(item->list), &(channel_group->head));
@@ -170,7 +180,9 @@ int thc_channel_group_item_add(struct thc_channel_group* channel_group,
 EXPORT_SYMBOL(thc_channel_group_item_add);
 
 
-int thc_channel_group_item_get(struct thc_channel_group* channel_group, 
+int 
+LIBASYNC_FUNC_ATTR 
+thc_channel_group_item_get(struct thc_channel_group* channel_group, 
                                int index, 
                                struct thc_channel_group_item **out_item)
 {

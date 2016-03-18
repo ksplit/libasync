@@ -3,6 +3,10 @@
 #ifndef _THC_H_
 #define _THC_H_
 
+#ifndef LIBASYNC_FUNC_ATTR
+#define LIBASYNC_FUNC_ATTR
+#endif
+
 #ifdef LINUX_KERNEL
 #include <linux/types.h>
 #include <linux/printk.h>
