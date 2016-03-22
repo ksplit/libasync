@@ -13,9 +13,17 @@
 # in the kernel build system.
 src = @abs_top_srcdir@/src
 
+# This needs to be pasted in here, because the kernel build system will force
+# gcc at the top-level.
+export CC=@CC@
+
 # Sources that make up library
 lib-y += \
 	$(COMMON_SRCS:.c=.o)
 
 # Pass along include directories from the Automake file
 ccflags-y += $(CFLAGS) $(AM_CPPFLAGS) $(AM_CFLAGS)
+
+# Provide option to filter out some kbuild cflags (this is needed for
+# clang builds).
+KBUILD_CFLAGS := $(filter-out $(LIBASYNC_BAD_CFLAGS), $(KBUILD_CFLAGS))
