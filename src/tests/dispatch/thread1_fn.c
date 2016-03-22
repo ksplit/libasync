@@ -37,14 +37,10 @@ static unsigned long add_nums_async(unsigned long lhs, unsigned long rhs, unsign
 }
 
 
-
-int thread1_fn(void* chan)
+static int run_thread1(void* chan)
 {
-	volatile void ** frame  = (volatile void**)__builtin_frame_address(0);
-	volatile void *ret_addr = *(frame + 1);
     int num_transactions    = 0;
 	uint32_t id_num;
-	*(frame + 1) = NULL;
     channel = chan;
 
     thc_init();
@@ -76,17 +72,24 @@ int thread1_fn(void* chan)
 		    num_transactions++;
 			add_nums_async(num_transactions, 3,(unsigned long) id_num, ADD_2_FN);
 		     );
-            //msleep(20);
+            msleep(10);
 	}
     printk(KERN_ERR "done with transactions\n");
     });
 	printk(KERN_ERR "lcd async exiting module and deleting ptstate");
 	thc_done();
 
-	*(frame + 1) = ret_addr;
-
     return 1;
 }
 
+
+int thread1_fn(void* chan)
+{
+    int result;
+
+    LCD_MAIN({result = run_thread1(chan);});
+
+    return result;
+}
 
 

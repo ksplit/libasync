@@ -10,8 +10,6 @@
 #include <awe_mapper.h>
 #include <linux/delay.h>
 
-#define THREAD3_FNS_LENGTH 1
-
 static struct thc_channel_group* rx_group;
 
 
@@ -64,7 +62,7 @@ int thread3_fn(void* group)
     rx_group = (struct thc_channel_group*)group;
     thc_channel_group_item_get(rx_group, 0, &thrd2_item);
     thrd2_item->dispatch_fn = thread2_dispatch_fn;
-    thc_dispatch_loop_test(rx_group, TRANSACTIONS / THD3_INTERVAL);
+    LCD_MAIN(thc_dispatch_loop_test(rx_group, TRANSACTIONS / THD3_INTERVAL););
     thc_done();
 
     return 1;

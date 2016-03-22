@@ -16,6 +16,29 @@
 #include <linux/kernel.h>
 #include <libfipc.h>
 
+#define LCD_MAIN(_CODE)    do {                        \
+                                        \
+            /* NULL out return address on stack so that libasync */ \
+            /* will stop stack walk here.                 */ \
+            /*                             */    \
+            /* XXX: A touch of arch-dependent code here, but     */    \
+            /* no biggie. When I used gcc's                 */    \
+            /* __builtin_frame_address it broke (gcc null'd out  */    \
+            /* the return address, but didn't restore it ... ?)  */    \
+            /*                             */    \
+            volatile void **__frame_ptr;                \
+            volatile void *__saved_ret_addr;            \
+            asm ("movq %%rbp, %0" : "=g"(__frame_ptr) ::);        \
+            __saved_ret_addr = *(__frame_ptr + 1);            \
+            *(__frame_ptr + 1) = NULL;                \
+                                        \
+            do { _CODE } while(0);                    \
+                                        \
+            /* Restore old return address to stack. */        \
+            *(__frame_ptr + 1) = __saved_ret_addr;            \
+                                        \
+        } while (0);
+
 static inline 
 struct task_struct *
 test_fipc_spawn_thread_with_channel(struct fipc_ring_channel *channel,

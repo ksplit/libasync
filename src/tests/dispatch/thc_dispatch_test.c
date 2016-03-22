@@ -11,11 +11,8 @@
 //max_recv_ct just for testing
 int thc_dispatch_loop_test(struct thc_channel_group* rx_group, int max_recv_ct)
 {
-	volatile void ** frame = (volatile void**)__builtin_frame_address(0);
-	volatile void *ret_addr = *(frame + 1);
     int recv_ct = 0;
 
-    *(frame + 1) = NULL;
     //NOTE:max_recv_ct is just for testing
     DO_FINISH_(ipc_dispatch,{
         int curr_ind     = 0;
@@ -44,8 +41,6 @@ int thc_dispatch_loop_test(struct thc_channel_group* rx_group, int max_recv_ct)
             }
         }
     });
-
-	*(frame + 1) = ret_addr;
 
     return 0;
 }
