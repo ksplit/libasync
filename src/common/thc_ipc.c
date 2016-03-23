@@ -79,7 +79,6 @@ thc_ipc_recv(struct fipc_ring_channel *chnl,
         }
         else if( ret == -ENOMSG ) //message not for us
         {
-            printk(KERN_ERR "yielding to\n");
             THCYieldToIdAndSave((uint32_t)payload.actual_msg_id, (uint32_t) msg_id); 
         }
         else if( ret == -EWOULDBLOCK ) //no message, Yield
@@ -139,7 +138,6 @@ thc_poll_recv(struct thc_channel_group_item* item,
         }
         else if( ret == -ENOMSG ) //message not for us
         {
-            printk(KERN_ERR "yielding to\n");
             THCYieldToId((uint32_t)payload.actual_msg_id); 
         }
         else if( ret == -EWOULDBLOCK ) //no message, return

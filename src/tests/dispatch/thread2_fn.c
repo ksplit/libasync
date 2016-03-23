@@ -112,8 +112,8 @@ int thread2_fn(void* group)
     rx_group = (struct thc_channel_group*)group;
     thc_channel_group_item_get(rx_group, 0, &thrd1_item);
     thrd1_item->dispatch_fn = thread1_dispatch_fn;
-    LCD_MAIN(thc_dispatch_loop_test(rx_group, TRANSACTIONS););
+    LCD_MAIN(thc_dispatch_loop_test(rx_group, TRANSACTIONS + TRANSACTIONS/THD3_INTERVAL););
     thc_done();
 
-    return 1;
+    return 0;
 }
