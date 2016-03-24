@@ -9,13 +9,16 @@
  */
 
 #include <libfipc.h>
+#include <thc.h>
+#include <thcinternal.h>
+#include <awe_mapper.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include "../test_helpers.h"
 
 MODULE_LICENSE("GPL");
 
-#define NUM_SWITCH_MEASUREMENTS 1000
+#define NUM_SWITCH_MEASUREMENTS 100000
 
 static unsigned long ctx_switch_measurements[NUM_SWITCH_MEASUREMENTS];
 
@@ -26,8 +29,8 @@ static int setup_and_run_test(void)
     uint32_t msg_id;
 
     thc_init();
-    
-    for( int i = 0; i < NUM_SWITCH_MEASUREMENTS; i++ )
+    int i;    
+    for( i = 0; i < NUM_SWITCH_MEASUREMENTS; i++ )
     {
         DO_FINISH_(ctx_switch,{
             ASYNC({

@@ -1,0 +1,16 @@
+
+# @ASYNC_AUTOCONF_NOTICE@
+
+# Magic line so we can do out-of-source build
+src = @abs_top_srcdir@/src/tests/ctx-switch
+
+obj-m = ctx_switch_test.o
+
+# Paths are relative to ctx-switch/ build dir
+ctx_switch_test-y += ../test_helpers.o main.o
+
+# src/Makefile.am.
+ctx_switch_test-y += ../../$(LIBASYNC_PATH) 
+ctx_switch_test-y += ../../$(LIBFIPC_LIB) 
+
+ccflags-y += $(CFLAGS) $(AM_CPPFLAGS) $(AM_CFLAGS)

@@ -114,6 +114,7 @@ AC_CONFIG_FILES(
   src/tests/simple/Kbuild
 
   src/tests/dispatch/Kbuild
+  src/tests/ctx-switch/Kbuild
 )
 AC_OUTPUT
 
