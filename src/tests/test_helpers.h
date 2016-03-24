@@ -14,6 +14,7 @@
 #include <linux/sched.h>
 #include <linux/kthread.h>
 #include <linux/kernel.h>
+#include <linux/sort.h>
 #include <libfipc.h>
 
 #define LCD_MAIN(_CODE)    do {                        \
@@ -259,5 +260,33 @@ static inline unsigned long test_fipc_stop_stopwatch(void)
 		: "rdx", "rcx");
 	return stamp;
 }
+
+
+static int test_fipc_compare(const void *_a, const void *_b);
+
+
+static inline void test_fipc_dump_time(unsigned long *time, unsigned long num_transactions)
+{
+
+	int i;
+	unsigned long long counter = 0;
+    unsigned long min;
+	unsigned long max;
+
+	for (i = 0; i < num_transactions; i++) {
+		counter+= time[i];
+	}
+
+	sort(time, num_transactions, sizeof(unsigned long), test_fipc_compare, NULL);
+
+	min = time[0];
+	max = time[num_transactions-1];
+	counter = min;
+
+	printk(KERN_ERR "MIN\tMAX\tAVG\tMEDIAN\n");
+	printk(KERN_ERR "%lu & %lu & %llu & %lu \n", min, max, counter/num_transactions, time[num_transactions/2]);
+
+}
+
 
 #endif /* FIPC_KERNEL_TEST_HELPERS_H */
