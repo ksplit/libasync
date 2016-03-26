@@ -40,13 +40,12 @@
                                         \
         } while (0);
 
-static inline 
-struct task_struct *
-test_fipc_spawn_thread_with_channel(struct fipc_ring_channel *channel,
-				int (*threadfn)(void *data),
-				int cpu_pin)
+
+static inline
+struct task_struct*
+test_pin_to_core(void* thd_data, int (*threadfn)(void *data), int cpu_pin)
 {
-	struct cpumask cpu_core;
+ 	struct cpumask cpu_core;
 	struct task_struct* thread = NULL;
 
         if (cpu_pin > num_online_cpus()) {
@@ -56,7 +55,7 @@ test_fipc_spawn_thread_with_channel(struct fipc_ring_channel *channel,
 	/*
 	 * Create kernel thread
 	 */
-	thread = kthread_create(threadfn, channel, "AsyncIPC.%d", cpu_pin);
+	thread = kthread_create(threadfn, thd_data, "Async.%d", cpu_pin);
 	if (IS_ERR(thread)) {
 		pr_err("Error while creating kernel thread\n");
 		goto fail2;
@@ -78,6 +77,15 @@ test_fipc_spawn_thread_with_channel(struct fipc_ring_channel *channel,
 fail2:
 fail1:
 	return thread;
+}
+
+static inline 
+struct task_struct *
+test_fipc_spawn_thread_with_channel(struct fipc_ring_channel *channel,
+				int (*threadfn)(void *data),
+				int cpu_pin)
+{
+   return test_pin_to_core(channel, threadfn, cpu_pin); 
 }
 
 static inline
