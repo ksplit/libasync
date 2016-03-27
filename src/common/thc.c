@@ -559,7 +559,7 @@ static void thc_end_rts(void) {
   // number of stacks on our free list should equal the number
   // allocated from the OS.
   while (pts->free_stacks != NULL) {
-    pts->free_stacks = pts->free_stacks->next;
+        pts->free_stacks = pts->free_stacks->next;
 #ifndef NDEBUG
     pts->stackMemoriesDeallocated ++;
 #endif

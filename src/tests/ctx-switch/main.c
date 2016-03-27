@@ -26,7 +26,7 @@ static unsigned long ctx_switch_measurements[NUM_SWITCH_MEASUREMENTS];
 
 static int test_fn(void* data)
 {
-    unsigned long start_time, end_time, elapsed_time;
+    unsigned long start_time, end_time;
     uint32_t msg_id;
 
 
