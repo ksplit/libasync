@@ -32,6 +32,8 @@ static int test_ctx_switch(void)
     int i;    
     for( i = 0; i < NUM_SWITCH_MEASUREMENTS; i++ )
     {
+            thc_init();
+
             DO_FINISH_(ctx_switch,{
                 ASYNC({
                     msg_id = awe_mapper_create_id();
@@ -44,6 +46,7 @@ static int test_ctx_switch(void)
                     awe_mapper_remove_id(msg_id);
                     });             
             });
+            thc_done();
 
         measurements_arr[i] = end_time - start_time;
     }
@@ -57,6 +60,8 @@ static int test_thread_creation(void)
     unsigned long start_time, end_time;
 
     int i;    
+
+    thc_init();
     for( i = 0; i < NUM_SWITCH_MEASUREMENTS; i++ )
     {
             DO_FINISH_(thread_creation,{
@@ -68,6 +73,7 @@ static int test_thread_creation(void)
 
         measurements_arr[i] = end_time - start_time;
     }
+    thc_done();
 
     return 0;
 }
@@ -79,11 +85,9 @@ static int thread_fn(void* data)
 
         preempt_disable();
         local_irq_disable();
-        thc_init();
 
         LCD_MAIN({ret = ((int (*)(void)) data)();});
 
-        thc_done();
         preempt_enable();
         local_irq_enable();
         

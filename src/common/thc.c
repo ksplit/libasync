@@ -558,8 +558,13 @@ static void thc_end_rts(void) {
   // book-keeping: once the dispatch loop is done, then the
   // number of stacks on our free list should equal the number
   // allocated from the OS.
+  void* next_stack;
   while (pts->free_stacks != NULL) {
-        pts->free_stacks = pts->free_stacks->next;
+        next_stack = pts->free_stacks->next;
+#ifdef LINUX_KERNEL
+        kfree(pts->free_stacks);
+#endif
+        pts->free_stacks = next_stack;
 #ifndef NDEBUG
     pts->stackMemoriesDeallocated ++;
 #endif
