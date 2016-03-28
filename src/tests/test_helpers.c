@@ -36,6 +36,5 @@ void test_fipc_dump_time(unsigned long *time, unsigned long num_transactions)
 	printk(KERN_ERR "MIN\tMAX\tAVG\tMEDIAN\n");
 	printk(KERN_ERR "%lu & %lu & %llu & %lu \n", min, max, counter/num_transactions, time[num_transactions/2]);
 }
-EXPORT_SYMBOL(test_fipc_dump_time);
 
 
