@@ -23,6 +23,9 @@ int thc_channel_group_init(struct thc_channel_group* channel_group);
 int thc_channel_group_item_add(struct thc_channel_group* channel_group,
                           struct thc_channel_group_item* item);
 
+void thc_channel_group_item_remove(struct thc_channel_group* channel_group, 
+				struct thc_channel_group_item* item);
+
 int thc_channel_group_item_get(struct thc_channel_group* channel_group, 
                                int index, 
                                struct thc_channel_group_item **out_item);

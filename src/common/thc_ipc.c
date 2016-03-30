@@ -179,6 +179,17 @@ thc_channel_group_item_add(struct thc_channel_group* channel_group,
 }
 EXPORT_SYMBOL(thc_channel_group_item_add);
 
+void
+LIBASYNC_FUNC_ATTR 
+thc_channel_group_item_remove(struct thc_channel_group* channel_group, 
+			struct thc_channel_group_item* item)
+{
+    list_del_init(&(item->list));
+    channel_group->size--;
+
+    return 0;
+}
+EXPORT_SYMBOL(thc_channel_group_item_remove);
 
 int 
 LIBASYNC_FUNC_ATTR 
