@@ -28,7 +28,6 @@ int send_and_get_response(
 		goto fail2;
 	}
 	*response = resp;
-    printk(KERN_ERR "got result\n");
 
 	return 0;
 

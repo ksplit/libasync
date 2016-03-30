@@ -5,8 +5,8 @@
 
 #define ADD_2_FN 1
 #define ADD_10_FN 2
-#define TRANSACTIONS 60
-#define THD3_INTERVAL 10
+#define TRANSACTIONS 3000
+#define THD3_INTERVAL 61
 
 int thread1_fn(void* data);
 int thread2_fn(void* data);

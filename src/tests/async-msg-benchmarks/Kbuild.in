@@ -1,0 +1,19 @@
+
+# @ASYNC_AUTOCONF_NOTICE@
+
+# Magic line so we can do out-of-source build
+src = @abs_top_srcdir@/src/tests/async-msg-benchmarks
+
+obj-m = libasync_test_msgs.o
+
+# Paths are relative to simple/ build dir
+libasync_test_msgs-y += ../test_helpers.o main.o callee.o caller.o
+
+# LIBASYNC_PATH and LIBFIPC_LIB are defined (and exported) in
+# src/Makefile.am.
+libasync_test_msgs-y += ../../$(LIBASYNC_PATH) 
+
+libasync_test_msgs-y += ../../$(LIBFIPC_LIB) 
+
+# Add -DCHECK_MESSAGES to check that message values contain what is expected
+ccflags-y += $(CFLAGS) $(AM_CPPFLAGS) $(AM_CFLAGS)

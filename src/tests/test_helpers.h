@@ -14,15 +14,38 @@
 #include <linux/sched.h>
 #include <linux/kthread.h>
 #include <linux/kernel.h>
+#include <linux/sort.h>
 #include <libfipc.h>
 
-static inline 
-struct task_struct *
-test_fipc_spawn_thread_with_channel(struct fipc_ring_channel *channel,
-				int (*threadfn)(void *data),
-				int cpu_pin)
+#define LCD_MAIN(_CODE)    do {                        \
+                                        \
+            /* NULL out return address on stack so that libasync */ \
+            /* will stop stack walk here.                 */ \
+            /*                             */    \
+            /* XXX: A touch of arch-dependent code here, but     */    \
+            /* no biggie. When I used gcc's                 */    \
+            /* __builtin_frame_address it broke (gcc null'd out  */    \
+            /* the return address, but didn't restore it ... ?)  */    \
+            /*                             */    \
+            volatile void **__frame_ptr;                \
+            volatile void *__saved_ret_addr;            \
+            asm ("movq %%rbp, %0" : "=g"(__frame_ptr) ::);        \
+            __saved_ret_addr = *(__frame_ptr + 1);            \
+            *(__frame_ptr + 1) = NULL;                \
+                                        \
+            do { _CODE } while(0);                    \
+                                        \
+            /* Restore old return address to stack. */        \
+            *(__frame_ptr + 1) = __saved_ret_addr;            \
+                                        \
+        } while (0);
+
+
+static inline
+struct task_struct*
+test_pin_to_core(void* thd_data, int (*threadfn)(void *data), int cpu_pin)
 {
-	struct cpumask cpu_core;
+ 	struct cpumask cpu_core;
 	struct task_struct* thread = NULL;
 
         if (cpu_pin > num_online_cpus()) {
@@ -32,7 +55,7 @@ test_fipc_spawn_thread_with_channel(struct fipc_ring_channel *channel,
 	/*
 	 * Create kernel thread
 	 */
-	thread = kthread_create(threadfn, channel, "AsyncIPC.%d", cpu_pin);
+	thread = kthread_create(threadfn, thd_data, "Async.%d", cpu_pin);
 	if (IS_ERR(thread)) {
 		pr_err("Error while creating kernel thread\n");
 		goto fail2;
@@ -54,6 +77,15 @@ test_fipc_spawn_thread_with_channel(struct fipc_ring_channel *channel,
 fail2:
 fail1:
 	return thread;
+}
+
+static inline 
+struct task_struct *
+test_fipc_spawn_thread_with_channel(struct fipc_ring_channel *channel,
+				int (*threadfn)(void *data),
+				int cpu_pin)
+{
+   return test_pin_to_core(channel, threadfn, cpu_pin); 
 }
 
 static inline
@@ -236,5 +268,9 @@ static inline unsigned long test_fipc_stop_stopwatch(void)
 		: "rdx", "rcx");
 	return stamp;
 }
+
+
+void test_fipc_dump_time(unsigned long *time, unsigned long num_transactions);
+
 
 #endif /* FIPC_KERNEL_TEST_HELPERS_H */

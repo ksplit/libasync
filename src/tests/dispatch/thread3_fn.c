@@ -10,8 +10,6 @@
 #include <awe_mapper.h>
 #include <linux/delay.h>
 
-#define THREAD3_FNS_LENGTH 1
-
 static struct thc_channel_group* rx_group;
 
 
@@ -30,7 +28,6 @@ static int add_10_fn(struct fipc_ring_channel* chan, struct fipc_message* msg)
     {
          printk(KERN_ERR "Error getting send message for add_10_fn.\n");
     }
-    printk(KERN_ERR "got to thread3\n");
     fipc_set_reg0(out_msg, result);
     THC_MSG_ID(out_msg)   = msg_id;
     set_fn_type(out_msg, ADD_10_FN);
@@ -46,7 +43,6 @@ static int add_10_fn(struct fipc_ring_channel* chan, struct fipc_message* msg)
 
 static int thread2_dispatch_fn(struct fipc_ring_channel* chan, struct fipc_message* msg)
 {
-    printk(KERN_ERR "in thread 2 dispatch function with message %p\n", msg);
     switch( get_fn_type(msg) )
     {
         case ADD_10_FN:
@@ -64,8 +60,8 @@ int thread3_fn(void* group)
     rx_group = (struct thc_channel_group*)group;
     thc_channel_group_item_get(rx_group, 0, &thrd2_item);
     thrd2_item->dispatch_fn = thread2_dispatch_fn;
-    thc_dispatch_loop_test(rx_group, TRANSACTIONS / THD3_INTERVAL);
+    LCD_MAIN(thc_dispatch_loop_test(rx_group, TRANSACTIONS / THD3_INTERVAL););
     thc_done();
 
-    return 1;
+    return 0;
 }

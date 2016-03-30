@@ -1,3 +1,6 @@
 
 obj-m += simple/
 obj-m += dispatch/
+obj-m += ctx-switch/
+obj-m += async-msg-benchmarks/
+

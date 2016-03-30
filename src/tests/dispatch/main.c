@@ -11,7 +11,7 @@
 
 #define THREAD1_CPU 1
 #define THREAD2_CPU 2
-#define THREAD3_CPU 3
+#define THREAD3_CPU 0
 
 #define CHANNEL_ORDER 2
 
@@ -33,15 +33,6 @@ static int setup_and_run_test(void)
     */
    thc_channel_group_init(&group2);
    thc_channel_group_init(&group3); 
-   
-   item2to1.channel = thread_2_to_1_header; 
-   thc_channel_group_item_add(&group2, &item2to1); 
-
-   item2to3.channel = thread_2_to_3_header; 
-   thc_channel_group_item_add(&group2, &item2to3); 
-  
-   item3.channel = thread3_header;
-   thc_channel_group_item_add(&group3, &item3); 
 
 	/*
 	 * Initialize fipc
@@ -71,7 +62,14 @@ static int setup_and_run_test(void)
 		goto fail2;
 	}
 	
+   item2to1.channel = thread_2_to_1_header; 
+   thc_channel_group_item_add(&group2, &item2to1); 
 
+   item2to3.channel = thread_2_to_3_header; 
+   thc_channel_group_item_add(&group2, &item2to3); 
+
+   item3.channel = thread3_header;
+   thc_channel_group_item_add(&group3, &item3); 
 
 
 	/*
