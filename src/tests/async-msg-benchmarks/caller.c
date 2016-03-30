@@ -20,7 +20,8 @@ static inline int send_and_get_response(
 	struct fipc_ring_channel *chan,
 	struct fipc_message *request,
 	struct fipc_message **response,
-    uint32_t msg_id)
+    uint32_t msg_id,
+    bool is_async)
 {
 	int ret;
 	struct fipc_message *resp;
@@ -36,7 +37,14 @@ static inline int send_and_get_response(
 	/*
 	 * Try to get the response
 	 */
-    ret = thc_ipc_recv(chan, msg_id, &resp);
+    if( is_async )
+    {
+        ret = thc_ipc_recv(chan, msg_id, &resp);
+    }
+    else
+    {
+        ret = test_fipc_blocking_recv_start(chan, &resp);
+    }
 	if (ret) {
 		pr_err("failed to get a response, ret = %d\n", ret);
 		goto fail2;
@@ -100,10 +108,10 @@ static inline int finish_response_check_fn_type_and_reg0(
 	}
 }
 
-static int noinline __used
-async_add_nums(struct fipc_ring_channel *chan, 
+static int noinline __used add_nums(struct fipc_ring_channel *chan, 
                 unsigned long trans, 
-                unsigned long res1)
+                unsigned long res1,
+                bool is_async)
 {
 	struct fipc_message *request;
 	struct fipc_message *response;
@@ -120,7 +128,10 @@ async_add_nums(struct fipc_ring_channel *chan,
 		pr_err("Error getting send message, ret = %d\n", ret);
 		goto fail;
 	}
-    msg_id                = awe_mapper_create_id();
+    if( is_async )
+    {
+        msg_id                = awe_mapper_create_id();
+    }
 
     THC_MSG_TYPE(request) = msg_type_request;
     THC_MSG_ID(request)   = msg_id;
@@ -130,7 +141,7 @@ async_add_nums(struct fipc_ring_channel *chan,
 	/*
 	 * Send request, and get response
 	 */
-	ret = send_and_get_response(chan, request, &response, msg_id);
+	ret = send_and_get_response(chan, request, &response, msg_id, is_async);
     stop_time = test_fipc_stop_stopwatch();
 
     msg_times[trans] = stop_time - start_time;
@@ -154,31 +165,48 @@ fail:
 	return ret;
 }
 
-int caller(void *_caller_channel_header)
+static int msg_test(void* _caller_channel_header, bool is_async)
 {
     struct fipc_ring_channel *chan = _caller_channel_header;
 	unsigned long transaction_id = 0;
-	int ret = 0;
+    unsigned long start_time, stop_time;
+    int ret = 0;
+
     thc_init();
 
     preempt_disable();
     local_irq_disable();
+
+    transaction_id = 0;
     /*
 	 * Add nums
 	 */
     LCD_MAIN({
         DO_FINISH({
+            start_time = test_fipc_start_stopwatch();
             while(transaction_id < TRANSACTIONS)
             {
-                ASYNC({
-                    ret = async_add_nums(chan, transaction_id, 1000);
+                if( is_async )
+                {
+                    ASYNC({
+                        ret = add_nums(chan, transaction_id, 1000, is_async);
+                        if (ret) {
+                            pr_err("error doing null invocation, ret = %d\n",
+                                ret);
+                        }
+                    });
+                }
+                else
+                {
+                    ret = add_nums(chan, transaction_id, 1000, is_async);
                     if (ret) {
                         pr_err("error doing null invocation, ret = %d\n",
-                            ret);
-                    }
-                });
+                               ret);
+                     }
+                }
                 transaction_id++;
             }
+            stop_time = test_fipc_stop_stopwatch();
         });
     });
 
@@ -187,8 +215,35 @@ int caller(void *_caller_channel_header)
     thc_done();
 
 	pr_err("Complete\n");
-    printk(KERN_ERR "Timing results of performing %d async message transactions:\n", TRANSACTIONS);
+    printk(KERN_ERR "Avg throughput in msgs/10000 cycles: %lu\n", (TRANSACTIONS*10000) / (stop_time - start_time));
+    printk(KERN_ERR "Timing results of performing %d message transactions:\n", TRANSACTIONS);
     test_fipc_dump_time(msg_times, TRANSACTIONS);
+
+    return ret;
+}
+
+
+int caller(void *_caller_channel_header)
+{
+	int ret = 0;
+
+    printk(KERN_ERR "Testing asynchronous:\n");
+    ret = msg_test(_caller_channel_header, true);
+
+    if( ret )
+    {
+        printk(KERN_ERR "Error with asynchronous message test.");
+        return ret;
+    }
+
+    printk(KERN_ERR "Testing synchronous:\n");
+    ret = msg_test(_caller_channel_header, false);
+
+    if( ret )
+    {
+        printk(KERN_ERR "Error with synchronous message test.");
+        return ret;
+    }
 
 	return ret;
 }

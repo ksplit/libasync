@@ -110,7 +110,7 @@ int callee(void *_callee_channel_header)
 	enum fn_type type;
 
 	for (transaction_id = 0; 
-	     transaction_id < TRANSACTIONS; 
+	     transaction_id < TRANSACTIONS*2; 
 	     transaction_id++) {
 		/*
 		 * Try to receive a message

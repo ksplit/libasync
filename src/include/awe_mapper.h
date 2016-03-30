@@ -16,7 +16,7 @@
 
 #ifdef LINUX_KERNEL
 
-#define AWE_TABLE_COUNT 128
+#define AWE_TABLE_COUNT 1024
 
 struct awe_table
 {
