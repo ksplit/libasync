@@ -47,6 +47,10 @@ int thc_ipc_call(struct fipc_ring_channel *chnl,
 		struct fipc_message *request, 
 		struct fipc_message **response);
 
+int thc_ipc_reply(struct fipc_ring_channel *chnl,
+		struct fipc_message *request,
+		struct fipc_message *response);
+
 int thc_poll_recv_group(struct thc_channel_group* chan_group, 
                         struct thc_channel_group_item** chan_group_item, 
                         struct fipc_message** out_msg);

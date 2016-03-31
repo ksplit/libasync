@@ -86,12 +86,10 @@ static inline int send_response(struct fipc_ring_channel *chnl,
 		return ret;
 	}
 
-	thc_set_msg_type(response, msg_type_response);
-	thc_set_msg_id(response, thc_get_msg_id(recvd_msg));
 	set_fn_type(response, type);
 	response->regs[0] = val;
 
-	ret = fipc_send_msg_end(chnl, response);
+	ret = thc_ipc_reply(chnl, recvd_msg, response);
 	if (ret) {
 		pr_err("Error marking message as sent");
 		return ret;

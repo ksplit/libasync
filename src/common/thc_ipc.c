@@ -165,6 +165,7 @@ thc_ipc_call(struct fipc_ring_channel *chnl,
      * Get an id for our current awe, and store in request.
      */
     msg_id = awe_mapper_create_id();
+    thc_set_msg_type(request, msg_type_request);
     thc_set_msg_id(request, msg_id);
     /*
      * Send request
@@ -189,6 +190,17 @@ fail2:
     awe_mapper_remove_id(msg_id);
 fail1:
     return ret;
+}
+
+int
+LIBASYNC_FUNC_ATTR
+thc_ipc_reply(struct fipc_ring_channel *chnl,
+	struct fipc_message *request,
+	struct fipc_message *response)
+{
+    thc_set_msg_type(response, msg_type_response);
+    thc_set_msg_id(response, thc_get_msg_id(request));
+    return fipc_send_msg_end(chnl, response);
 }
 
 int 

@@ -76,8 +76,9 @@ async_add_nums(struct fipc_ring_channel *chan, unsigned long trans,
 		pr_err("Error getting send message, ret = %d\n", ret);
 		goto fail;
 	}
-
-	thc_set_msg_type(request, msg_type_request);
+        /*
+	 * Set up rpc msg
+         */
 	set_fn_type(request, ADD_NUMS);
 	fipc_set_reg0(request, trans);
 	fipc_set_reg1(request, res1);
