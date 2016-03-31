@@ -22,19 +22,19 @@ static int thc_recv_predicate(struct fipc_message* msg, void* data)
 {
     struct predicate_payload* payload_ptr = (struct predicate_payload*)data;
 
-    if( THC_MSG_TYPE(msg) == (uint32_t)msg_type_request )
+    if( thc_get_msg_type(msg) == (uint32_t)msg_type_request )
     {
         payload_ptr->msg_type = msg_type_request;
         return 1;
     }
-    else if( THC_MSG_ID(msg) == payload_ptr->expected_msg_id )
+    else if( thc_get_msg_id(msg) == payload_ptr->expected_msg_id )
     {
         payload_ptr->msg_type = msg_type_response;
         return 1; //message for this awe
     }
     else
     {
-        payload_ptr->actual_msg_id = THC_MSG_ID(msg);
+        payload_ptr->actual_msg_id = thc_get_msg_id(msg);
         return 0; //message not for this awe
     }
 }
@@ -44,14 +44,14 @@ static int poll_recv_predicate(struct fipc_message* msg, void* data)
 {
     struct predicate_payload* payload_ptr = (struct predicate_payload*)data;
 
-    if( THC_MSG_TYPE(msg) == (uint32_t)msg_type_request )
+    if( thc_get_msg_type(msg) == (uint32_t)msg_type_request )
     {
         payload_ptr->msg_type = msg_type_request;
         return 1;
     }
     else
     {
-        payload_ptr->actual_msg_id = THC_MSG_ID(msg);
+        payload_ptr->actual_msg_id = thc_get_msg_id(msg);
         return 0; //message not for this awe
     }
 }
@@ -152,6 +152,44 @@ thc_poll_recv(struct thc_channel_group_item* item,
     }
 }
 EXPORT_SYMBOL(thc_poll_recv);
+
+int
+LIBASYNC_FUNC_ATTR
+thc_ipc_call(struct fipc_ring_channel *chnl,
+	struct fipc_message *request,
+	struct fipc_message **response)
+{
+    uint32_t msg_id;
+    int ret;
+    /*
+     * Get an id for our current awe, and store in request.
+     */
+    msg_id = awe_mapper_create_id();
+    thc_set_msg_id(request, msg_id);
+    /*
+     * Send request
+     */
+    ret = fipc_send_msg_end(chnl, request);
+    if (ret) {
+        printk(KERN_ERR "thc: error sending request");
+        goto fail1;	
+    }
+    /*
+     * Receive response
+     */
+    ret = thc_ipc_recv(chnl, msg_id, response);
+    if (ret) {
+        printk(KERN_ERR "thc: error receiving response");
+        goto fail2;
+    }
+
+    return 0;
+
+fail2:
+    awe_mapper_remove_id(msg_id);
+fail1:
+    return ret;
+}
 
 int 
 LIBASYNC_FUNC_ATTR 

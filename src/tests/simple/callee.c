@@ -85,9 +85,9 @@ static inline int send_response(struct fipc_ring_channel *chnl,
 		pr_err("Error getting send slot");
 		return ret;
 	}
-    
-    THC_MSG_TYPE(response) = msg_type_response;
-    THC_MSG_ID(response)   = THC_MSG_ID(recvd_msg);
+
+	thc_set_msg_type(response, msg_type_response);
+	thc_set_msg_id(response, thc_get_msg_id(recvd_msg));
 	set_fn_type(response, type);
 	response->regs[0] = val;
 

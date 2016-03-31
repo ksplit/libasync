@@ -14,41 +14,6 @@
 #include <awe_mapper.h>
 #include "../test_helpers.h"
 
-static inline int send_and_get_response(
-	struct fipc_ring_channel *chan,
-	struct fipc_message *request,
-	struct fipc_message **response,
-    uint32_t msg_id)
-{
-	int ret;
-	struct fipc_message *resp;
-
-	/*
-	 * Mark the request as sent
-	 */
-	ret = fipc_send_msg_end(chan, request);
-	if (ret) {
-		pr_err("failed to mark request as sent, ret = %d\n", ret);
-		goto fail1;
-	}
-	/*
-	 * Try to get the response
-	 */
-    ret = thc_ipc_recv(chan, msg_id, &resp);
-	if (ret) {
-		pr_err("failed to get a response, ret = %d\n", ret);
-		goto fail2;
-	}
-	*response = resp;
-    printk(KERN_ERR "got result\n");
-
-	return 0;
-
-fail2:
-fail1:
-	return ret;
-}
-
 static inline int finish_response_check_fn_type(struct fipc_ring_channel *chnl,
 						struct fipc_message *response,
 						enum fn_type expected_type)
@@ -112,17 +77,15 @@ async_add_nums(struct fipc_ring_channel *chan, unsigned long trans,
 		pr_err("Error getting send message, ret = %d\n", ret);
 		goto fail;
 	}
-    msg_id                = awe_mapper_create_id();
 
-    THC_MSG_TYPE(request) = msg_type_request;
-    THC_MSG_ID(request)   = msg_id;
+	thc_set_msg_type(request, msg_type_request);
 	set_fn_type(request, ADD_NUMS);
 	fipc_set_reg0(request, trans);
 	fipc_set_reg1(request, res1);
 	/*
 	 * Send request, and get response
 	 */
-	ret = send_and_get_response(chan, request, &response, msg_id);
+	ret = thc_ipc_call(chan, request, &response);
 	if (ret) {
 		pr_err("Error getting response, ret = %d\n", ret);
 		goto fail;
