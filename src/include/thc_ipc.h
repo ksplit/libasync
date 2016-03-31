@@ -11,7 +11,7 @@
 static inline uint32_t thc_get_msg_type(struct fipc_message *msg)
 {
 	/* Caught at compile time */
-	BUILD_BUG_ON(THC_RESERVED_MSG_FLAG_BITS > 32)
+	BUILD_BUG_ON(THC_RESERVED_MSG_FLAG_BITS > 32);
 
 	return fipc_get_flags(msg) & 0x3;
 }
@@ -27,7 +27,7 @@ static inline uint32_t thc_get_msg_id(struct fipc_message *msg)
 	/* shift off type bits, and mask off msg id */
 	return (fipc_get_flags(msg) >> 2) & ((1 << AWE_TABLE_ORDER) - 1);
 }
-static inline uint32_t thc_set_msg_id(struct fipc_message *msg,
+static inline void thc_set_msg_id(struct fipc_message *msg,
 				uint32_t msg_id)
 {
 	uint32_t flags = fipc_get_flags(msg);
@@ -42,6 +42,10 @@ static inline uint32_t thc_set_msg_id(struct fipc_message *msg,
 int thc_ipc_recv(struct fipc_ring_channel *chnl, 
                  unsigned long msg_id, 
                  struct fipc_message** out_msg);
+
+int thc_ipc_call(struct fipc_ring_channel *chnl, 
+		struct fipc_message *request, 
+		struct fipc_message **response);
 
 int thc_poll_recv_group(struct thc_channel_group* chan_group, 
                         struct thc_channel_group_item** chan_group_item, 

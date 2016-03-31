@@ -67,7 +67,6 @@ async_add_nums(struct fipc_ring_channel *chan, unsigned long trans,
 {
 	struct fipc_message *request;
 	struct fipc_message *response;
-    uint32_t msg_id;
 	int ret;
 	/*
 	 * Set up request
@@ -103,14 +102,11 @@ fail:
 	return ret;
 }
 
-int caller(void *_caller_channel_header)
+int __caller(void *_caller_channel_header)
 {
     struct fipc_ring_channel *chan = _caller_channel_header;
 	unsigned long transaction_id = 0;
 	int ret = 0;
-    volatile void ** frame = (volatile void**)__builtin_frame_address(0);
-    volatile void *ret_addr = *(frame + 1);
-    *(frame + 1) = NULL;
 
     thc_init();
 	/*
@@ -134,9 +130,14 @@ int caller(void *_caller_channel_header)
 	pr_err("Complete\n");
     thc_done();
 
-    *(frame + 1) = ret_addr;
 	return ret;
 }
 
+int caller(void *_caller_channel_header)
+{
+	int result;
 
+	LCD_MAIN({ result = __caller(_caller_channel_header); });
 
+	return result;
+}

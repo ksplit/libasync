@@ -222,8 +222,6 @@ thc_channel_group_item_remove(struct thc_channel_group* channel_group,
 {
     list_del_init(&(item->list));
     channel_group->size--;
-
-    return 0;
 }
 EXPORT_SYMBOL(thc_channel_group_item_remove);
 

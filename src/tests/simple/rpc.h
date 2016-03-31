@@ -9,6 +9,7 @@
 #define LIBFIPC_RPC_TEST_H
 
 #include <libfipc.h>
+#include <thc_ipc.h>
 
 enum fn_type {
 	NULL_INVOCATION, 
@@ -44,7 +45,7 @@ set_fn_type(struct fipc_message *msg, enum fn_type type)
 	/* erase old type */
 	flags &= ((1 << THC_RESERVED_MSG_FLAG_BITS) - 1);
 	/* install new type */
-	flags |= (type << THC_RESERVED_MSG_FLAG_BITS)
+	flags |= (type << THC_RESERVED_MSG_FLAG_BITS);
 	fipc_set_flags(msg, flags);
 }
 

@@ -549,6 +549,7 @@ static void thc_start_rts(void) {
 }
 
 static void thc_end_rts(void) {
+  void* next_stack;
   PTState_t *pts = PTS();
   assert(pts->doneInit && "Not initialized RTS");
   DEBUG_INIT(DEBUGPRINTF(DEBUG_INIT_PREFIX "> Ending\n"));
@@ -558,7 +559,6 @@ static void thc_end_rts(void) {
   // book-keeping: once the dispatch loop is done, then the
   // number of stacks on our free list should equal the number
   // allocated from the OS.
-  void* next_stack;
   while (pts->free_stacks != NULL) {
         next_stack = pts->free_stacks->next;
 #ifdef LINUX_KERNEL

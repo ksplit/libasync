@@ -100,7 +100,7 @@ static inline int send_response(struct fipc_ring_channel *chnl,
 	return 0;
 }
 
-int callee(void *_callee_channel_header)
+int __callee(void *_callee_channel_header)
 {
 	int ret = 0;
 	unsigned long temp_res;
@@ -178,4 +178,13 @@ int callee(void *_callee_channel_header)
 
 out:
 	return ret;
+}
+
+int callee(void *_callee_channel_header)
+{
+	int result;
+
+	LCD_MAIN({ result = __callee(_callee_channel_header); });
+	
+	return result;
 }
