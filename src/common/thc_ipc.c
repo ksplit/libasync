@@ -191,6 +191,7 @@ fail2:
 fail1:
     return ret;
 }
+EXPORT_SYMBOL(thc_ipc_call);
 
 int
 LIBASYNC_FUNC_ATTR
@@ -202,6 +203,7 @@ thc_ipc_reply(struct fipc_ring_channel *chnl,
     thc_set_msg_id(response, thc_get_msg_id(request));
     return fipc_send_msg_end(chnl, response);
 }
+EXPORT_SYMBOL(thc_ipc_reply);
 
 int 
 LIBASYNC_FUNC_ATTR 
