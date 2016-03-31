@@ -16,6 +16,7 @@
 #include <linux/kernel.h>
 #include <linux/sort.h>
 #include <libfipc.h>
+#include <thc_ipc.h>
 
 #define LCD_MAIN(_CODE)    do {                        \
                                         \
@@ -272,5 +273,25 @@ static inline unsigned long test_fipc_stop_stopwatch(void)
 
 void test_fipc_dump_time(unsigned long *time, unsigned long num_transactions);
 
+static inline
+int
+get_fn_type(struct fipc_message *msg)
+{
+	return fipc_get_flags(msg) >> THC_RESERVED_MSG_FLAG_BITS;
+}
+
+static inline
+void
+set_fn_type(struct fipc_message *msg, uint32_t type)
+{
+	uint32_t flags = fipc_get_flags(msg);
+	/* ensure type is in range */
+	type &= (1 << (32 - THC_RESERVED_MSG_FLAG_BITS)) - 1;
+	/* erase old type */
+	flags &= ((1 << THC_RESERVED_MSG_FLAG_BITS) - 1);
+	/* install new type */
+	flags |= (type << THC_RESERVED_MSG_FLAG_BITS);
+	fipc_set_flags(msg, flags);
+}
 
 #endif /* FIPC_KERNEL_TEST_HELPERS_H */

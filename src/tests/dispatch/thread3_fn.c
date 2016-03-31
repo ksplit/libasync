@@ -3,7 +3,6 @@
 #include <thc_ipc_types.h>
 #include <libfipc.h>
 #include <thcinternal.h>
-#include "rpc.h"
 #include "../test_helpers.h"
 #include "thc_dispatch_test.h"
 #include "thread_fn_util.h"
@@ -16,9 +15,9 @@ static struct thc_channel_group* rx_group;
 
 static int add_10_fn(struct fipc_ring_channel* chan, struct fipc_message* msg)
 {
-    unsigned long msg_id =THC_MSG_ID(msg);
-    unsigned long reg0 = fipc_get_reg0(msg);
-    unsigned long reg1 = fipc_get_reg1(msg);
+    unsigned long msg_id = thc_get_msg_id(msg);
+    unsigned long reg0   = fipc_get_reg0(msg);
+    unsigned long reg1   = fipc_get_reg1(msg);
     fipc_recv_msg_end(chan,msg);
     msleep(10);
     unsigned long result = reg0 + reg1 + 10;
@@ -29,11 +28,9 @@ static int add_10_fn(struct fipc_ring_channel* chan, struct fipc_message* msg)
          printk(KERN_ERR "Error getting send message for add_10_fn.\n");
     }
     fipc_set_reg0(out_msg, result);
-    THC_MSG_ID(out_msg)   = msg_id;
     set_fn_type(out_msg, ADD_10_FN);
-    THC_MSG_TYPE(out_msg) = msg_type_response;
     
-    if( fipc_send_msg_end(chan, out_msg) )
+    if( thc_ipc_reply_with_id(chan, msg_id, out_msg) )
     {
         printk(KERN_ERR "Error sending message for add_10_fn.\n");
     }

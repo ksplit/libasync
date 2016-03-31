@@ -3,7 +3,6 @@
 #include <thcinternal.h>
 #include <thc_ipc.h>
 #include <thc_ipc_types.h>
-#include "rpc.h"
 #include "thc_dispatch_test.h"
 #include "../test_helpers.h"
 #include "thread_fn_util.h"
@@ -23,16 +22,14 @@ static int add_2_fn(struct fipc_ring_channel* chan, struct fipc_message* msg)
         printk(KERN_ERR "Error getting send message for add_2_fn.\n");
     }
 
-    fipc_recv_msg_end(chan, msg);
     fipc_set_reg0(out_msg,result);
     set_fn_type(out_msg, ADD_2_FN);
-    THC_MSG_TYPE(out_msg) = msg_type_response;
-    THC_MSG_ID(out_msg)   = THC_MSG_ID(msg);
 
-    if( fipc_send_msg_end(chan, out_msg) )
+    if( thc_ipc_reply(chan, msg, out_msg) )
     {
         printk(KERN_ERR "Error sending message for add_2_fn.\n");
     }
+    fipc_recv_msg_end(chan, msg);
     
     return 0;
 }
@@ -43,32 +40,31 @@ static int add_10_fn(struct fipc_ring_channel* thread1_chan, struct fipc_message
 {
     struct thc_channel_group_item *thread3_item;
  	struct fipc_message* thread1_result;
- 	struct fipc_message* thread3_msg;
+ 	struct fipc_message* thread3_request;
+ 	struct fipc_message* thread3_response;
+    unsigned long saved_msg_id = thc_get_msg_id(msg);
 
-    fipc_recv_msg_end(thread1_chan, msg);
 
     if( thc_channel_group_item_get(rx_group, 1, &thread3_item) )
     {
         printk(KERN_ERR "invalid index for group_item_get\n");
         return 1;
     }
-    struct fipc_ring_channel * thread3_chan = thread3_item->channel;
+    struct fipc_ring_channel* thread3_chan = thread3_item->channel;
 
-	if( test_fipc_blocking_send_start(thread3_chan, &thread3_msg) )
+	if( test_fipc_blocking_send_start(thread3_chan, &thread3_request) )
     {
         printk(KERN_ERR "Error getting send message for add_10_fn.\n");
     }
 
-    unsigned long saved_msg_id = THC_MSG_ID(msg);
-    unsigned long new_msg_id   = awe_mapper_create_id();
+	set_fn_type(thread3_request, get_fn_type(msg));
+	fipc_set_reg0(thread3_request, fipc_get_reg0(msg));
+	fipc_set_reg1(thread3_request, fipc_get_reg1(msg));
 
-	set_fn_type(thread3_msg, get_fn_type(msg));
-	fipc_set_reg0(thread3_msg, fipc_get_reg0(msg));
-	fipc_set_reg1(thread3_msg, fipc_get_reg1(msg));
-	THC_MSG_ID(thread3_msg)   = new_msg_id;
-    THC_MSG_TYPE(thread3_msg) = msg_type_request;
+    //mark channel 1 message as received and the slot as available
+    fipc_recv_msg_end(thread1_chan, msg);
 
-    send_and_get_response(thread3_chan, thread3_msg, &msg, new_msg_id);
+    thc_ipc_call(thread3_chan, thread3_request, &thread3_response);
     fipc_recv_msg_end(thread3_chan, msg);
 
     if( test_fipc_blocking_send_start(thread1_chan, &thread1_result) )
@@ -76,13 +72,11 @@ static int add_10_fn(struct fipc_ring_channel* thread1_chan, struct fipc_message
         printk(KERN_ERR "Error getting send message for add_10_fn.\n");
     }
 
-	set_fn_type(thread1_result, get_fn_type(msg));
-	fipc_set_reg0(thread1_result, fipc_get_reg0(msg));
-	fipc_set_reg1(thread1_result, fipc_get_reg1(msg));
-	THC_MSG_ID(thread1_result)   = saved_msg_id;
-    THC_MSG_TYPE(thread1_result) = msg_type_response;
+	set_fn_type(thread1_result, get_fn_type(thread3_response));
+	fipc_set_reg0(thread1_result, fipc_get_reg0(thread3_response));
+	fipc_set_reg1(thread1_result, fipc_get_reg1(thread3_response));
 
-    if( fipc_send_msg_end(thread1_chan, thread1_result) )
+    if( thc_ipc_reply_with_id(thread1_chan, saved_msg_id , thread1_result) )
     {
         printk(KERN_ERR "Error sending message for add_10_fn.\n");
     }
