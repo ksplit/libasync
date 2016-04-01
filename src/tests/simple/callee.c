@@ -69,14 +69,7 @@ static inline int send_response(struct fipc_ring_channel *chnl,
 {
 	int ret;
 	struct fipc_message *response;
-	/*
-	 * Mark recvd msg slot as available
-	 */
-	ret = fipc_recv_msg_end(chnl, recvd_msg);
-	if (ret) {
-		pr_err("Error marking msg as recvd");
-		return ret;
-	}
+
 	/*
 	 * Response
 	 */
@@ -92,6 +85,15 @@ static inline int send_response(struct fipc_ring_channel *chnl,
 	ret = thc_ipc_reply(chnl, recvd_msg, response);
 	if (ret) {
 		pr_err("Error marking message as sent");
+		return ret;
+	}
+
+	/*
+	 * Mark recvd msg slot as available
+	 */
+	ret = fipc_recv_msg_end(chnl, recvd_msg);
+	if (ret) {
+		pr_err("Error marking msg as recvd");
 		return ret;
 	}
 

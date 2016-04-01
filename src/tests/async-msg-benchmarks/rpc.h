@@ -21,7 +21,7 @@ enum fn_type {
 };
 
 /* must be divisible by 6... because I call 6 functions in the callee.c */
-#define TRANSACTIONS 60000
+#define TRANSACTIONS 600
 
 /* thread main functions */
 int callee(void *_callee_channel_header);

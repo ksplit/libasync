@@ -86,8 +86,13 @@ static inline int finish_response_check_fn_type_and_reg0(
 	enum fn_type actual_type = get_fn_type(response);
 	unsigned long actual_reg0 = fipc_get_reg0(response);
 
+    ret = fipc_recv_msg_end(chnl, response);
 
-	if (actual_type != expected_type) {
+	if (ret) {
+		pr_err("Error finishing receipt of response, ret = %d\n", ret);
+		return ret;
+	} 
+    else if (actual_type != expected_type) {
 		pr_err("Unexpected fn type: actual = %d, expected = %d\n",
 			actual_type, expected_type);
 		return -EINVAL;
@@ -109,7 +114,6 @@ static int noinline __used add_nums(struct fipc_ring_channel *chan,
 	struct fipc_message *request;
 	struct fipc_message *response;
     unsigned long start_time, stop_time;
-    uint32_t msg_id;
 	int ret;
 	/*
 	 * Set up request
