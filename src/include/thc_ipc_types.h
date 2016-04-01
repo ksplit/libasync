@@ -19,6 +19,12 @@ struct predicate_payload
     msg_type_t msg_type;
 };
 
+/*
+ * struct thc_channel_group_item
+ *
+ * Contains a channel and a function that should get called when a message
+ * is received on the channel.
+ */
 struct thc_channel_group_item
 {
     struct list_head list;
@@ -26,6 +32,11 @@ struct thc_channel_group_item
     int (*dispatch_fn)(struct fipc_ring_channel*, struct fipc_message*);
 };
 
+/*
+ * struct thc_channel_group
+ *
+ * Represents a linked list of thc_channel_group_items.
+ */
 struct thc_channel_group
 {
     struct list_head head;

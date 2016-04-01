@@ -63,12 +63,14 @@ static inline awe_table_t* get_awe_map(void)
     return PTS()->awe_map;
 }
 
+/*
+ * Called in awe_mapper_init.
+ * Sets awe_map struct of the current PTS to a specific awe_table.
+ */
 static inline void set_awe_map(awe_table_t * map_ptr)
 {
     PTS()->awe_map = map_ptr;
 }
-
-void awe_mapper_print_list(void);
 
 #endif /* LINUX_KERNEL */
 
