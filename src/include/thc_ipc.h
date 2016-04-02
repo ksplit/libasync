@@ -43,6 +43,11 @@ static inline uint32_t thc_get_request_cookie(struct fipc_message *request)
 {
 	return thc_get_msg_id(request);
 }
+
+static inline void thc_kill_request_cookie(uint32_t request_cookie)
+{
+	awe_mapper_remove_id(request_cookie);
+}
 /*
  * thc_ipc_recv
  * 
