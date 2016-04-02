@@ -39,6 +39,11 @@ static inline void thc_set_msg_id(struct fipc_message *msg,
 	fipc_set_flags(msg, flags);
 }
 
+static inline uint32_t thc_get_request_cookie(struct fipc_message *request)
+{
+	return thc_get_msg_id(request);
+}
+
 int thc_ipc_recv(struct fipc_ring_channel *chnl, 
                  unsigned long msg_id, 
                  struct fipc_message** out_msg);

@@ -196,11 +196,11 @@ EXPORT_SYMBOL(thc_ipc_call);
 int
 LIBASYNC_FUNC_ATTR
 thc_ipc_reply(struct fipc_ring_channel *chnl,
-	struct fipc_message *request,
+	uint32_t request_cookie,
 	struct fipc_message *response)
 {
     thc_set_msg_type(response, msg_type_response);
-    thc_set_msg_id(response, thc_get_msg_id(request));
+    thc_set_msg_id(response, request_cookie);
     return fipc_send_msg_end(chnl, response);
 }
 EXPORT_SYMBOL(thc_ipc_reply);
