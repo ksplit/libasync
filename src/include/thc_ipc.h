@@ -84,6 +84,25 @@ int thc_ipc_call(struct fipc_ring_channel *chnl,
 		struct fipc_message **response);
 
 /*
+ * thc_ipc_send
+ *
+ * Associates a "request cookie" (the message id)
+ * with the request and does the send (this is 
+ * essentially the top half of thc_ipc_call).
+ *
+ * The request cookie is returned as an out param.
+ *
+ * The caller should invoke a subsequent thc_ipc_recv
+ * with the request cookie as the msg_id argument to
+ * get the response.
+ *
+ * Returns 0 on success, non-zero otherwise.
+ */
+int thc_ipc_send(struct fipc_ring_channel *chnl, 
+		struct fipc_message *request, 
+		uint32_t *request_cookie);
+
+/*
  * thc_ipc_reply
  *
  * Sets the msg_id of response to the msg_id of request
