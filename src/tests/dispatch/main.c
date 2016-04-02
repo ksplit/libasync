@@ -82,7 +82,7 @@ static int setup_and_run_test(void)
 		pr_err("Error setting up caller thread\n");
 		goto fail2;
 	}
-	thread2 = test_fipc_spawn_thread_with_channel(&group2, 
+	thread2 = test_pin_to_core(&group2, 
 							thread2_fn,
 							THREAD2_CPU);
 	if (!thread2) {
@@ -90,7 +90,7 @@ static int setup_and_run_test(void)
 		goto fail3;
 	}
 
-	thread3 = test_fipc_spawn_thread_with_channel(&group3, 
+	thread3 = test_pin_to_core(&group3, 
 							thread3_fn,
 							THREAD3_CPU);
 	if (!thread3) {

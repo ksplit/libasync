@@ -46,14 +46,14 @@ static int add_10_fn(struct fipc_ring_channel* thread1_chan, struct fipc_message
  	struct fipc_message* thread3_request;
  	struct fipc_message* thread3_response;
     unsigned long saved_msg_id = thc_get_msg_id(msg);
-
+    struct fipc_ring_channel* thread3_chan;
 
     if( thc_channel_group_item_get(rx_group, 1, &thread3_item) )
     {
         printk(KERN_ERR "invalid index for group_item_get\n");
         return 1;
     }
-    struct fipc_ring_channel* thread3_chan = thread3_item->channel;
+    thread3_chan = thread3_item->channel;
 
 	if( test_fipc_blocking_send_start(thread3_chan, &thread3_request) )
     {
@@ -97,7 +97,7 @@ static int thread1_dispatch_fn(struct fipc_ring_channel* chan, struct fipc_messa
         case ADD_10_FN:
             return add_10_fn(chan, msg);
         default:
-            printk(KERN_ERR "FN: %lu is not a valid function type\n", get_fn_type(msg));
+            printk(KERN_ERR "FN: %d is not a valid function type\n", get_fn_type(msg));
     }
     return 1;
 }

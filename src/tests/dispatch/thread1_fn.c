@@ -14,32 +14,6 @@
 static struct fipc_ring_channel* channel;
 static volatile int num_responses = 0;
 
-static void check_response(unsigned long lhs, 
-        unsigned long rhs, 
-        unsigned long response, 
-        int fn_type)
-{
-    unsigned long result = 0;
-    switch( fn_type )
-    {
-        case ADD_2_FN:
-            result = lhs + rhs;
-            break;
-        case ADD_10_FN:
-            result = lhs + rhs + 10;
-            break;
-        default:
-            printk(KERN_ERR "invalid fn_type %d\n", fn_type);
-            BUG();
-            break;
-    }
-
-    if( response != result )
-    {
-        printk(KERN_ERR "response = %lu, result = %lu, fn_type = %d\n", response, result, fn_type);
-        BUG();
-    }
-}
 
 static inline int finish_response_check_fn_type_and_reg0(
 	struct fipc_ring_channel *chnl,

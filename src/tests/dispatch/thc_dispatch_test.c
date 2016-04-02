@@ -18,9 +18,8 @@ int thc_dispatch_loop_test(struct thc_channel_group* rx_group, int max_recv_ct)
         int curr_ind     = 0;
         int* curr_ind_pt = &curr_ind;
         struct thc_channel_group_item* curr_item;
-        struct ipc_message* curr_msg;
+        struct fipc_message* curr_msg;
 
-        uint32_t do_finish_awe_id = awe_mapper_create_id();
         while( recv_ct < max_recv_ct )
         {
            curr_ind = 0;
@@ -36,7 +35,7 @@ int thc_dispatch_loop_test(struct thc_channel_group* rx_group, int max_recv_ct)
                     }
                     else
                     {
-                        printk(KERN_ERR "Channel %d function not allocated, message dropped\n", curr_ind_pt);
+                        printk(KERN_ERR "Channel %d function not allocated, message dropped\n", *curr_ind_pt);
                     }
             }
         }

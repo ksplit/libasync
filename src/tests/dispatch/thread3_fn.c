@@ -18,10 +18,10 @@ static int add_10_fn(struct fipc_ring_channel* chan, struct fipc_message* msg)
     unsigned long msg_id = thc_get_msg_id(msg);
     unsigned long reg0   = fipc_get_reg0(msg);
     unsigned long reg1   = fipc_get_reg1(msg);
-    fipc_recv_msg_end(chan,msg);
-    msleep(10);
     unsigned long result = reg0 + reg1 + 10;
 	struct fipc_message* out_msg;
+    fipc_recv_msg_end(chan,msg);
+    msleep(10);
    
     if( test_fipc_blocking_send_start(chan, &out_msg) )
     {

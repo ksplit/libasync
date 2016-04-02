@@ -181,12 +181,11 @@ thc_ipc_call(struct fipc_ring_channel *chnl,
     ret = thc_ipc_recv(chnl, msg_id, response);
     if (ret) {
         printk(KERN_ERR "thc: error receiving response");
-        goto fail2;
+        goto fail1;
     }
 
     return 0;
 
-fail2:
 fail1:
     awe_mapper_remove_id(msg_id);
     return ret;
@@ -220,7 +219,6 @@ thc_ipc_send(struct fipc_ring_channel *chnl,
 
     return 0;
 
-fail2:
 fail1:
     awe_mapper_remove_id(msg_id);
     return ret;
