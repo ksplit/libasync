@@ -16,6 +16,9 @@ static int add_2_fn(struct fipc_ring_channel* chan, struct fipc_message* msg)
 {
     unsigned long result = fipc_get_reg0(msg) + fipc_get_reg1(msg);
 	struct fipc_message* out_msg;
+    uint32_t request_cookie = thc_get_request_cookie(msg);
+
+    fipc_recv_msg_end(chan, msg);
 
 	if( test_fipc_blocking_send_start(chan, &out_msg) )
     {
@@ -25,11 +28,11 @@ static int add_2_fn(struct fipc_ring_channel* chan, struct fipc_message* msg)
     fipc_set_reg0(out_msg,result);
     set_fn_type(out_msg, ADD_2_FN);
 
-    if( thc_ipc_reply(chan, msg, out_msg) )
+    if( thc_ipc_reply(chan, request_cookie, out_msg) )
     {
         printk(KERN_ERR "Error sending message for add_2_fn.\n");
     }
-    fipc_recv_msg_end(chan, msg);
+
     
     return 0;
 }
@@ -76,7 +79,7 @@ static int add_10_fn(struct fipc_ring_channel* thread1_chan, struct fipc_message
 	fipc_set_reg0(thread1_result, fipc_get_reg0(thread3_response));
 	fipc_set_reg1(thread1_result, fipc_get_reg1(thread3_response));
 
-    if( thc_ipc_reply_with_id(thread1_chan, saved_msg_id , thread1_result) )
+    if( thc_ipc_reply(thread1_chan, saved_msg_id , thread1_result) )
     {
         printk(KERN_ERR "Error sending message for add_10_fn.\n");
     }

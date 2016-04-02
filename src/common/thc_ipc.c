@@ -205,18 +205,6 @@ thc_ipc_reply(struct fipc_ring_channel *chnl,
 }
 EXPORT_SYMBOL(thc_ipc_reply);
 
-int
-LIBASYNC_FUNC_ATTR
-thc_ipc_reply_with_id(struct fipc_ring_channel *chnl,
-	uint32_t msg_id,
-	struct fipc_message *response)
-{
-    thc_set_msg_type(response, msg_type_response);
-    thc_set_msg_id(response, msg_id);
-    return fipc_send_msg_end(chnl, response);
-}
-EXPORT_SYMBOL(thc_ipc_reply_with_id);
-
 int 
 LIBASYNC_FUNC_ATTR 
 thc_channel_group_init(struct thc_channel_group* channel_group)

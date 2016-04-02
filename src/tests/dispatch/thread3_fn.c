@@ -30,7 +30,7 @@ static int add_10_fn(struct fipc_ring_channel* chan, struct fipc_message* msg)
     fipc_set_reg0(out_msg, result);
     set_fn_type(out_msg, ADD_10_FN);
     
-    if( thc_ipc_reply_with_id(chan, msg_id, out_msg) )
+    if( thc_ipc_reply(chan, msg_id, out_msg) )
     {
         printk(KERN_ERR "Error sending message for add_10_fn.\n");
     }
