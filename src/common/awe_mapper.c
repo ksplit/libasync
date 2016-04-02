@@ -35,6 +35,11 @@
  * storage size requirements.
  */
 
+/*
+ * This value is used to determine if a slot is allocated but not yet set in the awe table.
+ */
+static unsigned long initialized_marker = 0xDeadBeef;
+
 
 /*
  * Initilaizes awe mapper.
@@ -92,13 +97,14 @@ awe_mapper_create_id(void)
     } 
     while( is_slot_allocated(awe_map->next_id) );
 
-    (awe_map->awe_list)[awe_map->next_id] = (void*)0xdeadbeef;
+    (awe_map->awe_list)[awe_map->next_id] = (void*)initialized_marker;
 
     awe_map->used_slots++;
 
     return awe_map->next_id;
 }  
 EXPORT_SYMBOL(awe_mapper_create_id);
+
 
 
 /*
@@ -119,6 +125,7 @@ awe_mapper_remove_id(uint32_t id)
     (awe_map->awe_list)[id] = NULL;
 }
 EXPORT_SYMBOL(awe_mapper_remove_id);
+
 
 
 /*
@@ -147,22 +154,3 @@ awe_mapper_get_awe_ptr(uint32_t id)
 
     return (awe_map->awe_list)[id];
 }
-
-
-void 
-LIBASYNC_FUNC_ATTR 
-awe_mapper_print_list(void)
-{
-    int i,j;
-    awe_table_t *awe_map =  get_awe_map();
-    for(i = 0; i < AWE_TABLE_COUNT; i+= 8)
-    {
-        printk(KERN_ERR "\n");
-        for(j = i; j < i + 8; j++)
-        {
-            printk(KERN_ERR "0x%p ", (awe_map->awe_list)[j]);
-        }
-    }
-    printk(KERN_ERR "\n");
-}
-EXPORT_SYMBOL(awe_mapper_print_list);

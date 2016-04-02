@@ -69,31 +69,31 @@ static inline int send_response(struct fipc_ring_channel *chnl,
 {
 	int ret;
 	struct fipc_message *response;
-	/*
-	 * Mark recvd msg slot as available
-	 */
-	ret = fipc_recv_msg_end(chnl, recvd_msg);
-	if (ret) {
-		pr_err("Error marking msg as recvd");
-		return ret;
-	}
+
 	/*
 	 * Response
 	 */
 	ret = test_fipc_blocking_send_start(chnl, &response);
-	if (ret) {
+	if ( ret ) {
 		pr_err("Error getting send slot");
 		return ret;
 	}
-    
-    THC_MSG_TYPE(response) = msg_type_response;
-    THC_MSG_ID(response)   = THC_MSG_ID(recvd_msg);
+
 	set_fn_type(response, type);
 	response->regs[0] = val;
 
-	ret = fipc_send_msg_end(chnl, response);
-	if (ret) {
+	ret = thc_ipc_reply(chnl, recvd_msg, response);
+	if ( ret ) {
 		pr_err("Error marking message as sent");
+		return ret;
+	}
+
+    	/*
+	 * Mark recvd msg slot as available
+	 */
+	ret = fipc_recv_msg_end(chnl, recvd_msg);
+	if ( ret ) {
+		pr_err("Error marking msg as recvd");
 		return ret;
 	}
 

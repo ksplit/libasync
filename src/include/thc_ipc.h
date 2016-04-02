@@ -43,34 +43,124 @@ static inline uint32_t thc_get_request_cookie(struct fipc_message *request)
 {
 	return thc_get_msg_id(request);
 }
-
+/*
+ * thc_ipc_recv
+ * 
+ * Performs an async receive of a message.
+ * msg_id is used to receive a message with a particular id and must always
+ * be valid. If a message is received but its id does not match the id provided
+ * to this function, then this function will check if the message corresponds
+ * to another pending AWE, and if so, it will yield to that AWE. If there is 
+ * not a message that has been received yet, it will yield to dispatch any
+ * pending work. If a message is received that corresponds to the provided
+ * msg_id, this function will put the message in the *out_msg parameter and return.
+ * This last case is the only time the function will return assuming there are
+ * no error conditions. In the other two cases involving yields, execution will
+ * eventually come back to this function until it receives the message
+ * corresponding to its msg_id. 
+ *  It is the caller's responsibility to mark the message as having completed
+ * the receive. (ex: fipc_recv_msg_end(chnl, msg))
+ *
+ * Returns 0 on success, non-zero otherwise.
+ */
 int thc_ipc_recv(struct fipc_ring_channel *chnl, 
                  unsigned long msg_id, 
                  struct fipc_message** out_msg);
 
+/*
+ * thc_ipc_call
+ * 
+ * Performs both a send and an async receive. 
+ * request is the message to send.
+ * (*response) will have the received message.
+ *
+ * It is the caller's responsibility to mark the message as having completed
+ * the receive. (ex: fipc_recv_msg_end(chnl, msg))
+ *
+ * Returns 0 on success, non-zero otherwise.
+ */
 int thc_ipc_call(struct fipc_ring_channel *chnl, 
 		struct fipc_message *request, 
 		struct fipc_message **response);
 
+/*
+ * thc_ipc_reply
+ *
+ * Sets the msg_id of response to the msg_id of request
+ * and marks the response message as having a response message type.
+ * Sends response message on the provided ring channel. 
+ *
+ * Returns 0 on success, non-zero otherwise.
+ */
 int thc_ipc_reply(struct fipc_ring_channel *chnl,
-		struct fipc_message *request,
+		uint32_t request_cookie,
 		struct fipc_message *response);
 
-int thc_poll_recv_group(struct thc_channel_group* chan_group, 
-                        struct thc_channel_group_item** chan_group_item, 
-                        struct fipc_message** out_msg);
-
+/* thc_poll_recv
+ *
+ * Same as thc_ipc_recv except that if no message is present, it
+ * returns -EWOULDBLOCK instead of yielding.
+ * Additionally, the channel inside the thc_channel_group_item is what
+ * is used instead of a channel directly.
+ * There is also no msg_id passed in because poll_recv should not expect a
+ * specific message.
+ *
+ * Returns 0 on success, non-zero otherwise.
+ */
 int thc_poll_recv(struct thc_channel_group_item* item,
                  struct fipc_message** out_msg);
 
+/*
+ * thc_poll_recv_group
+ *
+ * Calls thc_poll_recv on a list of thc_channel_group_items represented
+ * by thc_channel_group. If there is a message available that does not
+ * correspond to a pending AWE, the thc_channel_group_item that corresponds
+ * to the received message is set to the out param (*chan_group_item),
+ * and the received message is set to the out param (*out_msg).
+ * If there is no message available in any of the thc_channel_group_items,
+ * then this function returns -EWOULDBLOCK.
+ *
+ * Returns 0 on success, non-zero otherwise.
+ */
+int thc_poll_recv_group(struct thc_channel_group* chan_group, 
+                        struct thc_channel_group_item** chan_group_item, 
+                        struct fipc_message** out_msg);
+/*
+ * thc_channel_group_init
+ *
+ * Initializes thc_channel_group structure after it has been allocated.
+ *
+ * Returns 0 on success, non-zero otherwise.
+ */
 int thc_channel_group_init(struct thc_channel_group* channel_group);
 
+/*
+ * thc_channel_group_item_add
+ *
+ * Adds a thc_channel_group_item to a thc_channel_group.
+ *
+ * Returns 0 on success, non-zero otherwise.
+ */
 int thc_channel_group_item_add(struct thc_channel_group* channel_group,
                           struct thc_channel_group_item* item);
 
+/*
+ * thc_channel_group_item_add
+ *
+ * Removes a thc_channel_group_item from a thc_channel_group.
+ */
 void thc_channel_group_item_remove(struct thc_channel_group* channel_group, 
 				struct thc_channel_group_item* item);
 
+/*
+ * thc_channel_group_item_get
+ *
+ * Gets a thc_channel_group_item at a particular index in a channel_group.
+ * Puts the thc_channel_group_item in the out parameter (*out_item) on success.
+ *
+ * Returns 0 on success. Returns 1 if index is out of range.
+ */
 int thc_channel_group_item_get(struct thc_channel_group* channel_group, 
                                int index, 
                                struct thc_channel_group_item **out_item);

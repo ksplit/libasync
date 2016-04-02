@@ -16,12 +16,10 @@
 
 static unsigned long msg_times[TRANSACTIONS];
 
-static inline int send_and_get_response(
+static inline int send_and_get_response_sync(
 	struct fipc_ring_channel *chan,
 	struct fipc_message *request,
-	struct fipc_message **response,
-    uint32_t msg_id,
-    bool is_async)
+	struct fipc_message **response)
 {
 	int ret;
 	struct fipc_message *resp;
@@ -37,15 +35,10 @@ static inline int send_and_get_response(
 	/*
 	 * Try to get the response
 	 */
-    if( is_async )
-    {
-        ret = thc_ipc_recv(chan, msg_id, &resp);
-    }
-    else
-    {
-        ret = test_fipc_blocking_recv_start(chan, &resp);
-    }
-	if (ret) {
+        
+    ret = test_fipc_blocking_recv_start(chan, &resp);
+	
+    if (ret) {
 		pr_err("failed to get a response, ret = %d\n", ret);
 		goto fail2;
 	}
@@ -93,8 +86,13 @@ static inline int finish_response_check_fn_type_and_reg0(
 	enum fn_type actual_type = get_fn_type(response);
 	unsigned long actual_reg0 = fipc_get_reg0(response);
 
+    ret = fipc_recv_msg_end(chnl, response);
 
-	if (actual_type != expected_type) {
+	if (ret) {
+		pr_err("Error finishing receipt of response, ret = %d\n", ret);
+		return ret;
+	} 
+    else if (actual_type != expected_type) {
 		pr_err("Unexpected fn type: actual = %d, expected = %d\n",
 			actual_type, expected_type);
 		return -EINVAL;
@@ -116,7 +114,6 @@ static int noinline __used add_nums(struct fipc_ring_channel *chan,
 	struct fipc_message *request;
 	struct fipc_message *response;
     unsigned long start_time, stop_time;
-    uint32_t msg_id;
 	int ret;
 	/*
 	 * Set up request
@@ -128,20 +125,22 @@ static int noinline __used add_nums(struct fipc_ring_channel *chan,
 		pr_err("Error getting send message, ret = %d\n", ret);
 		goto fail;
 	}
-    if( is_async )
-    {
-        msg_id                = awe_mapper_create_id();
-    }
 
-    THC_MSG_TYPE(request) = msg_type_request;
-    THC_MSG_ID(request)   = msg_id;
 	set_fn_type(request, ADD_NUMS);
 	fipc_set_reg0(request, trans);
 	fipc_set_reg1(request, res1);
+
+    if( is_async )
+    {
+        ret = thc_ipc_call(chan, request, &response);
+    }
+    else
+    {
+	    ret = send_and_get_response_sync(chan, request, &response);
+    }
 	/*
 	 * Send request, and get response
 	 */
-	ret = send_and_get_response(chan, request, &response, msg_id, is_async);
     stop_time = test_fipc_stop_stopwatch();
 
     msg_times[trans] = stop_time - start_time;
@@ -150,7 +149,6 @@ static int noinline __used add_nums(struct fipc_ring_channel *chan,
 		pr_err("Error getting response, ret = %d\n", ret);
 		goto fail;
 	}
-
 
 	/*
 	 * Maybe check message

@@ -5,7 +5,6 @@
 #include "thc_dispatch_test.h"
 #include "thread_fn_util.h"
 #include "../test_helpers.h"
-#include "rpc.h"
 #include <awe_mapper.h>
 #include <linux/delay.h>
 
@@ -42,11 +41,61 @@ static void check_response(unsigned long lhs,
     }
 }
 
-static unsigned long add_nums_async(unsigned long lhs, unsigned long rhs, unsigned long msg_id, int fn_type)
+static inline int finish_response_check_fn_type_and_reg0(
+	struct fipc_ring_channel *chnl,
+	struct fipc_message *response,
+	uint32_t expected_type,
+	unsigned long expected_lhs,
+	unsigned long expected_rhs)
+{
+	int ret;
+	uint32_t actual_type      = get_fn_type(response);
+	unsigned long actual_reg0 = fipc_get_reg0(response);
+    unsigned long expected_reg0;
+
+	ret = fipc_recv_msg_end(chnl, response);
+
+    switch( expected_type )
+    {
+        case ADD_2_FN:
+            expected_reg0 = expected_lhs + expected_rhs;
+            break;
+        case ADD_10_FN:
+            expected_reg0 = expected_lhs + expected_rhs + 10;
+            break;
+        default:
+            printk(KERN_ERR "invalid fn_type %d\n", expected_type);
+            return -EINVAL;
+    }
+
+	if (ret) {
+		pr_err("Error finishing receipt of response, ret = %d\n", ret);
+		return ret;
+	} else if (actual_type != expected_type) {
+		pr_err("Unexpected fn type: actual = %u, expected = %u\n",
+			actual_type, expected_type);
+		return -EINVAL;
+	} else if (actual_reg0 != expected_reg0) {
+		pr_err("Unexpected return value (reg0): actual = 0x%lx, expected = 0x%lx\n",
+			actual_reg0, expected_reg0);
+		return -EINVAL;
+
+	} else {
+		return 0;
+	}
+}
+
+
+
+static int add_nums_async(struct fipc_ring_channel* channel,
+        unsigned long lhs, 
+        unsigned long rhs, 
+        int fn_type)
 {
 	struct fipc_message *msg;
     struct fipc_message *response;
-	unsigned long result;
+	int ret;
+
 	if( test_fipc_blocking_send_start(channel, &msg) )
     {
         printk(KERN_ERR "Error getting send message for add_nums_async.\n");
@@ -54,22 +103,31 @@ static unsigned long add_nums_async(unsigned long lhs, unsigned long rhs, unsign
 	set_fn_type(msg, fn_type);
 	fipc_set_reg0(msg, lhs);
 	fipc_set_reg1(msg, rhs);
-	THC_MSG_ID(msg)   = msg_id;
-    THC_MSG_TYPE(msg) = msg_type_request;
-    send_and_get_response(channel, msg, &response, msg_id);
-    fipc_recv_msg_end(channel, response);
-	result = fipc_get_reg0(response);
-	
-	return result;
+
+    ret = thc_ipc_call(channel, msg, &response);
+
+  	if ( ret ) {
+		printk(KERN_ERR "Error getting response, ret = %d\n", ret);
+		goto fail;
+	}
+
+	return finish_response_check_fn_type_and_reg0(
+		channel,
+		response, 
+		fn_type,
+        lhs,
+        rhs);
+
+fail:
+    return ret;
 }
 
 
 static int run_thread1(void* chan)
 {
-    volatile int num_transactions = 0;
+    volatile int num_transactions    = 0;
     int print_transactions_threshold = 0;
-    unsigned long msg_response    = 0;
-	uint32_t id_num;
+    unsigned long msg_response       = 0;
     num_responses = 0;
     channel       = chan;
 
@@ -83,30 +141,21 @@ static int run_thread1(void* chan)
         }
 
 		ASYNC(
-			id_num = awe_mapper_create_id();
 		    num_transactions++;
-            volatile int old_trans = num_transactions;
-			msg_response = add_nums_async(old_trans, 1,(unsigned long) id_num, ADD_2_FN);
-            check_response(old_trans, 1, msg_response, ADD_2_FN);
+			msg_response = add_nums_async(channel, num_transactions, 1, ADD_2_FN);
             num_responses++;
 		     );
         if( (num_transactions) % THD3_INTERVAL == 0 )
         {
             ASYNC(
-                id_num = awe_mapper_create_id();
 		        num_transactions++;
-                volatile int old_trans = num_transactions;
-                msg_response = add_nums_async(old_trans, 2,(unsigned long) id_num, ADD_10_FN);
-                check_response(old_trans, 2, msg_response, ADD_10_FN);
+                msg_response = add_nums_async(channel, num_transactions, 2, ADD_10_FN);
                 num_responses++;
                  );
         }
 		ASYNC(
-			id_num = awe_mapper_create_id();
 		    num_transactions++;
-            volatile int old_trans = num_transactions;
-			msg_response = add_nums_async(old_trans, 3,(unsigned long) id_num, ADD_2_FN);
-            check_response(old_trans, 3, msg_response, ADD_2_FN);
+			msg_response = add_nums_async(channel, num_transactions, 3, ADD_2_FN);
             num_responses++;
 		     );
             //msleep(1);
