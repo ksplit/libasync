@@ -248,6 +248,20 @@ thc_channel_group_init(struct thc_channel_group* channel_group)
 }
 EXPORT_SYMBOL(thc_channel_group_init);
 
+int
+LIBASYNC_FUNC_ATTR
+thc_channel_group_item_init(struct thc_channel_group_item *item,
+			struct fipc_ring_channel *chnl,
+			int (*dispatch_fn)(struct fipc_ring_channel*, 
+					struct fipc_message*))
+{
+	INIT_LISTHEAD(&item->list);
+	item->channel = chnl;
+	item->dispatch_fn = dispatch_fn;
+
+	return 0;
+}
+EXPORT_SYMBOL(thc_channel_group_item_init);
 
 int 
 LIBASYNC_FUNC_ATTR 

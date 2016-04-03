@@ -160,6 +160,19 @@ int thc_poll_recv_group(struct thc_channel_group* chan_group,
 int thc_channel_group_init(struct thc_channel_group* channel_group);
 
 /*
+ * thc_channel_group_item_init
+ *
+ * Initializes a channel group item with the provided ring channel and
+ * dispatch function.
+ *
+ * Returns 0 on success, non-zero otherwise.
+ */
+int thc_channel_group_item_init(struct thc_channel_group_item *item,
+				struct fipc_ring_channel *chnl,
+				int (*dispatch_fn)(struct fipc_ring_channel*, 
+						struct fipc_message*));
+
+/*
  * thc_channel_group_item_add
  *
  * Adds a thc_channel_group_item to a thc_channel_group.
