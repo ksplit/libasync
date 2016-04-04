@@ -255,7 +255,7 @@ thc_channel_group_item_init(struct thc_channel_group_item *item,
 			int (*dispatch_fn)(struct fipc_ring_channel*, 
 					struct fipc_message*))
 {
-	INIT_LISTHEAD(&item->list);
+	INIT_LIST_HEAD(&item->list);
 	item->channel = chnl;
 	item->dispatch_fn = dispatch_fn;
 
