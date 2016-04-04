@@ -15,7 +15,8 @@ AM_CPPFLAGS = \
 	-I$(abs_top_builddir)/src/include \
 	-I$(LIBFIPC_DIR)/include
 
-AM_CFLAGS = -DLINUX_KERNEL -DCONFIG_LAZY_THC
+AM_CFLAGS = -DLINUX_KERNEL
+#-DCONFIG_LAZY_THC
 
 COMMON_SRCS= \
 	common/thc.c \

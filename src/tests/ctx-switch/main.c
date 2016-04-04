@@ -28,28 +28,26 @@ static int test_ctx_switch(void)
 {
     unsigned long start_time, end_time;
     uint32_t msg_id;
-
     int i;    
-    for( i = 0; i < NUM_SWITCH_MEASUREMENTS; i++ )
-    {
-            thc_init();
 
+    thc_init();
+        for( i = 0; i < NUM_SWITCH_MEASUREMENTS; i++ )
+        {
             DO_FINISH_(ctx_switch,{
-                ASYNC({
-                    msg_id = awe_mapper_create_id();
-                    THCYieldAndSave(msg_id);
-                    end_time = test_fipc_stop_stopwatch();
-                });             
-                ASYNC({
-                    start_time = test_fipc_start_stopwatch(); 
-                    THCYieldToId(msg_id);
-                    awe_mapper_remove_id(msg_id);
+                    ASYNC({
+                        msg_id = awe_mapper_create_id();
+                        THCYieldAndSave(msg_id);
+                        end_time = test_fipc_stop_stopwatch();
+                        awe_mapper_remove_id(msg_id);
                     });             
+                    ASYNC({
+                        start_time = test_fipc_start_stopwatch(); 
+                        THCYieldToId(msg_id);
+                        });             
             });
-            thc_done();
-
-        measurements_arr[i] = end_time - start_time;
-    }
+            measurements_arr[i] = end_time - start_time;
+        }
+    thc_done();
 
     return 0;
 }

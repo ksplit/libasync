@@ -415,9 +415,9 @@ extern int _end_text_nx;
 //  - _NS:   new stack, address just above top of commited region
 //  - _FN:   (nested) function to call:  void _FN(void)
 
-#if (defined(__x86_64__) && (defined(linux) || defined(BARRELFISH)))
+#if (defined(__x86_64__) && (defined(linux) || defined(BARRELFISH) || defined(LINUX_KERNEL)))
 #define SWIZZLE_DEF_(_NAME,_NS,_FN)                                     \
-  __attribute__((noinline)) void _NAME(void) {                          \
+  noinline void _NAME(void) {                                           \
     __asm__ volatile("movq %0, %%rdi      \n\t" /* put NS to %rdi   */  \
                      "subq $8, %%rdi      \n\t" /* fix NS address   */  \
                      "movq %%rsp, (%%rdi) \n\t" /* store sp to NS   */  \
@@ -429,7 +429,7 @@ extern int _end_text_nx;
                      : "memory", "cc", "rsi", "rdi");                   \
   }
 #define SWIZZLE_DEF(_NAME,_NS,_FN) SWIZZLE_DEF_(_NAME,_NS,_FN)
-#elif (defined(__i386__) && (defined(linux) || defined(BARRELFISH)))
+#elif (defined(__i386__) && (defined(linux) || defined(BARRELFISH) || defined(LINUX_KERNEL)))
 #define SWIZZLE_DEF(_NAME,_NS,_FN)                                      \
   __attribute__((noinline)) void _NAME(void) {                          \
     __asm__ volatile("movl %0, %%edx           \n\t"			\
@@ -442,7 +442,7 @@ extern int _end_text_nx;
                      : "m" (_NS)                                        \
                      : "memory", "cc", "eax", "edx");			\
   }
-#elif defined(__arm__) && (defined(linux) || defined(BARRELFISH))
+#elif defined(__arm__) && (defined(linux) || defined(BARRELFISH) || defined(LINUX_KERNEL))
 
 // Notes:
 // - ARM Architecutre Reference Manual ARMv7-A and ARMv7-R:
@@ -486,6 +486,16 @@ extern int _end_text_nx;
 
 // no lazy CALL_CONT in the eager version
 #define CALL_CONT_LAZY CALL_CONT
+
+#define CALL_CONT_AND_SAVE(_FN,_IDNUM,_ARG)                     \
+  do {                                                          \
+    awe_t _awe;                                                 \
+    awe_mapper_set_id((_IDNUM), &_awe);			            	\
+    KILL_CALLEE_SAVES();                                        \
+    _thc_callcont(&_awe, (THCContFn_t)(_FN), (_ARG));           \
+  } while (0)
+
+#define CALL_CONT_LAZY_AND_SAVE CALL_CONT_AND_SAVE
 
 #endif // LAZY / EAGER THC
 

@@ -27,6 +27,12 @@ typedef int errval_t;
 #define THC_CANCELED 1
 #endif
 
+#if (defined(linux) || defined(BARRELFISH))
+    #ifndef noinline
+        #define noinline __attribute__((noinline))
+    #endif
+#endif
+
 // The implementation of do..finish relies on shadowing so that 
 // _fb_info always refers to the closest enclosing do..finish block.
 #pragma GCC diagnostic ignored "-Wshadow"
@@ -195,10 +201,9 @@ typedef int errval_t;
   do {									\
     awe_t _awe;                                                         \
     void *_new_stack = _thc_allocstack();		       		\
-    _awe.current_fb = _fb_info;						\
     /* Define nested function containing the body */			\
     auto void _thc_nested_async(void) __asm__(NESTED_FN_STRING(_C));    \
-    __attribute__((noinline,used)) void _thc_nested_async(void) {       \
+    __attribute__((used)) void noinline _thc_nested_async(void) {       \
       void *_my_fb = _fb_info;						\
       void *_my_stack = _new_stack;                                     \
       _thc_startasync(_my_fb, _my_stack);                               \
@@ -210,6 +215,7 @@ typedef int errval_t;
     /* Define function to enter _nested on a new stack */               \
     auto void _swizzle(void) __asm__(SWIZZLE_FN_STRING(_C));            \
     SWIZZLE_DEF(_swizzle, _new_stack, NESTED_FN_STRING(_C));            \
+    _awe.current_fb = _fb_info;						\
                                                                         \
     /* Add AWE for our continuation, then run "_nested" on new stack */	\
     if (!SCHEDULE_CONT(&_awe)) {                                        \
