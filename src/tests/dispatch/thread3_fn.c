@@ -13,17 +13,17 @@ static struct thc_channel_group* rx_group;
 
 
 
-static int add_10_fn(struct fipc_ring_channel* chan, struct fipc_message* msg)
+static int add_10_fn(struct thc_channel* chan, struct fipc_message* msg)
 {
     unsigned long msg_id = thc_get_msg_id(msg);
     unsigned long reg0   = fipc_get_reg0(msg);
     unsigned long reg1   = fipc_get_reg1(msg);
     unsigned long result = reg0 + reg1 + 10;
 	struct fipc_message* out_msg;
-    fipc_recv_msg_end(chan,msg);
+    fipc_recv_msg_end(thc_channel_to_fipc(chan),msg);
     msleep(10);
    
-    if( test_fipc_blocking_send_start(chan, &out_msg) )
+    if( test_fipc_blocking_send_start(thc_channel_to_fipc(chan), &out_msg) )
     {
          printk(KERN_ERR "Error getting send message for add_10_fn.\n");
     }
@@ -38,8 +38,9 @@ static int add_10_fn(struct fipc_ring_channel* chan, struct fipc_message* msg)
     return 0;
 }
 
-static int thread2_dispatch_fn(struct fipc_ring_channel* chan, struct fipc_message* msg)
+static int thread2_dispatch_fn(struct thc_channel_group_item* item, struct fipc_message* msg)
 {
+    struct thc_channel* chan = item->channel;
     switch( get_fn_type(msg) )
     {
         case ADD_10_FN:

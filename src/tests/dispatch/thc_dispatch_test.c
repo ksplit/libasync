@@ -30,7 +30,7 @@ int thc_dispatch_loop_test(struct thc_channel_group* rx_group, int max_recv_ct)
                     if( curr_item->dispatch_fn )
                     {
                         ASYNC_({
-                            curr_item->dispatch_fn(curr_item->channel, curr_msg);
+                            curr_item->dispatch_fn(curr_item, curr_msg);
                         },ipc_dispatch);
                     }
                     else

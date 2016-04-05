@@ -3,7 +3,7 @@
 
 
 int send_and_get_response(
-	struct fipc_ring_channel *chan,
+	struct thc_channel *chan,
 	struct fipc_message *request,
 	struct fipc_message **response,
     uint32_t msg_id)
@@ -14,7 +14,7 @@ int send_and_get_response(
 	/*
 	 * Mark the request as sent
 	 */
-	ret = fipc_send_msg_end(chan, request);
+	ret = fipc_send_msg_end(thc_channel_to_fipc(chan), request);
 	if (ret) {
 		pr_err("failed to mark request as sent, ret = %d\n", ret);
 		goto fail1;

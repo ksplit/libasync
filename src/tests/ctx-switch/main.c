@@ -42,7 +42,8 @@ static int test_ctx_switch(void)
                     });             
                     ASYNC({
                         start_time = test_fipc_start_stopwatch(); 
-                        THCYieldToId(msg_id);
+                        //THCYieldToId(msg_id);
+                        THCYield();
                         });             
             });
             measurements_arr[i] = end_time - start_time;

@@ -78,7 +78,7 @@ async_add_nums(struct thc_channel *chan, unsigned long trans,
 		goto fail;
 	}
         /*
-	 * Set up rpc msg
+	 * Set up rpc ms
          */
 	set_fn_type(request, ADD_NUMS);
 	fipc_set_reg0(request, trans);
