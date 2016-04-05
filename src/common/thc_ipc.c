@@ -19,6 +19,19 @@
 #define EXPORT_SYMBOL(x)
 #endif
 
+int 
+LIBASYNC_FUNC_ATTR
+thc_channel_init(struct thc_channel *chnl, 
+		struct fipc_ring_channel *async_chnl)
+{
+    chnl->state = THC_CHANNEL_LIVE;
+    atomic_set(&item->refcnt, 1);
+    item->fipc_channel = async_chnl;
+
+    return 0;
+}
+EXPORT_SYMBOL(thc_channel_init);
+
 //assumes msg is a valid received message
 static int thc_recv_predicate(struct fipc_message* msg, void* data)
 {
@@ -60,7 +73,7 @@ static int poll_recv_predicate(struct fipc_message* msg, void* data)
 
 int 
 LIBASYNC_FUNC_ATTR 
-thc_ipc_recv(struct fipc_ring_channel *chnl, 
+thc_ipc_recv(struct thc_channel *chnl, 
 	unsigned long msg_id, 
 	struct fipc_message** out_msg)
 {
@@ -70,7 +83,8 @@ thc_ipc_recv(struct fipc_ring_channel *chnl,
     int ret;
     while( true )
     {
-        ret = fipc_recv_msg_if(chnl, thc_recv_predicate, &payload, out_msg);
+        ret = fipc_recv_msg_if(thc_channel_to_fipc(chnl), thc_recv_predicate, 
+                     &payload, out_msg);
         if( !ret ) //message for us
         {
             if( payload.msg_type == msg_type_response )
@@ -81,11 +95,16 @@ thc_ipc_recv(struct fipc_ring_channel *chnl,
         }
         else if( ret == -ENOMSG ) //message not for us
         {
-            THCYieldToIdAndSave((uint32_t)payload.actual_msg_id, (uint32_t) msg_id); 
+            THCYieldToIdAndSave((uint32_t)payload.actual_msg_id, 
+                     (uint32_t) msg_id); 
+            if (unlikely(thc_channel_is_dead(chnl)))
+                return -EPIPE; // someone killed the channel
         }
         else if( ret == -EWOULDBLOCK ) //no message, Yield
         {
             THCYieldAndSave((uint32_t) msg_id); 
+            if (unlikely(thc_channel_is_dead(chnl)))
+                return -EPIPE; // someone killed the channel
         }
         else
         {
@@ -108,7 +127,8 @@ thc_poll_recv_group(struct thc_channel_group* chan_group,
 
     list_for_each_entry(curr_item, &(chan_group->head), list)
     {
-        ret = thc_poll_recv(curr_item, &recv_msg);
+        ret = thc_ipc_poll_recv(thc_channel_group_item_channel(curr_item), 
+                        &recv_msg);
         if( !ret )
         {
             *chan_group_item = curr_item;
@@ -124,7 +144,7 @@ EXPORT_SYMBOL(thc_poll_recv_group);
 
 int 
 LIBASYNC_FUNC_ATTR 
-thc_poll_recv(struct thc_channel_group_item* item,
+thc_ipc_poll_recv(struct thc_channel* chnl,
 	struct fipc_message** out_msg)
 {
     struct predicate_payload payload;
@@ -132,7 +152,8 @@ thc_poll_recv(struct thc_channel_group_item* item,
 
     while( true )
     {
-        ret = fipc_recv_msg_if(item->channel, poll_recv_predicate, &payload, out_msg);
+        ret = fipc_recv_msg_if(thc_channel_to_fipc(chnl), poll_recv_predicate, 
+                       &payload, out_msg);
         if( !ret ) //message for us
         {
             return 0; 
@@ -154,11 +175,11 @@ thc_poll_recv(struct thc_channel_group_item* item,
         }
     }
 }
-EXPORT_SYMBOL(thc_poll_recv);
+EXPORT_SYMBOL(thc_ipc_poll_recv);
 
 int
 LIBASYNC_FUNC_ATTR
-thc_ipc_call(struct fipc_ring_channel *chnl,
+thc_ipc_call(struct thc_channel *chnl,
 	struct fipc_message *request,
 	struct fipc_message **response)
 {
@@ -173,7 +194,7 @@ thc_ipc_call(struct fipc_ring_channel *chnl,
     /*
      * Send request
      */
-    ret = fipc_send_msg_end(chnl, request);
+    ret = fipc_send_msg_end(thc_channel_to_fipc(chnl), request);
     if (ret) {
         printk(KERN_ERR "thc: error sending request");
         goto fail1;	
@@ -197,7 +218,7 @@ EXPORT_SYMBOL(thc_ipc_call);
 
 int
 LIBASYNC_FUNC_ATTR
-thc_ipc_send(struct fipc_ring_channel *chnl,
+thc_ipc_send(struct thc_channel *chnl,
 	struct fipc_message *request,
 	uint32_t *request_cookie)
 {
@@ -212,7 +233,7 @@ thc_ipc_send(struct fipc_ring_channel *chnl,
     /*
      * Send request
      */
-    ret = fipc_send_msg_end(chnl, request);
+    ret = fipc_send_msg_end(thc_channel_to_fipc(chnl), request);
     if (ret) {
         printk(KERN_ERR "thc: error sending request");
         goto fail1;	
@@ -230,13 +251,13 @@ EXPORT_SYMBOL(thc_ipc_send);
 
 int
 LIBASYNC_FUNC_ATTR
-thc_ipc_reply(struct fipc_ring_channel *chnl,
+thc_ipc_reply(struct thc_channel *chnl,
 	uint32_t request_cookie,
 	struct fipc_message *response)
 {
     thc_set_msg_type(response, msg_type_response);
     thc_set_msg_id(response, request_cookie);
-    return fipc_send_msg_end(chnl, response);
+    return fipc_send_msg_end(thc_channel_to_fipc(chnl), response);
 }
 EXPORT_SYMBOL(thc_ipc_reply);
 
@@ -254,15 +275,12 @@ EXPORT_SYMBOL(thc_channel_group_init);
 int
 LIBASYNC_FUNC_ATTR
 thc_channel_group_item_init(struct thc_channel_group_item *item,
-			struct fipc_ring_channel *chnl,
+			struct thc_channel *chnl,
 			int (*dispatch_fn)(struct fipc_ring_channel*, 
 					struct fipc_message*))
 {
-    item->state = THC_CHANNEL_GROUP_ITEM_LIVE;
-    atomic_set(&item->refcnt, 1);
     INIT_LIST_HEAD(&item->list);
     item->channel = chnl;
-    item->group = NULL;
     item->dispatch_fn = dispatch_fn;
 
     return 0;
@@ -288,36 +306,9 @@ thc_channel_group_item_remove(struct thc_channel_group* channel_group,
 			struct thc_channel_group_item* item)
 {
     list_del_init(&(item->list));
-    item->group = NULL;
     channel_group->size--;
 }
 EXPORT_SYMBOL(thc_channel_group_item_remove);
-
-void
-LIBASYNC_FUNC_ATTR
-thc_channel_group_item_inc_ref(struct thc_channel_group_item *item)
-{
-    atomic_inc(&item->refcnt);
-}
-EXPORT_SYMBOL(thc_channel_group_item_inc_ref);
-
-int
-LIBASYNC_FUNC_ATTR
-thc_channel_group_item_dec_ref(struct thc_channel_group_item *item)
-{
-    if (atomic_dec_and_test(&item->refcnt)) {
-        /*
-         * ref dropped to zero; remove channel item and free it (assumes
-         * item was allocated via kmalloc, rather than statically def'd)
-         */
-        if (item->group)
-		thc_channel_group_item_remove(item->group, item);
-        kfree(item);
-	return 1;
-    }
-    return 0;
-}
-EXPORT_SYMBOL(thc_channel_group_item_dec_ref);
 
 int 
 LIBASYNC_FUNC_ATTR 

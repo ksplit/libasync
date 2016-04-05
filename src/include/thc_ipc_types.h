@@ -19,6 +19,40 @@ struct predicate_payload
     msg_type_t msg_type;
 };
 
+
+enum {
+    THC_CHANNEL_LIVE,
+    THC_CHANNEL_DEAD,
+};
+
+/*
+ * struct thc_channel
+ *
+ * Wraps around a libfipc channel. One of the motivations is we need to
+ * do reference counting due to interesting computation patterns with
+ * awe's that share async channels.
+ */
+struct thc_channel 
+{
+    int state;
+    atomic_t refcnt;
+    struct fipc_channel *fipc_channel;
+};
+
+
+/*
+ * struct thc_channel_group_item
+ *
+ * Contains a channel and a function that should get called when a message
+ * is received on the channel.
+ */
+struct thc_channel_group_item
+{
+    struct list_head list;
+    struct thc_channel *channel;
+    int (*dispatch_fn)(struct thc_channel_group_item*, struct fipc_message*);
+};
+
 /*
  * struct thc_channel_group
  *
@@ -29,45 +63,6 @@ struct thc_channel_group
     struct list_head head;
     int size;
 };
-
-enum {
-    THC_CHANNEL_GROUP_ITEM_LIVE,
-    THC_CHANNEL_GROUP_ITEM_DEAD,
-};
-
-/*
- * struct thc_channel_group_item
- *
- * Contains a channel and a function that should get called when a message
- * is received on the channel.
- */
-struct thc_channel_group_item
-{
-    int state;
-    atomic_t refcnt;
-    struct list_head list;
-    struct fipc_ring_channel *channel;
-    struct thc_channel_group *group;
-    int (*dispatch_fn)(struct fipc_ring_channel*, struct fipc_message*);
-};
-
-static inline int 
-thc_channel_group_item_is_live(struct thc_channel_group_item *item)
-{
-	return item->state == THC_CHANNEL_GROUP_ITEM_LIVE;
-}
-
-static inline int 
-thc_channel_group_item_is_dead(struct thc_channel_group_item *item)
-{
-	return item->state == THC_CHANNEL_GROUP_ITEM_DEAD;
-}
-
-static inline void
-thc_channel_group_item_mark_dead(struct thc_channel_group_item *item)
-{
-	item->state = THC_CHANNEL_GROUP_ITEM_DEAD;
-}
 
 #endif
 

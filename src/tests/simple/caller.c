@@ -62,7 +62,7 @@ static inline int finish_response_check_fn_type_and_reg0(
 }
 
 static int noinline __used
-async_add_nums(struct fipc_ring_channel *chan, unsigned long trans, 
+async_add_nums(struct thc_channel *chan, unsigned long trans, 
 	unsigned long res1)
 {
 	struct fipc_message *request;
@@ -71,7 +71,8 @@ async_add_nums(struct fipc_ring_channel *chan, unsigned long trans,
 	/*
 	 * Set up request
 	 */
-	ret = test_fipc_blocking_send_start(chan, &request);
+	ret = test_fipc_blocking_send_start(thc_channel_to_fipc(chan), 
+					&request);
 	if (ret) {
 		pr_err("Error getting send message, ret = %d\n", ret);
 		goto fail;
@@ -94,7 +95,7 @@ async_add_nums(struct fipc_ring_channel *chan, unsigned long trans,
 	 * Maybe check message
 	 */
 	return finish_response_check_fn_type_and_reg0(
-		chan,
+		thc_channel_to_fipc(chan),
 		response, 
 		ADD_NUMS,
 		trans + res1);
@@ -105,9 +106,12 @@ fail:
 
 int __caller(void *_caller_channel_header)
 {
-    struct fipc_ring_channel *chan = _caller_channel_header;
+    struct fipc_ring_channel *fchan = _caller_channel_header;
+    struct thc_channel chan;
 	unsigned long transaction_id = 0;
 	int ret = 0;
+	
+	thc_channel_init(&chan, fchan);
 
     thc_init();
 	/*
@@ -118,7 +122,7 @@ int __caller(void *_caller_channel_header)
         {
             ASYNC({
                 transaction_id++;
-                ret = async_add_nums(chan, transaction_id, 1000);
+                ret = async_add_nums(&chan, transaction_id, 1000);
 
                 if (ret) {
                     pr_err("error doing null invocation, ret = %d, exiting...\n",
