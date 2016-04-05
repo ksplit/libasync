@@ -25,8 +25,8 @@ thc_channel_init(struct thc_channel *chnl,
 		struct fipc_ring_channel *async_chnl)
 {
     chnl->state = THC_CHANNEL_LIVE;
-    atomic_set(&item->refcnt, 1);
-    item->fipc_channel = async_chnl;
+    atomic_set(&chnl->refcnt, 1);
+    chnl->fipc_channel = async_chnl;
 
     return 0;
 }
@@ -161,7 +161,7 @@ thc_ipc_poll_recv(struct thc_channel* chnl,
         else if( ret == -ENOMSG ) //message not for us
         {
             THCYieldToId((uint32_t)payload.actual_msg_id);
-            if (unlikely(thc_channel_group_item_is_dead(item)))
+            if (unlikely(thc_channel_is_dead(chnl)))
                 return -EPIPE; // channel died
         }
         else if( ret == -EWOULDBLOCK ) //no message, return
@@ -276,7 +276,7 @@ int
 LIBASYNC_FUNC_ATTR
 thc_channel_group_item_init(struct thc_channel_group_item *item,
 			struct thc_channel *chnl,
-			int (*dispatch_fn)(struct fipc_ring_channel*, 
+			int (*dispatch_fn)(struct thc_channel_group_item*, 
 					struct fipc_message*))
 {
     INIT_LIST_HEAD(&item->list);
@@ -293,7 +293,6 @@ thc_channel_group_item_add(struct thc_channel_group* channel_group,
                           struct thc_channel_group_item* item)
 {
     list_add_tail(&(item->list), &(channel_group->head));
-    item->group = channel_group;
     channel_group->size++;
 
     return 0;

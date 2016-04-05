@@ -4,6 +4,7 @@
 #include <libfipc.h>
 #include <thc_ipc_types.h>
 #include <awe_mapper.h>
+#include <asm/atomic.h>
 
 /* THC MESSAGES ------------------------------------------------------------ */
 
@@ -85,7 +86,7 @@ static inline void thc_channel_inc_ref(struct thc_channel *chnl)
  */
 static inline int thc_channel_dec_ref(struct thc_channel *chnl)
 {
-    atomic_dec_and_test(&chnl->refcnt);
+    return atomic_dec_and_test(&chnl->refcnt);
 }
 
 static inline int thc_channel_is_live(struct thc_channel *chnl)

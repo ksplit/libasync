@@ -129,8 +129,9 @@ int __callee(void *_callee_channel_header)
 		/*
 		 * Try to receive a message
 		 */
-		ret = test_fipc_blocking_recv_start(thc_channel_to_fipc(chan), 
-						&recvd_msg);
+		ret = test_fipc_blocking_recv_start(
+			thc_channel_to_fipc(&chan), 
+			&recvd_msg);
 		if (ret) {
 			pr_err("Error receiving message, ret = %d, exiting...", ret);
 			goto out;
