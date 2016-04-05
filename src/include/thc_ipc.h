@@ -129,6 +129,11 @@ int thc_ipc_reply(struct fipc_ring_channel *chnl,
  * There is also no msg_id passed in because poll_recv should not expect a
  * specific message.
  *
+ * NOTE: The caller should hold a reference to item before calling this
+ * function (i.e., the caller must ensure the ref count doesn't go to
+ * zero while this function is in progress). Otherwise, the item could
+ * be freed from under us while this function is in progress.
+ *
  * Returns 0 on success, non-zero otherwise.
  */
 int thc_poll_recv(struct thc_channel_group_item* item,
@@ -144,6 +149,11 @@ int thc_poll_recv(struct thc_channel_group_item* item,
  * and the received message is set to the out param (*out_msg).
  * If there is no message available in any of the thc_channel_group_items,
  * then this function returns -EWOULDBLOCK.
+ *
+ * NOTE: The caller should "own" a reference to each of the channel group
+ * items in the group (i.e., should ensure the reference count for every
+ * channel in the group cannot suddenly drop to zero while this function
+ * is in progress).
  *
  * Returns 0 on success, non-zero otherwise.
  */
@@ -165,12 +175,33 @@ int thc_channel_group_init(struct thc_channel_group* channel_group);
  * Initializes a channel group item with the provided ring channel and
  * dispatch function.
  *
+ * The channel item's reference count is initialized to 1.
+ *
  * Returns 0 on success, non-zero otherwise.
  */
 int thc_channel_group_item_init(struct thc_channel_group_item *item,
 				struct fipc_ring_channel *chnl,
 				int (*dispatch_fn)(struct fipc_ring_channel*, 
 						struct fipc_message*));
+
+/*
+ * thc_channel_group_item_inc_ref
+ *
+ * Bump the reference count on the channel group item.
+ */
+void thc_channel_group_item_inc_ref(struct thc_channel_group_item *item);
+
+/*
+ * thc_channel_group_item_dec_ref
+ *
+ * Decrement the reference count on the channel group item. If the 
+ * reference count reaches zero, the item is removed from the
+ * channel group it belongs to (if any), and it is freed. Returns
+ * non-zero if the ref count reaches zero (zero otherwise).
+ *
+ * NOTE: Assumes item was allocated with kmalloc.
+ */
+int thc_channel_group_item_dec_ref(struct thc_channel_group_item *item);
 
 /*
  * thc_channel_group_item_add

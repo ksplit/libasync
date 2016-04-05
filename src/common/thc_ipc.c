@@ -7,6 +7,8 @@
 #include <thc_ipc_types.h>
 #include <libfipc_types.h>
 #include <awe_mapper.h>
+#include <asm/atomic.h>
+#include <linux/slab.h>
 
 #ifdef LCD_DOMAINS
 #include <lcd_config/post_hook.h>
@@ -100,14 +102,13 @@ thc_poll_recv_group(struct thc_channel_group* chan_group,
 		struct thc_channel_group_item** chan_group_item, 
 		struct fipc_message** out_msg)
 {
-    struct thc_channel_group_item* curr_item;
+    struct thc_channel_group_item *curr_item;
     struct fipc_message* recv_msg;
     int ret;
 
     list_for_each_entry(curr_item, &(chan_group->head), list)
     {
         ret = thc_poll_recv(curr_item, &recv_msg);
-        
         if( !ret )
         {
             *chan_group_item = curr_item;
@@ -138,7 +139,9 @@ thc_poll_recv(struct thc_channel_group_item* item,
         }
         else if( ret == -ENOMSG ) //message not for us
         {
-            THCYieldToId((uint32_t)payload.actual_msg_id); 
+            THCYieldToId((uint32_t)payload.actual_msg_id);
+            if (unlikely(thc_channel_group_item_is_dead(item)))
+                return -EPIPE; // channel died
         }
         else if( ret == -EWOULDBLOCK ) //no message, return
         {
@@ -255,11 +258,14 @@ thc_channel_group_item_init(struct thc_channel_group_item *item,
 			int (*dispatch_fn)(struct fipc_ring_channel*, 
 					struct fipc_message*))
 {
-	INIT_LIST_HEAD(&item->list);
-	item->channel = chnl;
-	item->dispatch_fn = dispatch_fn;
+    item->state = THC_CHANNEL_GROUP_ITEM_LIVE;
+    atomic_set(&item->refcnt, 1);
+    INIT_LIST_HEAD(&item->list);
+    item->channel = chnl;
+    item->group = NULL;
+    item->dispatch_fn = dispatch_fn;
 
-	return 0;
+    return 0;
 }
 EXPORT_SYMBOL(thc_channel_group_item_init);
 
@@ -269,6 +275,7 @@ thc_channel_group_item_add(struct thc_channel_group* channel_group,
                           struct thc_channel_group_item* item)
 {
     list_add_tail(&(item->list), &(channel_group->head));
+    item->group = channel_group;
     channel_group->size++;
 
     return 0;
@@ -281,9 +288,36 @@ thc_channel_group_item_remove(struct thc_channel_group* channel_group,
 			struct thc_channel_group_item* item)
 {
     list_del_init(&(item->list));
+    item->group = NULL;
     channel_group->size--;
 }
 EXPORT_SYMBOL(thc_channel_group_item_remove);
+
+void
+LIBASYNC_FUNC_ATTR
+thc_channel_group_item_inc_ref(struct thc_channel_group_item *item)
+{
+    atomic_inc(&item->refcnt);
+}
+EXPORT_SYMBOL(thc_channel_group_item_inc_ref);
+
+int
+LIBASYNC_FUNC_ATTR
+thc_channel_group_item_dec_ref(struct thc_channel_group_item *item)
+{
+    if (atomic_dec_and_test(&item->refcnt)) {
+        /*
+         * ref dropped to zero; remove channel item and free it (assumes
+         * item was allocated via kmalloc, rather than statically def'd)
+         */
+        if (item->group)
+		thc_channel_group_item_remove(item->group, item);
+        kfree(item);
+	return 1;
+    }
+    return 0;
+}
+EXPORT_SYMBOL(thc_channel_group_item_dec_ref);
 
 int 
 LIBASYNC_FUNC_ATTR 
