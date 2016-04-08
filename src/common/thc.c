@@ -144,6 +144,7 @@ PTS(void) {
 #endif
   return pts;
 }
+EXPORT_SYMBOL(PTS);
 
 static void InitPTS(void) {
 #ifdef LINUX_KERNEL
