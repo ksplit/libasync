@@ -41,16 +41,16 @@ static int test_ctx_switch_and_thd_creation(void)
                         t2 = test_fipc_stop_stopwatch();
                         thd_measurements_arr[i] = t2 - t1;
 
-                        msg_id = awe_mapper_create_id();
+                        ret = awe_mapper_create_id(&msg_id);
+                        BUG_ON(ret);
                         THCYieldAndSave(msg_id);
 
                         t3 = test_fipc_stop_stopwatch();
-                        ret = awe_mapper_remove_id(&msg_id);
-                        BUG(ret);
+                        awe_mapper_remove_id(msg_id);
                     });             
                     ASYNC({
                         t2 = test_fipc_start_stopwatch(); 
-                        BUG(THCYieldToId(msg_id));
+                        BUG_ON(THCYieldToId(msg_id));
                         });             
             });
             ctx_measurements_arr[i] = t3 - t2;

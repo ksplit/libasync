@@ -90,13 +90,13 @@ static void drop_one_rx_msg(struct thc_channel *chnl)
 	int ret;
 	struct fipc_message *msg;
 
-	ret = fipc_recv_msg_start(chnl, &msg);
+	ret = fipc_recv_msg_start(thc_channel_to_fipc(chnl), &msg);
 	if (ret)
 		printk(KERN_ERR "thc_ipc_recv_response: failed to drop bad message\n");
-	ret = fipc_recv_msg_end(chnl, &msg);
+	ret = fipc_recv_msg_end(thc_channel_to_fipc(chnl), msg);
 	if (ret)
 		printk(KERN_ERR "thc_ipc_recv_response: failed to drop bad message (mark as received)\n");
-	return ret;
+	return;
 }
 
 static void try_yield(struct thc_channel *chnl, uint32_t our_request_cookie,
@@ -274,7 +274,7 @@ thc_ipc_call(struct thc_channel *chnl,
     /*
      * Send request
      */
-    ret = thc_ipc_send(chnl, request, &request_cookie);
+    ret = thc_ipc_send_request(chnl, request, &request_cookie);
     if (ret) {
         printk(KERN_ERR "thc_ipc_call: error sending request\n");
         goto fail1;
@@ -299,9 +299,9 @@ EXPORT_SYMBOL(thc_ipc_call);
 
 int
 LIBASYNC_FUNC_ATTR
-thc_ipc_send(struct thc_channel *chnl,
-	struct fipc_message *request,
-	uint32_t *request_cookie)
+thc_ipc_send_request(struct thc_channel *chnl,
+		struct fipc_message *request,
+		uint32_t *request_cookie)
 {
     uint32_t msg_id;
     int ret;
@@ -333,7 +333,7 @@ fail1:
 fail0:
     return ret;
 }
-EXPORT_SYMBOL(thc_ipc_send);
+EXPORT_SYMBOL(thc_ipc_send_request);
 
 int
 LIBASYNC_FUNC_ATTR
