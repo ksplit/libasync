@@ -22,7 +22,7 @@ int send_and_get_response(
 	/*
 	 * Try to get the response
 	 */
-    ret = thc_ipc_recv(chan, msg_id, &resp);
+    ret = thc_ipc_recv_response(chan, msg_id, &resp);
 	if (ret) {
 		pr_err("failed to get a response, ret = %d\n", ret);
 		goto fail2;

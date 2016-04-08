@@ -1069,13 +1069,19 @@ static void thc_yieldto_with_cont(void *a, void *arg) {
   thc_awe_execute_0(awe);
 }
 
-void 
+int
 LIBASYNC_FUNC_ATTR 
 THCYieldToIdAndSave(uint32_t id_to, uint32_t id_from) {
   awe_t *awe_ptr = (awe_t *)awe_mapper_get_awe_ptr(id_to);
 
+  if (!awe_ptr)
+    return -EINVAL; // id_to not valid
+
   if ( likely(PTS() == awe_ptr->pts) ) {
+    // Switch to awe_ptr
     CALL_CONT_LAZY_AND_SAVE((void*)&thc_yieldto_with_cont, id_from, (void*)awe_ptr);
+    // We were woken up
+    return 0;
   }
   //NOTE: for multiple threads, the code in the 'else' 
   //probably needs to be changed so that
@@ -1083,20 +1089,30 @@ THCYieldToIdAndSave(uint32_t id_to, uint32_t id_from) {
   //as long as we are assuming our single threaded model. 
   else {
     THCSchedule(awe_ptr);
+    return 0;
   }
 }
 EXPORT_SYMBOL(THCYieldToIdAndSave);
 
-void 
+int
 LIBASYNC_FUNC_ATTR 
 THCYieldToId(uint32_t id_to)
 {
   awe_t *awe_ptr = (awe_t *)awe_mapper_get_awe_ptr(id_to);
+
+  if (!awe_ptr) {
+    return -EINVAL;
+  }
+
   if ( likely(PTS() == awe_ptr->pts) ) {
+    // Switch to target awe
     CALL_CONT_LAZY((void*)&thc_yieldto_with_cont, (void*)awe_ptr);
+    // We were woken up
+    return 0;
   }
   else {
     THCSchedule(awe_ptr);
+    return 0;
   }
 }
 EXPORT_SYMBOL(THCYieldToId);

@@ -14,8 +14,8 @@ typedef enum {
 
 struct predicate_payload
 {
-    unsigned long expected_msg_id;
-    unsigned long actual_msg_id;
+    uint32_t expected_msg_id;
+    uint32_t actual_msg_id;
     msg_type_t msg_type;
 };
 

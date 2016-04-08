@@ -84,13 +84,17 @@ static bool is_slot_allocated(uint32_t id)
 /*
  * Returns new available id.
  */
-uint32_t 
+int
 LIBASYNC_FUNC_ATTR 
-awe_mapper_create_id(void)
+awe_mapper_create_id(uint32_t *new_id)
 {
     awe_table_t *awe_map =  get_awe_map();
-    BUG_ON(unlikely((awe_map->used_slots >= AWE_TABLE_COUNT) && 
-                        "Too many slots have been requested."));
+
+    if (unlikely(awe_map->used_slots >= AWE_TABLE_COUNT))
+    {
+        printk(KERN_ERR "awe_mapper_create_id: too many slots requested\n");
+        return -ENOMEM;
+    }
     
     do
     {
@@ -98,11 +102,13 @@ awe_mapper_create_id(void)
     } 
     while( is_slot_allocated(awe_map->next_id) );
 
-    (awe_map->awe_list)[awe_map->next_id] = (void*)initialized_marker;
+    awe_map->awe_list[awe_map->next_id] = (void*)initialized_marker;
 
     awe_map->used_slots++;
 
-    return awe_map->next_id;
+    *new_id = awe_map->next_id;
+
+    return 0;
 }  
 EXPORT_SYMBOL(awe_mapper_create_id);
 
@@ -150,8 +156,8 @@ void*
 LIBASYNC_FUNC_ATTR 
 awe_mapper_get_awe_ptr(uint32_t id)
 {
-    awe_table_t *awe_map =  get_awe_map();
-    BUG_ON(unlikely(id >= AWE_TABLE_COUNT));
-
-    return (awe_map->awe_list)[id];
+    awe_table_t *awe_map = get_awe_map();
+    if (id >= AWE_TABLE_COUNT)
+        return NULL;
+    return awe_map->awe_list[id];
 }

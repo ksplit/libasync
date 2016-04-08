@@ -32,26 +32,40 @@ thc_channel_init(struct thc_channel *chnl,
 }
 EXPORT_SYMBOL(thc_channel_init);
 
-//assumes msg is a valid received message
 static int thc_recv_predicate(struct fipc_message* msg, void* data)
 {
-    struct predicate_payload* payload_ptr = (struct predicate_payload*)data;
+	struct predicate_payload* payload_ptr = (struct predicate_payload*)data;
+	payload_ptr->msg_type = thc_get_msg_type(msg);
 
-    if( thc_get_msg_type(msg) == (uint32_t)msg_type_request )
-    {
-        payload_ptr->msg_type = msg_type_request;
-        return 1;
-    }
-    else if( thc_get_msg_id(msg) == payload_ptr->expected_msg_id )
-    {
-        payload_ptr->msg_type = msg_type_response;
-        return 1; //message for this awe
-    }
-    else
-    {
-        payload_ptr->actual_msg_id = thc_get_msg_id(msg);
-        return 0; //message not for this awe
-    }
+	if (payload_ptr->msg_type == msg_type_request) {
+		/*
+		 * Ignore requests
+		 */
+		return 0;
+	} else if (payload_ptr->msg_type == msg_type_response) {
+
+		payload_ptr->actual_msg_id = thc_get_msg_id(msg);
+
+		if (payload_ptr->actual_msg_id == 
+			payload_ptr->expected_msg_id) {
+			/*
+			 * Response is for us; tell libfipc we want it
+			 */
+			return 1;
+		} else {
+			/*
+			 * Response for another awe; we will switch to
+			 * them. Meanwhile, the message should stay in
+			 * rx. They (the awe we switch to) will pick it up.
+			 */
+			return 0;
+		}
+	} else {
+		/*
+		 * Ignore any other message types
+		 */
+		return 0;
+	}
 }
 
 //assumes msg is a valid received message
@@ -71,49 +85,121 @@ static int poll_recv_predicate(struct fipc_message* msg, void* data)
     }
 }
 
+static void drop_one_rx_msg(struct thc_channel *chnl)
+{
+	int ret;
+	struct fipc_message *msg;
+
+	ret = fipc_recv_msg_start(chnl, &msg);
+	if (ret)
+		printk(KERN_ERR "thc_ipc_recv_response: failed to drop bad message\n");
+	ret = fipc_recv_msg_end(chnl, &msg);
+	if (ret)
+		printk(KERN_ERR "thc_ipc_recv_response: failed to drop bad message (mark as received)\n");
+	return ret;
+}
+
+static void try_yield(struct thc_channel *chnl, uint32_t our_request_cookie,
+		uint32_t received_request_cookie)
+{
+	int ret;
+	/*
+	 * Switch to the pending awe the response belongs to
+	 */
+	ret = THCYieldToIdAndSave(received_request_cookie,
+				our_request_cookie);
+	if (ret) {
+		/*
+		 * Oops, the switch failed
+		 */
+		printk(KERN_ERR "thc_ipc_recv_response: Invalid request cookie 0x%x received; dropping the message\n",
+			received_request_cookie);
+		drop_one_rx_msg(chnl);
+		return;
+	}
+	/*
+	 * We were woken back up
+	 */
+	return;
+}
+
 int 
 LIBASYNC_FUNC_ATTR 
-thc_ipc_recv(struct thc_channel *chnl, 
-	unsigned long msg_id, 
-	struct fipc_message** out_msg)
+thc_ipc_recv_response(struct thc_channel *chnl, 
+		uint32_t request_cookie, 
+		struct fipc_message **response)
 {
-    struct predicate_payload payload = {
-        .expected_msg_id = msg_id
-    };
-    int ret;
-    while( true )
-    {
+	struct predicate_payload payload = {
+		.expected_msg_id = request_cookie
+	};
+	int ret;
+
+retry:
         ret = fipc_recv_msg_if(thc_channel_to_fipc(chnl), thc_recv_predicate, 
-                     &payload, out_msg);
-        if( !ret ) //message for us
-        {
-            if( payload.msg_type == msg_type_response )
-            {
-                awe_mapper_remove_id(msg_id);
-            }
-            return 0; 
-        }
-        else if( ret == -ENOMSG ) //message not for us
-        {
-            THCYieldToIdAndSave((uint32_t)payload.actual_msg_id, 
-                     (uint32_t) msg_id); 
-            if (unlikely(thc_channel_is_dead(chnl)))
-                return -EPIPE; // someone killed the channel
-        }
-        else if( ret == -EWOULDBLOCK ) //no message, Yield
-        {
-            THCYieldAndSave((uint32_t) msg_id); 
-            if (unlikely(thc_channel_is_dead(chnl)))
-                return -EPIPE; // someone killed the channel
-        }
-        else
-        {
-            printk(KERN_ERR "error in thc_ipc_recv: %d\n", ret);
-            return ret;
-        }
-    }
+			&payload, response);
+	if (ret == 0) {
+		/*
+		 * Message for us; remove request_cookie from awe mapper
+		 */
+                awe_mapper_remove_id(request_cookie);
+		return 0;
+	} else if (ret == -ENOMSG && payload.msg_type == msg_type_request) {
+		/*
+		 * Ignore requests; yield so someone else can receive it (msgs
+		 * are received in fifo order).
+		 */
+		goto yield;
+	} else if (ret == -ENOMSG && payload.msg_type == msg_type_response) {
+		/*
+		 * Response for someone else. Try to yield to them.
+		 */
+		try_yield(chnl, request_cookie, payload.actual_msg_id);
+		/*
+		 * We either yielded to the pending awe the response
+		 * belonged to, or the switch failed.
+		 *
+		 * Make sure the channel didn't die in case we did go to
+		 * sleep.
+		 */
+		if (unlikely(thc_channel_is_dead(chnl)))
+			return -EPIPE; /* someone killed the channel */
+		goto retry;
+	} else if (ret == -ENOMSG) {
+		/*
+		 * Unknown or unspecified message type; yield and let someone
+		 * else handle it.
+		 */
+		goto yield;
+	} else if (ret == -EWOULDBLOCK) {
+		/*
+		 * No messages in rx buffer; go to sleep.
+		 */
+		goto yield;
+	} else {
+		/*
+		 * Error
+		 */
+		printk(KERN_ERR "thc_ipc_recv_response: fipc returned %d\n", 
+			ret);
+		return ret;
+	}
+
+yield:
+	/*
+	 * Go to sleep, we will be woken up at some later time
+	 * by the dispatch loop or some other awe.
+	 */
+	THCYieldAndSave(request_cookie);
+	/*
+	 * We were woken up; make sure the channel didn't die while
+	 * we were asleep.
+	 */
+	if (unlikely(thc_channel_is_dead(chnl)))
+                return -EPIPE; /* someone killed the channel */
+	else
+		goto retry;
 }
-EXPORT_SYMBOL(thc_ipc_recv);
+EXPORT_SYMBOL(thc_ipc_recv_response);
 
 int 
 LIBASYNC_FUNC_ATTR 
@@ -183,35 +269,30 @@ thc_ipc_call(struct thc_channel *chnl,
 	struct fipc_message *request,
 	struct fipc_message **response)
 {
-    uint32_t msg_id;
+    uint32_t request_cookie;
     int ret;
-    /*
-     * Get an id for our current awe, and store in request.
-     */
-    msg_id = awe_mapper_create_id();
-    thc_set_msg_type(request, msg_type_request);
-    thc_set_msg_id(request, msg_id);
     /*
      * Send request
      */
-    ret = fipc_send_msg_end(thc_channel_to_fipc(chnl), request);
+    ret = thc_ipc_send(chnl, request, &request_cookie);
     if (ret) {
-        printk(KERN_ERR "thc: error sending request");
-        goto fail1;	
+        printk(KERN_ERR "thc_ipc_call: error sending request\n");
+        goto fail1;
     }
     /*
      * Receive response
      */
-    ret = thc_ipc_recv(chnl, msg_id, response);
+    ret = thc_ipc_recv_response(chnl, request_cookie, response);
     if (ret) {
-        printk(KERN_ERR "thc: error receiving response");
-        goto fail1;
+        printk(KERN_ERR "thc_ipc_call: error receiving response\n");
+        goto fail2;
     }
 
     return 0;
 
+fail2:
+    awe_mapper_remove_id(request_cookie);
 fail1:
-    awe_mapper_remove_id(msg_id);
     return ret;
 }
 EXPORT_SYMBOL(thc_ipc_call);
@@ -227,7 +308,11 @@ thc_ipc_send(struct thc_channel *chnl,
     /*
      * Get an id for our current awe, and store in request.
      */
-    msg_id = awe_mapper_create_id();
+    ret = awe_mapper_create_id(&msg_id);
+    if (ret) {
+        printk(KERN_ERR "thc_ipc_send: error getting request cookie\n");
+	goto fail0;
+    }
     thc_set_msg_type(request, msg_type_request);
     thc_set_msg_id(request, msg_id);
     /*
@@ -245,6 +330,7 @@ thc_ipc_send(struct thc_channel *chnl,
 
 fail1:
     awe_mapper_remove_id(msg_id);
+fail0:
     return ret;
 }
 EXPORT_SYMBOL(thc_ipc_send);

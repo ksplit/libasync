@@ -116,12 +116,13 @@ thc_channel_to_fipc(struct thc_channel *chnl)
  * NOTE: The caller of these functions should ensure they hold a reference
  * to the thc_channel (i.e., the caller is the creator of the channel, or
  * has explicitly taken a reference via thc_channel_inc_ref). This is
- * especially important in thc_ipc_recv/thc_ipc_poll_recv, where the "state
- * of the world" can change when we yield and then get scheduled again.
+ * especially important in thc_ipc_recv_response/thc_ipc_poll_recv, where 
+ * the "state of the world" can change when we yield and then get scheduled 
+ * again later on.
  */
 
 /*
- * thc_ipc_send
+ * thc_ipc_send_request
  *
  * Use case: You are expecting a response after
  * this send, and you want the calling awe to handle
@@ -150,61 +151,95 @@ thc_channel_to_fipc(struct thc_channel *chnl)
  *
  * Returns 0 on success, non-zero otherwise.
  */
-int thc_ipc_send(struct thc_channel *chnl, 
-		struct fipc_message *request, 
-		uint32_t *request_cookie);
+int thc_ipc_send_request(struct thc_channel *chnl, 
+			struct fipc_message *request, 
+			uint32_t *request_cookie);
 
 /*
- * thc_ipc_recv
+ * thc_ipc_recv_response
  * 
- * Receives the fipc message that matches request_cookie.
+ * Receive the response from a prior thc_ipc_send_request.
  *
- * Use case: You did an earlier thc_ipc_send, and you want
- * to receive the response.
+ * thc_ipc_recv_response will peek at the fipc channel to see
+ * if the response has arrived. It uses the request_cookie to
+ * identify the response.
  *
- * The request_cookie (message id) is used to receive the response 
- * with a particular id and must always be valid. If a message is 
- * received but its id does not match the id provided to this function, 
- * then this function will check if the message corresponds to another 
- * pending AWE, and if so, it will yield to that AWE. If there is 
- * not a message that has been received yet, it will yield to dispatch any
- * pending work. If a message is received that corresponds to the provided
- * request_cookie, this function will put the message in the *out_msg 
- * parameter and return.
+ * There are a few things that can happen:
  *
- * This last case is the only time the function will return, assuming 
- * there are no error conditions. In the other two cases involving yields, 
- * execution will eventually come back to this function until it receives 
- * the message corresponding to request_cookie. 
+ *    1 - No message is in the channel (i.e., the rx buffer).
+ *        thc_ipc_recv_response will yield back to the dispatch
+ *        loop, to be scheduled at a later time. (If there are
+ *        no other awe's, the dispatch loop will just keep
+ *        switching back to thc_ipc_recv_response, and thc_ipc_recv_response
+ *        keep yielding.)
+ *    2 - A response arrives from the other side, and its
+ *        request cookie matches request_cookie. thc_ipc_recv_response
+ *        will return the response as an out parameter. This
+ *        is the target scenario.
+ *    3 - A response arrives with a request cookie that does not match
+ *        request_cookie. There are two subcases here:
+ *
+ *          3a - The response has a request_cookie that
+ *               belongs to a pending awe. thc_ipc_recv_response
+ *               will switch to that pending awe X. If X
+ *               had not called thc_ipc_recv_response when
+ *               it yielded, or does not end up calling
+ *               thc_ipc_recv_response when it is woken up,
+ *               you could run into trouble.
+ *
+ *         3b - The response has a request_cookie that
+ *              *does not* belong to a pending awe. 
+ *              thc_ipc_recv_response will print an error notice
+ *              to the console, receive and drop the message,
+ *              and start over.
+ *
+ *        XXX: This case may pose a security issue if the sender of the
+ *        response passes a request cookie for an awe that didn't
+ *        even send a request ...
+ *
+ *    4 - A *request* arrives from the other side, rather than
+ *        a response. (This can happen if you are using the
+ *        same fipc channel for requests and responses, i.e.,
+ *        you receive requests and responses in the same rx
+ *        buffer.) thc_ipc_recv_response will ignore the message, and
+ *        yield as if no message was received. (Some other
+ *        awe will need to pick up the request.)
  * 
  * It is the caller's responsibility to mark the message as having completed
  * the receive. (ex: fipc_recv_msg_end(chnl, msg))
  *
  * Returns 0 on success, non-zero otherwise.
  */
-int thc_ipc_recv(struct thc_channel *chnl, 
-                 unsigned long msg_id, 
-                 struct fipc_message** out_msg);
+int thc_ipc_recv_response(struct thc_channel *chnl, 
+			uint32_t request_cookie, 
+			struct fipc_message **response);
 
 /* thc_poll_recv
  *
- * Same as thc_ipc_recv except that if no message is present, it
- * returns -EWOULDBLOCK instead of yielding.
+ * Looks at the fipc channel, and does the following:
  *
- * There is also no request_cookie passed in because poll_recv should 
+ *    -- If a request is waiting in the rx buffer, returns
+ *       it.
+ *    -- If a response is waiting, attempts to dispatch to
+ *       the matching pending awe (like thc_ipc_recv_response does).
+ *       If no awe matches, prints error to console, drops
+ *       message, and returns -ENOMSG.
+ *    -- If no message is waiting in the rx buffer, returns
+ *       -EWOULDBLOCK (rather than yieldling).
+ *
+ * There is no request_cookie passed in because thc_ipc_poll_recv should 
  * not expect a specific message.
  *
  * Returns 0 on success, non-zero otherwise.
  */
-int thc_ipc_poll_recv(struct thc_channel* chnl,
-                 struct fipc_message** out_msg);
+int thc_ipc_poll_recv(struct thc_channel *chnl,
+		struct fipc_message **out_msg);
 
 /*
  * thc_ipc_call
  * 
- * Performs both a send and an async receive. 
- * request is the message to send.
- * (*response) will have the received message.
+ * Performs a thc_ipc_send_request followed by an immediate
+ * thc_ipc_recv_response.
  *
  * It is the caller's responsibility to mark the message as having completed
  * the receive. (ex: fipc_recv_msg_end(chnl, msg))
@@ -218,8 +253,12 @@ int thc_ipc_call(struct thc_channel *chnl,
 /*
  * thc_ipc_reply
  *
- * This is for the other side of the channel that receives
- * message with a request cookie, and wants to send a response.
+ * Send a response with request cookie request_cookie
+ * on the channel's tx buffer.
+ *
+ * This is for the receiver of a request. The receiver does
+ * some work, and then wants to send a response.
+ *
  * You can get the request_cookie in a request message via
  * thc_get_request_cookie.
  *

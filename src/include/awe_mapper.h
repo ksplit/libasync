@@ -39,9 +39,11 @@ void awe_mapper_init(void);
 void awe_mapper_uninit(void);
 
 /*
- * Returns new available id.
+ * Returns new available id as out param.
+ *
+ * Returns non-zero on failure.
  */
-uint32_t awe_mapper_create_id(void);
+int awe_mapper_create_id(uint32_t *new_id);
 
 /*
  * Marks provided id as available
@@ -55,6 +57,9 @@ void awe_mapper_set_id(uint32_t id, void* awe_ptr);
 
 /*
  * Returns awe_ptr that corresponds to id.
+ *
+ * If there is no awe associated with id, returns
+ * NULL.
  */
 void* awe_mapper_get_awe_ptr(uint32_t id);
 

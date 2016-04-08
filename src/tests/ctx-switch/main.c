@@ -30,6 +30,7 @@ static int test_ctx_switch_and_thd_creation(void)
     unsigned long t1, t2, t3;
     uint32_t msg_id;
     int i;    
+    int ret;
 
     thc_init();
         for( i = 0; i < NUM_SWITCH_MEASUREMENTS; i++ )
@@ -44,11 +45,12 @@ static int test_ctx_switch_and_thd_creation(void)
                         THCYieldAndSave(msg_id);
 
                         t3 = test_fipc_stop_stopwatch();
-                        awe_mapper_remove_id(msg_id);
+                        ret = awe_mapper_remove_id(&msg_id);
+                        BUG(ret);
                     });             
                     ASYNC({
                         t2 = test_fipc_start_stopwatch(); 
-                        THCYieldToId(msg_id);
+                        BUG(THCYieldToId(msg_id));
                         });             
             });
             ctx_measurements_arr[i] = t3 - t2;
