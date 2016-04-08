@@ -20,6 +20,7 @@ MODULE_LICENSE("GPL");
 //channel groups for threads 2 and 3
 static struct thc_channel_group group2, group3;
 static struct thc_channel_group_item item2to1, item2to3, item3;
+static struct thc_channel thc_chan2to1, thc_chan2to3, thc_chan3;
 
 static int setup_and_run_test(void)
 {
@@ -62,13 +63,16 @@ static int setup_and_run_test(void)
 		goto fail2;
 	}
 	
-   item2to1.channel = thread_2_to_1_header; 
+   thc_channel_init(&thc_chan2to1, thread_2_to_1_header);
+   item2to1.channel = &thc_chan2to1;
    thc_channel_group_item_add(&group2, &item2to1); 
 
-   item2to3.channel = thread_2_to_3_header; 
+   thc_channel_init(&thc_chan2to3, thread_2_to_3_header);
+   item2to3.channel = &thc_chan2to3; 
    thc_channel_group_item_add(&group2, &item2to3); 
 
-   item3.channel = thread3_header;
+   thc_channel_init(&thc_chan3, thread3_header);
+   item3.channel = &thc_chan3;
    thc_channel_group_item_add(&group3, &item3); 
 
 

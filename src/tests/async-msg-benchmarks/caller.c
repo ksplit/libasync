@@ -17,7 +17,7 @@
 static unsigned long msg_times[TRANSACTIONS];
 
 static inline int send_and_get_response_sync(
-	struct fipc_ring_channel *chan,
+	struct thc_channel *chan,
 	struct fipc_message *request,
 	struct fipc_message **response)
 {
@@ -27,7 +27,7 @@ static inline int send_and_get_response_sync(
 	/*
 	 * Mark the request as sent
 	 */
-	ret = fipc_send_msg_end(chan, request);
+	ret = fipc_send_msg_end(thc_channel_to_fipc(chan), request);
 	if (ret) {
 		pr_err("failed to mark request as sent, ret = %d\n", ret);
 		goto fail1;
@@ -36,7 +36,7 @@ static inline int send_and_get_response_sync(
 	 * Try to get the response
 	 */
         
-    ret = test_fipc_blocking_recv_start(chan, &resp);
+    ret = test_fipc_blocking_recv_start(thc_channel_to_fipc(chan), &resp);
 	
     if (ret) {
 		pr_err("failed to get a response, ret = %d\n", ret);
@@ -44,7 +44,7 @@ static inline int send_and_get_response_sync(
 	}
 	*response = resp;
 
-    ret = fipc_recv_msg_end(chan, resp);
+    ret = fipc_recv_msg_end(thc_channel_to_fipc(chan), resp);
 	if (ret) {
 		pr_err("Error finishing receipt of response, ret = %d\n", ret);
 		return ret;
@@ -57,13 +57,13 @@ fail1:
 	return ret;
 }
 
-static inline int finish_response_check_fn_type(struct fipc_ring_channel *chnl,
+static inline int finish_response_check_fn_type(struct thc_channel *chnl,
 						struct fipc_message *response,
 						enum fn_type expected_type)
 {
 	int ret;
 	enum fn_type actual_type = get_fn_type(response);
-	ret = fipc_recv_msg_end(chnl, response);
+	ret = fipc_recv_msg_end(thc_channel_to_fipc(chnl), response);
 	if (ret) {
 		pr_err("Error finishing receipt of response, ret = %d\n", ret);
 		return ret;
@@ -77,7 +77,7 @@ static inline int finish_response_check_fn_type(struct fipc_ring_channel *chnl,
 }
 
 static inline int finish_response_check_fn_type_and_reg0(
-	struct fipc_ring_channel *chnl,
+	struct thc_channel *chnl,
 	struct fipc_message *response,
 	enum fn_type expected_type,
 	unsigned long expected_reg0)
@@ -86,7 +86,7 @@ static inline int finish_response_check_fn_type_and_reg0(
 	enum fn_type actual_type = get_fn_type(response);
 	unsigned long actual_reg0 = fipc_get_reg0(response);
 
-    ret = fipc_recv_msg_end(chnl, response);
+    ret = fipc_recv_msg_end(thc_channel_to_fipc(chnl), response);
 
 	if (ret) {
 		pr_err("Error finishing receipt of response, ret = %d\n", ret);
@@ -106,7 +106,7 @@ static inline int finish_response_check_fn_type_and_reg0(
 	}
 }
 
-static int noinline __used add_nums(struct fipc_ring_channel *chan, 
+static int noinline __used add_nums(struct thc_channel *chan, 
                 unsigned long trans, 
                 unsigned long res1,
                 bool is_async)
@@ -120,7 +120,7 @@ static int noinline __used add_nums(struct fipc_ring_channel *chan,
 	 */
 
     start_time = test_fipc_start_stopwatch();
-	ret = test_fipc_blocking_send_start(chan, &request);
+	ret = test_fipc_blocking_send_start(thc_channel_to_fipc(chan), &request);
 	if (ret) {
 		pr_err("Error getting send message, ret = %d\n", ret);
 		goto fail;
@@ -165,11 +165,12 @@ fail:
 
 static int msg_test(void* _caller_channel_header, bool is_async)
 {
-    struct fipc_ring_channel *chan = _caller_channel_header;
+    struct thc_channel chan;
 	unsigned long transaction_id = 0;
     unsigned long start_time, stop_time;
     int ret = 0;
 
+    thc_channel_init(&chan, (struct fipc_ring_channel*)_caller_channel_header);
     thc_init();
 
     preempt_disable();
@@ -187,7 +188,7 @@ static int msg_test(void* _caller_channel_header, bool is_async)
                 if( is_async )
                 {
                     ASYNC({
-                        ret = add_nums(chan, transaction_id, 1000, is_async);
+                        ret = add_nums(&chan, transaction_id, 1000, is_async);
                         if (ret) {
                             pr_err("error doing null invocation, ret = %d\n",
                                 ret);
@@ -196,7 +197,7 @@ static int msg_test(void* _caller_channel_header, bool is_async)
                 }
                 else
                 {
-                    ret = add_nums(chan, transaction_id, 1000, is_async);
+                    ret = add_nums(&chan, transaction_id, 1000, is_async);
                     if (ret) {
                         pr_err("error doing null invocation, ret = %d\n",
                                ret);

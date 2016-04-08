@@ -13,7 +13,7 @@ int thread2_fn(void* data);
 int thread3_fn(void* data);
 
 int send_and_get_response(
-	struct fipc_ring_channel *chan,
+	struct thc_channel *chan,
 	struct fipc_message *request,
 	struct fipc_message **response,
     uint32_t msg_id);

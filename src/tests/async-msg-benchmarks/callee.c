@@ -63,7 +63,7 @@ add_6_nums(unsigned long trans, unsigned long res1, unsigned long res2,
 	return add_3_nums(trans,res1,res2) + add_3_nums(res3,res4,res5);
 }
 
-static inline int send_response(struct fipc_ring_channel *chnl,
+static inline int send_response(struct thc_channel *chnl,
 				struct fipc_message *recvd_msg,
 				unsigned long val, enum fn_type type)
 {
@@ -74,7 +74,7 @@ static inline int send_response(struct fipc_ring_channel *chnl,
     	/*
 	 * Mark recvd msg slot as available
 	 */
-	ret = fipc_recv_msg_end(chnl, recvd_msg);
+	ret = fipc_recv_msg_end(thc_channel_to_fipc(chnl), recvd_msg);
 	if ( ret ) {
 		pr_err("Error marking msg as recvd");
 		return ret;
@@ -82,7 +82,7 @@ static inline int send_response(struct fipc_ring_channel *chnl,
 	/*
 	 * Response
 	 */
-	ret = test_fipc_blocking_send_start(chnl, &response);
+	ret = test_fipc_blocking_send_start(thc_channel_to_fipc(chnl), &response);
 	if ( ret ) {
 		pr_err("Error getting send slot");
 		return ret;
@@ -105,10 +105,12 @@ int callee(void *_callee_channel_header)
 {
 	int ret = 0;
 	unsigned long temp_res;
-        struct fipc_ring_channel *chan = _callee_channel_header;
+    struct thc_channel chan;
 	struct fipc_message *recvd_msg;
 	unsigned long transaction_id = 0;
 	enum fn_type type;
+
+    thc_channel_init(&chan, (struct fipc_ring_channel *) _callee_channel_header);
 
 	for (transaction_id = 0; 
 	     transaction_id < TRANSACTIONS*2; 
@@ -116,7 +118,7 @@ int callee(void *_callee_channel_header)
 		/*
 		 * Try to receive a message
 		 */
-		ret = test_fipc_blocking_recv_start(chan, &recvd_msg);
+		ret = test_fipc_blocking_recv_start(thc_channel_to_fipc(&chan), &recvd_msg);
 		if (ret) {
 			pr_err("Error receiving message, ret = %d, exiting...", ret);
 			goto out;
@@ -170,7 +172,7 @@ int callee(void *_callee_channel_header)
 		/*
 		 * Send response back
 		 */
-		ret = send_response(chan, recvd_msg, temp_res, type);
+		ret = send_response(&chan, recvd_msg, temp_res, type);
 		if (ret) {
 			pr_err("Error sending response back, ret = %d, exiting...", ret);
 			goto out;

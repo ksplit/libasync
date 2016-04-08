@@ -11,12 +11,12 @@
 
 #define BATCH_INTERVAL 100
 
-static struct fipc_ring_channel* channel;
+static struct thc_channel channel;
 static volatile int num_responses = 0;
 
 
 static inline int finish_response_check_fn_type_and_reg0(
-	struct fipc_ring_channel *chnl,
+	struct thc_channel *chnl,
 	struct fipc_message *response,
 	uint32_t expected_type,
 	unsigned long expected_lhs,
@@ -27,7 +27,7 @@ static inline int finish_response_check_fn_type_and_reg0(
 	unsigned long actual_reg0 = fipc_get_reg0(response);
     unsigned long expected_reg0;
 
-	ret = fipc_recv_msg_end(chnl, response);
+	ret = fipc_recv_msg_end(thc_channel_to_fipc(chnl), response);
 
     switch( expected_type )
     {
@@ -61,7 +61,7 @@ static inline int finish_response_check_fn_type_and_reg0(
 
 
 
-static int add_nums_async(struct fipc_ring_channel* channel,
+static int add_nums_async(struct thc_channel* channel,
         unsigned long lhs, 
         unsigned long rhs, 
         int fn_type)
@@ -70,7 +70,7 @@ static int add_nums_async(struct fipc_ring_channel* channel,
     struct fipc_message *response;
 	int ret;
 
-	if( test_fipc_blocking_send_start(channel, &msg) )
+	if( test_fipc_blocking_send_start(thc_channel_to_fipc(channel), &msg) )
     {
         printk(KERN_ERR "Error getting send message for add_nums_async.\n");
     }
@@ -103,7 +103,8 @@ static int run_thread1(void* chan)
     int print_transactions_threshold = 0;
     unsigned long msg_response       = 0;
     num_responses = 0;
-    channel       = chan;
+
+    thc_channel_init(&channel, (struct fipc_ring_channel*)chan);
 
     thc_init();
  	DO_FINISH_(thread1_fn,{
@@ -116,20 +117,20 @@ static int run_thread1(void* chan)
 
 		ASYNC(
 		    num_transactions++;
-			msg_response = add_nums_async(channel, num_transactions, 1, ADD_2_FN);
+			msg_response = add_nums_async(&channel, num_transactions, 1, ADD_2_FN);
             num_responses++;
 		     );
         if( (num_transactions) % THD3_INTERVAL == 0 )
         {
             ASYNC(
 		        num_transactions++;
-                msg_response = add_nums_async(channel, num_transactions, 2, ADD_10_FN);
+                msg_response = add_nums_async(&channel, num_transactions, 2, ADD_10_FN);
                 num_responses++;
                  );
         }
 		ASYNC(
 		    num_transactions++;
-			msg_response = add_nums_async(channel, num_transactions, 3, ADD_2_FN);
+			msg_response = add_nums_async(&channel, num_transactions, 3, ADD_2_FN);
             num_responses++;
 		     );
             //msleep(1);

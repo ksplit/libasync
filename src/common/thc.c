@@ -1074,7 +1074,7 @@ LIBASYNC_FUNC_ATTR
 THCYieldToIdAndSave(uint32_t id_to, uint32_t id_from) {
   awe_t *awe_ptr = (awe_t *)awe_mapper_get_awe_ptr(id_to);
 
-  if (PTS() == awe_ptr->pts) {
+  if ( likely(PTS() == awe_ptr->pts) ) {
     CALL_CONT_LAZY_AND_SAVE((void*)&thc_yieldto_with_cont, id_from, (void*)awe_ptr);
   }
   //NOTE: for multiple threads, the code in the 'else' 
@@ -1092,7 +1092,7 @@ LIBASYNC_FUNC_ATTR
 THCYieldToId(uint32_t id_to)
 {
   awe_t *awe_ptr = (awe_t *)awe_mapper_get_awe_ptr(id_to);
-  if (PTS() == awe_ptr->pts) {
+  if ( likely(PTS() == awe_ptr->pts) ) {
     CALL_CONT_LAZY((void*)&thc_yieldto_with_cont, (void*)awe_ptr);
   }
   else {
@@ -1105,7 +1105,7 @@ EXPORT_SYMBOL(THCYieldToId);
 void 
 LIBASYNC_FUNC_ATTR 
 THCYieldTo(awe_t *awe_ptr) {
-  if (PTS() == awe_ptr->pts) {
+  if ( likely(PTS() == awe_ptr->pts) ) {
     CALL_CONT_LAZY((void*)&thc_yieldto_with_cont, (void*)awe_ptr);
   } else {
     THCSchedule(awe_ptr);
