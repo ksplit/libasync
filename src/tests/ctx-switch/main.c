@@ -22,11 +22,12 @@ MODULE_LICENSE("GPL");
 #define NUM_SWITCH_MEASUREMENTS 100000
 #define CPU_NUM 1
 
-static unsigned long measurements_arr[NUM_SWITCH_MEASUREMENTS];
+static unsigned long ctx_measurements_arr[NUM_SWITCH_MEASUREMENTS];
+static unsigned long thd_measurements_arr[NUM_SWITCH_MEASUREMENTS];
 
-static int test_ctx_switch(void)
+static int test_ctx_switch_and_thd_creation(void)
 {
-    unsigned long start_time, end_time;
+    unsigned long t1, t2, t3;
     uint32_t msg_id;
     int i;    
 
@@ -34,44 +35,24 @@ static int test_ctx_switch(void)
         for( i = 0; i < NUM_SWITCH_MEASUREMENTS; i++ )
         {
             DO_FINISH_(ctx_switch,{
+                    t1 = test_fipc_start_stopwatch();
                     ASYNC({
+                        t2 = test_fipc_stop_stopwatch();
+                        thd_measurements_arr[i] = t2 - t1;
+
                         msg_id = awe_mapper_create_id();
                         THCYieldAndSave(msg_id);
-                        end_time = test_fipc_stop_stopwatch();
+
+                        t3 = test_fipc_stop_stopwatch();
                         awe_mapper_remove_id(msg_id);
                     });             
                     ASYNC({
-                        start_time = test_fipc_start_stopwatch(); 
-                        //THCYieldToId(msg_id);
-                        THCYield();
+                        t2 = test_fipc_start_stopwatch(); 
+                        THCYieldToId(msg_id);
                         });             
             });
-            measurements_arr[i] = end_time - start_time;
+            ctx_measurements_arr[i] = t3 - t2;
         }
-    thc_done();
-
-    return 0;
-}
-
-
-static int test_thread_creation(void)
-{
-    unsigned long start_time, end_time;
-
-    int i;    
-
-    thc_init();
-    for( i = 0; i < NUM_SWITCH_MEASUREMENTS; i++ )
-    {
-            DO_FINISH_(thread_creation,{
-                start_time = test_fipc_start_stopwatch(); 
-                ASYNC({
-                    end_time = test_fipc_stop_stopwatch();
-                });             
-            });
-
-        measurements_arr[i] = end_time - start_time;
-    }
     thc_done();
 
     return 0;
@@ -94,7 +75,7 @@ static int thread_fn(void* data)
 }
 
 
-static int run_test_fn(const char* result_str, int (*fn)(void))
+static int run_test_fn(int (*fn)(void))
 {
     int ret; 
     struct task_struct* thread;
@@ -117,8 +98,10 @@ static int run_test_fn(const char* result_str, int (*fn)(void))
        printk(KERN_ERR "Error waiting for thread.\n"); 
     }
     
-    printk(KERN_ERR "%s\n", result_str);
-    test_fipc_dump_time(measurements_arr, NUM_SWITCH_MEASUREMENTS);
+    printk(KERN_ERR "\nTiming results for context switches:\n");
+    test_fipc_dump_time(ctx_measurements_arr, NUM_SWITCH_MEASUREMENTS);
+    printk(KERN_ERR "\nTiming results for thread creation:\n");
+    test_fipc_dump_time(thd_measurements_arr, NUM_SWITCH_MEASUREMENTS);
     printk(KERN_ERR "\n\n");
 
     return 0;
@@ -135,23 +118,13 @@ static int test_fn(void)
 
     printk(KERN_ERR "Starting tests. Using %d samples per test.\n\n", NUM_SWITCH_MEASUREMENTS);
 
-    ret = run_test_fn("Timing results for test_ctx_switch:", test_ctx_switch);
+    ret = run_test_fn(test_ctx_switch_and_thd_creation);
 
     if( ret )
     {
         printk(KERN_ERR "test_ctx_switch returned non-zero\n");
         return ret;
     }
-
-    ret = run_test_fn("Timing results for test_thread_creation:", test_thread_creation);
-
-    if( ret )
-    {
-        printk(KERN_ERR "test_thread_creation returned non-zero\n");
-        return ret;
-    }
-
-    printk(KERN_ERR "Tests complete.\n\n");
 
     return ret;
 }
