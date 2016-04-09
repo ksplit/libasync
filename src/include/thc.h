@@ -291,7 +291,34 @@ void THCSchedule(awe_t *awe_ptr);
 void THCScheduleBack(awe_t *awe_ptr);
 
 // Finish the current AWE, returning to the scheduler.
+//
+// NOTE: If we were waiting for this awe to finish in order to exit
+// a do-finish block (there is a do-finish awe that is waiting for the
+// do-finish's awe count to reach zero), this *will not* schedule that
+// awe. I'm not sure why this wasn't done in the first place.
+//
+// And so, TODO: clean up enclosing do-finish if we are the last awe.
 void THCFinish(void);
+
+// Invoke this to signal to all awe's that they should exit. Right now,
+// exiting is voluntary: An awe should call THCShouldStop to detect
+// if should terminate. Likely, the awe will want to call THCAbort (see
+// below).
+void THCStopAllAwes(void);
+
+// Returns non-zero if the calling awe should terminate as soon as
+// possible. The awe should probably call THCAbort.
+int THCShouldStop(void);
+
+// Like THCFinish, but if we are the last awe in our enclosing do-finish,
+// and the do-finish is waiting for us, we schedule the do-finish awe.
+//
+// XXX: This should only be called in exceptional conditions. It doesn't
+// try to free stacks like _thc_endasync. (The stacks will be freed when
+// the runtime exits. It's possible to check if we are on a "lazy stack"
+// and free it when we're in the LAZY case, but for EAGER, there's no
+// marker we can walk back to.)
+void THCAbort(void);
 
 // Yields and saves awe_ptr to correspond to the provided id number
 void THCYieldAndSave(uint32_t id_num);

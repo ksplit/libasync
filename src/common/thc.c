@@ -1136,6 +1136,66 @@ THCFinish(void) {
 }
 EXPORT_SYMBOL(THCFinish);
 
+void 
+LIBASYNC_FUNC_ATTR
+THCStopAllAwes(void)
+{
+  PTS()->awes_should_stop = 1;
+}
+EXPORT_SYMBOL(THCStopAllAwes);
+
+int 
+LIBASYNC_FUNC_ATTR
+THCShouldStop(void)
+{
+  return PTS()->awes_should_stop;
+}
+EXPORT_SYMBOL(THCShouldStop);
+
+void
+LIBASYNC_FUNC_ATTR
+THCAbort(void) {
+  PTState_t *pts = PTS();
+  finish_t *fb = PTS()->current_fb;
+
+  assert(fb != NULL);
+
+  // Walk back and see if there are any awe's/continuations
+  // to set up for the code that comes immediately
+  // after our enclosing asyncs. (This is necessary because
+  // someone may have called THCAbort before they ever
+  // yielded. If we didn't initialize any awe_t's that
+  // came prior, we wouldn't execute any code that follows
+  // our enclosing ASYNC.)
+  check_for_lazy_awe(__builtin_frame_address(0));
+
+#ifndef NDEBUG
+  pts->asyncCallsEnded ++;
+#endif
+
+  DEBUGPRINTF("Aborting awe in finish block %p\n", fb);
+
+  assert(fb->count > 0);
+  fb->count --;
+
+  // Check if we were the last awe to finish in the do-finish block,
+  // and if someone was waiting for us to finish.
+  if (fb->count == 0) {
+    if (fb->finish_awe) {
+        DEBUGPRINTF("Enclosing finish block reached zero awes; scheduling finish awe %p\n",
+        fb->finish_awe);
+      thc_schedule_local(fb->finish_awe);
+      fb->finish_awe = NULL;
+    }  
+  }
+
+  // Switch to dispatch. Don't try to free stacks. (THCAbort is called
+  // under exceptional circumstances.)
+  thc_dispatch(pts);
+  NOT_REACHED;
+}
+EXPORT_SYMBOL(THCAbort);
+
 __attribute__ ((unused))
 static void thc_suspend_with_cont(void *a, void *arg) {
   awe_t *awe = (awe_t*)a;

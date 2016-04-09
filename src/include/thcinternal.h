@@ -164,6 +164,9 @@ struct ptstate_t {
   // Map for resolving integer IDs to awe's. This is used in the
   // async ipc code.
   struct awe_table *awe_map;
+
+  // Set to non-zero when all awe's should stop.
+  int awes_should_stop;
 };
 
 PTState_t *PTS(void);
