@@ -1173,7 +1173,7 @@ THCAbort(void) {
   pts->asyncCallsEnded ++;
 #endif
 
-  DEBUGPRINTF("Aborting awe in finish block %p\n", fb);
+  DEBUG_CANCEL(DEBUGPRINTF("Aborting awe in finish block %p\n", fb));
 
   assert(fb->count > 0);
   fb->count --;
@@ -1182,8 +1182,8 @@ THCAbort(void) {
   // and if someone was waiting for us to finish.
   if (fb->count == 0) {
     if (fb->finish_awe) {
-        DEBUGPRINTF("Enclosing finish block reached zero awes; scheduling finish awe %p\n",
-        fb->finish_awe);
+      DEBUG_CANCEL(DEBUGPRINTF("Enclosing finish block reached zero awes; scheduling finish awe %p\n",
+        fb->finish_awe));
       thc_schedule_local(fb->finish_awe);
       fb->finish_awe = NULL;
     }  

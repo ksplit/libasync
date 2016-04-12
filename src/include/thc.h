@@ -28,9 +28,9 @@ typedef int errval_t;
 #endif
 
 #if (defined(linux) || defined(BARRELFISH))
-    #ifndef noinline
-        #define noinline __attribute__((noinline))
-    #endif
+//  #ifndef noinline
+//      #define noinline __attribute__((noinline))
+//  #endif
 #endif
 
 // The implementation of do..finish relies on shadowing so that 
@@ -129,8 +129,9 @@ typedef int errval_t;
     _thc_nested_async(FORCE_ARGS_STACK awe_t *awe)                      \
     __asm__(NESTED_FN_STRING(_C));                                      \
 									\
-    noinline                                                            \
-    void _thc_nested_async(FORCE_ARGS_STACK awe_t *awe) {	        \
+    void								\
+    noinline				                                \
+    _thc_nested_async(FORCE_ARGS_STACK awe_t *awe) {			\
       void *_my_fb = _fb_info;						\
       _awe.current_fb = _my_fb;						\
       INIT_LAZY_AWE(awe, &_thc_lazy_awe_marker);			\

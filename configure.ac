@@ -26,6 +26,23 @@ AM_COND_IF([ENABLE_KERNEL_TESTS_BUILD],
     [AC_MSG_NOTICE([Building kernel tests.])],
     [AC_MSG_NOTICE([Not building kernel tests.])])
 
+# Lazy or Eager?
+AC_ARG_ENABLE([eager],
+    [AS_HELP_STRING([--enable-eager]),
+        [Enable building libasync for eager stack allocation])],
+        [],
+        [enable_eager="no"])
+AS_IF([test "x$enable_eager" = "xyes"],
+    [
+        EAGER_OR_LAZY=""
+        AC_MSG_NOTICE([Building for EAGER stack allocation.])
+    ],
+    [
+        EAGER_OR_LAZY="-DCONFIG_LAZY_THC"
+        AC_MSG_NOTICE([Building for LAZY stack allocation.])
+    ])
+AC_SUBST(EAGER_OR_LAZY)
+
 # --------------------------------------------------
 # Checks for programs.
 # --------------------------------------------------
@@ -116,6 +133,7 @@ AC_CONFIG_FILES(
   src/tests/dispatch/Kbuild
   src/tests/ctx-switch/Kbuild
   src/tests/async-msg-benchmarks/Kbuild
+  src/tests/abort/Kbuild
 )
 AC_OUTPUT
 

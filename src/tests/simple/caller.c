@@ -106,36 +106,55 @@ fail:
 
 int __caller(void *_caller_channel_header)
 {
-    struct fipc_ring_channel *fchan = _caller_channel_header;
-    struct thc_channel chan;
-	unsigned long transaction_id = 0;
-	int ret = 0;
-	
-	thc_channel_init(&chan, fchan);
+	struct fipc_ring_channel *fchan = _caller_channel_header;
+	struct thc_channel *chan;
+	unsigned long transaction_id;
 
-    thc_init();
+	chan = kmalloc(sizeof(*chan), GFP_KERNEL);
+	if (!chan) {
+		pr_err("thc channel alloc failed\n");
+		return -ENOMEM;
+	}
+
+	thc_channel_init(chan, fchan);
+
+	thc_init();
 	/*
 	 * Add nums
 	 */
-    DO_FINISH({
-        while(transaction_id < TRANSACTIONS)
-        {
-            ASYNC({
-                transaction_id++;
-                ret = async_add_nums(&chan, transaction_id, 1000);
+	DO_FINISH(
 
-                if (ret) {
-                    pr_err("error doing null invocation, ret = %d, exiting...\n",
-                        ret);
-                }
-            });
+		for (transaction_id = 0; 
+		     transaction_id < TRANSACTIONS;
+		     transaction_id++) {
 
-        }
-    });
+			ASYNC(
+
+				int ret;
+				void *tid = __builtin_alloca(
+					sizeof(transaction_id));
+				memcpy(tid, (void *)&transaction_id,
+					sizeof(transaction_id));
+
+				ret = async_add_nums(chan, 
+						*(unsigned long *)tid,
+						1000);
+				if (ret)
+					pr_err("error doing add nums, ret = %d\n", ret);
+
+				);
+
+		}
+
+		);
+
 	pr_err("Complete\n");
-    thc_done();
 
-	return ret;
+	kfree(chan);
+
+	thc_done();
+
+	return 0;
 }
 
 int caller(void *_caller_channel_header)

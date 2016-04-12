@@ -99,15 +99,6 @@ static inline int send_response(struct thc_channel *chnl,
 		return ret;
 	}
 
-	/*
-	 * Mark recvd msg slot as available
-	 */
-	ret = fipc_recv_msg_end(thc_channel_to_fipc(chnl), recvd_msg);
-	if (ret) {
-		pr_err("Error marking msg as recvd");
-		return ret;
-	}
-
 	return 0;
 }
 

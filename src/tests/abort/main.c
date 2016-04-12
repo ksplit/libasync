@@ -6,10 +6,11 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <thc.h>
+#include "../test_helpers.h"
 
 MODULE_LICENSE("GPL");
 
-static int __init abort_example_init(void)
+static void abort_example_init(void)
 {
 	DO_FINISH(
 
@@ -17,6 +18,7 @@ static int __init abort_example_init(void)
 			int i;
 			printk(KERN_ERR "ASYNC 0 started\n");
 			for (i = 0; i < 4; i++) {
+				THCYield();
 				printk(KERN_ERR "ASYNC 0 scheduled\n");
 			}
 
@@ -29,8 +31,10 @@ static int __init abort_example_init(void)
 		
 		ASYNC(
 			printk(KERN_ERR "ASYNC 1 started\n");
-			while(!THCShouldStop())
+			while(!THCShouldStop()) {
 				THCYield();
+				printk(KERN_ERR "ASYNC 1 Scheduled\n");
+			}
 			printk(KERN_ERR "ASYNC 1 aborting\n");
 			THCAbort();
 
@@ -39,8 +43,10 @@ static int __init abort_example_init(void)
 		ASYNC(
 
 			printk(KERN_ERR "ASYNC 2 started\n");
-			while(!THCShouldStop())
+			while(!THCShouldStop()) {
 				THCYield();
+				printk(KERN_ERR "Async 2 Scheduled\n");
+			}
 			printk(KERN_ERR "ASYNC 2 aborting\n");
 			THCAbort();
 
@@ -61,12 +67,23 @@ static int __init abort_example_init(void)
 
 	printk(KERN_ERR "Exited do finish\n");
 
-        return 0;
 }
+
+static int __abort_example_init(void)
+{
+	thc_init();
+
+	LCD_MAIN( abort_example_init(); );
+
+	thc_done();
+
+	return 0;
+}
+
 static void __exit abort_example_rmmod(void)
 {
 	return;
 }
 
-module_init(abort_example_init);
+module_init(__abort_example_init);
 module_exit(abort_example_rmmod);
