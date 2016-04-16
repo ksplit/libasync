@@ -552,7 +552,7 @@ static void thc_start_rts(void) {
 }
 
 static void thc_end_rts(void) {
-  void* next_stack;
+  void *stack, *next_stack;
   PTState_t *pts = PTS();
   assert(pts->doneInit && "Not initialized RTS");
   DEBUG_INIT(DEBUGPRINTF(DEBUG_INIT_PREFIX "> Ending\n"));
@@ -563,11 +563,16 @@ static void thc_end_rts(void) {
   // number of stacks on our free list should equal the number
   // allocated from the OS.
   while (pts->free_stacks != NULL) {
-        next_stack = pts->free_stacks->next;
+    next_stack = pts->free_stacks->next;
 #ifdef LINUX_KERNEL
-        kfree(pts->free_stacks);
+    // Get top of stack
+    stack = ((void *)pts->free_stacks) + sizeof(struct thcstack_t);
+    // Subtract off stack size to get to the bottom. This is the
+    // address we need to kfree.
+    stack -= (STACK_GUARD_BYTES + STACK_COMMIT_BYTES);
+    kfree(stack);
 #endif
-        pts->free_stacks = next_stack;
+    pts->free_stacks = next_stack;
 #ifndef NDEBUG
     pts->stackMemoriesDeallocated ++;
 #endif
