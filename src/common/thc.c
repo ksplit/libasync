@@ -123,11 +123,14 @@ static void thc_dispatch(PTState_t *pts);
 extern void thc_awe_execute_0(awe_t *awe);
 extern void thc_on_alt_stack_0(void *stacktop, void *fn, void *args);
 static void *thc_alloc_new_stack_0(void);
+extern void thc_link_to_frame_0(void *frame, void *fn, void *args);
 
 static PTState_t *thc_get_pts_0(void);
 static void thc_set_pts_0(PTState_t *pts);
 
 static inline void thc_schedule_local(awe_t *awe);
+
+static void thc_dump_stack_0(void);
 
 /***********************************************************************/
 
@@ -262,7 +265,6 @@ static void thc_print_pts_stats(PTState_t *t, int clear)
 //
 // There is currently no support for extending a stack, or allowing it
 // to be discontiguous
-
 void *
 LIBASYNC_FUNC_ATTR 
 _thc_allocstack(void) {
@@ -551,7 +553,7 @@ static void thc_start_rts(void) {
 }
 
 static void thc_end_rts(void) {
-  void* next_stack;
+  void *stack, *next_stack;
   PTState_t *pts = PTS();
   assert(pts->doneInit && "Not initialized RTS");
   DEBUG_INIT(DEBUGPRINTF(DEBUG_INIT_PREFIX "> Ending\n"));
@@ -562,11 +564,16 @@ static void thc_end_rts(void) {
   // number of stacks on our free list should equal the number
   // allocated from the OS.
   while (pts->free_stacks != NULL) {
-        next_stack = pts->free_stacks->next;
+    next_stack = pts->free_stacks->next;
 #ifdef LINUX_KERNEL
-        kfree(pts->free_stacks);
+    // Get top of stack
+    stack = ((void *)pts->free_stacks) + sizeof(struct thcstack_t);
+    // Subtract off stack size to get to the bottom. This is the
+    // address we need to kfree.
+    stack -= (STACK_GUARD_BYTES + STACK_COMMIT_BYTES);
+    kfree(stack);
 #endif
-        pts->free_stacks = next_stack;
+    pts->free_stacks = next_stack;
 #ifndef NDEBUG
     pts->stackMemoriesDeallocated ++;
 #endif
@@ -1504,6 +1511,34 @@ thc_global_fini(void)
 }
 EXPORT_SYMBOL(thc_global_fini);
 
+void
+LIBASYNC_FUNC_ATTR
+THCDumpAllStacks(void)
+{
+  struct awe_t *head = &PTS()->aweHead;
+  struct awe_t *cursor = head->next;
+
+  DEBUGPRINTF("THC DUMP ALL STACKS FOR PTS %p:\n", PTS());
+  DEBUGPRINTF("====================\n");
+  while (cursor != &PTS()->aweTail) {
+    // The awe's esp will not be initialized if we're doing lazy, but
+    // ebp always points to the stack frame the awe was declared in.
+    if (cursor->ebp) {
+      DEBUGPRINTF("awe %p stack dump from ebp %p:\n", cursor, 
+                  cursor->ebp);
+      thc_link_to_frame_0(cursor->ebp,
+                          thc_dump_stack_0,
+                          NULL);
+      DEBUGPRINTF("====================\n");
+    } else {
+      DEBUGPRINTF("awe %p ebp is null (?), skipping\n", cursor);
+      DEBUGPRINTF("====================\n");
+    }
+    cursor = cursor->next;
+  }
+}
+EXPORT_SYMBOL(THCDumpAllStacks);
+
 //struct run_args {
 //  int argc;
 //  char **argv;
@@ -2148,3 +2183,47 @@ static void thc_set_pts_0(PTState_t *st) {
 
 /**********************************************************************/
 
+// 5. Stack dumping
+
+#if defined(LINUX_KERNEL)
+
+static void thc_dump_stack_0(void) {
+  dump_stack();
+}
+
+#else
+#error No definition for thc_dump_stack_0
+#endif
+
+
+/**********************************************************************/
+
+// 6. "Link" subsequent stack frames to another frame
+
+// This is useful for dumping other stacks
+
+#if (defined(__x86_64__) && (defined(linux) || defined(BARRELFISH) || \
+				defined(LINUX_KERNEL)))
+// Callee invoked via Linux x64 conventions (args in EDI)
+
+/*
+         static void thc_link_to_frame_0(void *frame,   // rdi
+                                         void *fn,      // rsi
+                                         void *args)    // rdx
+*/
+__asm__ ("      .text \n\t"
+         "      .align  16                  \n\t"
+         "thc_link_to_frame_0:              \n\t"
+	 " push %rdi                        \n\t" // Frame we are "linking" to
+	 " push %rbp                        \n\t" // Save real EBP
+	 " mov %rsp, %rbp                   \n\t" 
+	 " add $8, %rbp                     \n\t" // Point EBP to pushed %rdi
+         " mov %rdx, %rdi                   \n\t" // Move args into rdi
+         " call *%rsi                       \n\t" // Call callee (args in rdi)
+         " pop %rbp                         \n\t" // Restore real EBP
+	 " add $8, %rsp                     \n\t" // Throw away %rdi we pushed
+         " ret                              \n\t");
+
+#else
+#error No definition for thc_link_to_frame_0
+#endif

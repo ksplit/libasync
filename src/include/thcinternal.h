@@ -125,7 +125,6 @@ struct ptstate_t {
   // Free stacks for re-use
   struct thcstack_t *free_stacks;
 
-
 #ifndef NDEBUG
   // Debugging statistics
   int stackMemoriesAllocated;

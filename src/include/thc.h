@@ -381,6 +381,19 @@ void THCDumpStats(int clear_stats);
 void THCIncSendCount(void);
 void THCIncRecvCount(void);
 
+// Dump all stacks that are in use
+//
+// XXX NOTE: You will most likely need to modify dump_stack. For example,
+// in the LCD microkernel, normally the stack walk stops after we reach
+// a certain address boundary. But when you call this function, you need
+// the stack walk to continue until you reach a null frame address or
+// return address. You basically want your stack walk to look like this:
+//
+//      while (frame_address != NULL && ret_address != NULL) {
+//           ... walk next frame ...
+//      }
+void THCDumpAllStacks(void);
+
 /*......................................................................*/
 
 #include "thcsync.h"
