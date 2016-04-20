@@ -406,7 +406,8 @@ static void re_init_dispatch_awe(void *a, void *arg) {
   PTState_t *pts = PTS();
   awe_t *awe = (awe_t *)a;
   pts->dispatch_awe = *awe;
-  assert(awe->status == EAGER_AWE && !pts->curr_lazy_stack);
+  assert(awe->status == EAGER_AWE && "AWE status is not eager");
+  assert(!pts->curr_lazy_stack && "Lazy stack not null");
 #ifndef NDEBUG
   // Do not count dispatch AWE in the debugging stats (it is created 
   // once and then resumed once per dispatch-loop entry, so it obscures

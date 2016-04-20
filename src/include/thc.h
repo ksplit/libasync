@@ -210,7 +210,7 @@ typedef int errval_t;
       _thc_startasync(_my_fb, _my_stack);                               \
       do { _BODY; } while (0);						\
       _thc_endasync(_my_fb, _my_stack);					\
-      assert(0 && "_thc_endasync returned");				\
+      /*assert(0 && "_thc_endasync returned");*/				\
     }									\
                                                                         \
     /* Define function to enter _nested on a new stack */               \
@@ -221,7 +221,7 @@ typedef int errval_t;
     /* Add AWE for our continuation, then run "_nested" on new stack */	\
     if (!SCHEDULE_CONT(&_awe)) {                                        \
       _swizzle();							\
-      assert(0 && "_swizzle returned");					\
+      /*assert(0 && "_swizzle returned");*/					\
     }                                                                   \
   } while (0)
 
