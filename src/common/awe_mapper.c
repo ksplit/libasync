@@ -40,6 +40,7 @@
  */
 static unsigned long initialized_marker = 0xDeadBeef;
 
+awe_table_t* global_awe_map;
 
 /*
  * Initilaizes awe mapper.
@@ -67,6 +68,7 @@ void
 LIBASYNC_FUNC_ATTR 
 awe_mapper_uninit(void)
 {
+    printk(KERN_ERR "in awe_mapper_uninit\n");
     awe_table_t *awe_map =  get_awe_map();
     kfree(awe_map);
 }
@@ -88,7 +90,9 @@ int
 LIBASYNC_FUNC_ATTR 
 awe_mapper_create_id(uint32_t *new_id)
 {
+    printk(KERN_ERR "before awe_map\n");
     awe_table_t *awe_map =  get_awe_map();
+    printk(KERN_ERR "after awe_map = %lx\n", (unsigned long)awe_map);
 
     if (unlikely(awe_map->used_slots >= AWE_TABLE_COUNT))
     {
@@ -112,52 +116,3 @@ awe_mapper_create_id(uint32_t *new_id)
 }  
 EXPORT_SYMBOL(awe_mapper_create_id);
 
-
-
-/*
- * Marks provided id as available
- */
-void 
-LIBASYNC_FUNC_ATTR 
-awe_mapper_remove_id(uint32_t id)
-{
-    awe_table_t *awe_map =  get_awe_map();
-    BUG_ON(unlikely(id >= AWE_TABLE_COUNT));
-    
-    if( awe_map->used_slots > 0 )
-    {
-        awe_map->used_slots--;
-    }
-    
-    (awe_map->awe_list)[id] = NULL;
-}
-EXPORT_SYMBOL(awe_mapper_remove_id);
-
-
-
-/*
- * Links awe_ptr with id.
- */
-void 
-LIBASYNC_FUNC_ATTR 
-awe_mapper_set_id(uint32_t id, void* awe_ptr)
-{
-    awe_table_t *awe_map =  get_awe_map();
-    BUG_ON(unlikely(id >= AWE_TABLE_COUNT));
-    (awe_map->awe_list)[id] = awe_ptr;
-}
-
-
-
-/*
- * Returns awe_ptr that corresponds to id.
- */
-void* 
-LIBASYNC_FUNC_ATTR 
-awe_mapper_get_awe_ptr(uint32_t id)
-{
-    awe_table_t *awe_map = get_awe_map();
-    if (id >= AWE_TABLE_COUNT)
-        return NULL;
-    return awe_map->awe_list[id];
-}

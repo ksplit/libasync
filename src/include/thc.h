@@ -10,12 +10,16 @@
 #ifdef LINUX_KERNEL
 #include <linux/types.h>
 #include <linux/printk.h>
-#define assert(XX) do {							\
-		if (!(XX)) {						\
-			printk("assertion failure at %s:%d\n",		\
-				__FILE__, __LINE__);			\
-		}							\
-	} while(0)
+    #ifdef USE_ASSERT
+        #define assert(XX) do {							\
+            if (!(XX)) {						\
+                printk("assertion failure at %s:%d\n",		\
+                    __FILE__, __LINE__);			\
+            }							\
+        } while(0)
+    #else
+        #define assert(XX) do {} while(0)
+    #endif
 #else
 #include <stdint.h>
 #include <stdlib.h>
@@ -203,7 +207,8 @@ typedef int errval_t;
     awe_t _awe;                                                         \
     void *_new_stack = _thc_allocstack();		       		\
     /* Define nested function containing the body */			\
-    auto void _thc_nested_async(void) __asm__(NESTED_FN_STRING(_C));    \
+    auto void noinline                  \
+     __attribute__((used)) _thc_nested_async(void) __asm__(NESTED_FN_STRING(_C));    \
     __attribute__((used)) void noinline _thc_nested_async(void) {       \
       void *_my_fb = _fb_info;						\
       void *_my_stack = _new_stack;                                     \

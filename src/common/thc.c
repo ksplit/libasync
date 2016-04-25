@@ -19,6 +19,7 @@
 #undef linux
 #endif
 
+
 #ifndef LINUX_KERNEL
 #include <stdlib.h>
 #include <stdio.h>
@@ -136,7 +137,7 @@ static void thc_dump_stack_0(void);
 
 // Per-thread state
 
-PTState_t *
+ TEMP_INLINE PTState_t *
 LIBASYNC_FUNC_ATTR 
 PTS(void) {
   PTState_t *pts = thc_get_pts_0();
@@ -149,7 +150,7 @@ PTS(void) {
 }
 EXPORT_SYMBOL(PTS);
 
-static void InitPTS(void) {
+static TEMP_INLINE void InitPTS(void) {
 #ifdef LINUX_KERNEL
   PTState_t *pts = kzalloc(sizeof(PTState_t), GFP_KERNEL);
 #else
@@ -161,14 +162,14 @@ static void InitPTS(void) {
   thc_set_pts_0(pts);
 }
 
-static void thc_pts_lock(PTState_t *t) {
+static TEMP_INLINE void thc_pts_lock(PTState_t *t) {
 #ifndef NDEBUG
   t->lock++;
 #endif
   thc_latch_acquire(&t->latch);
 }
 
-static void thc_pts_unlock(PTState_t *t) {
+static TEMP_INLINE void thc_pts_unlock(PTState_t *t) {
   thc_latch_release(&t->latch);
 }
 
@@ -265,7 +266,7 @@ static void thc_print_pts_stats(PTState_t *t, int clear)
 //
 // There is currently no support for extending a stack, or allowing it
 // to be discontiguous
-void *
+TEMP_INLINE void * 
 LIBASYNC_FUNC_ATTR 
 _thc_allocstack(void) {
   PTState_t *pts = PTS();
@@ -292,7 +293,7 @@ _thc_allocstack(void) {
 
 // De-allocate a stack back to THC's pool of free stacks
 
-void 
+TEMP_INLINE void
 LIBASYNC_FUNC_ATTR 
 _thc_freestack(void *s) {
   PTState_t *pts = PTS();
@@ -306,7 +307,7 @@ _thc_freestack(void *s) {
 #endif
 }
 
-static void thc_pendingfree(PTState_t * pts) {
+static TEMP_INLINE void thc_pendingfree(PTState_t * pts) {
   if (pts->pendingFree) {
     DEBUG_DISPATCH(DEBUGPRINTF(DEBUG_DISPATCH_PREFIX
                                "  pending free of stack %p\n",
@@ -316,7 +317,7 @@ static void thc_pendingfree(PTState_t * pts) {
   }
 }
 
-void 
+TEMP_INLINE void 
 LIBASYNC_FUNC_ATTR 
 _thc_pendingfree(void) {
   thc_pendingfree(PTS());
@@ -328,7 +329,7 @@ EXPORT_SYMBOL(_thc_pendingfree);
 // This checks whether the awe's lazy stack is finished with (according to 
 // the provided esp, and puts it on pending free list if so.
 
-static void check_lazy_stack_finished (PTState_t *pts, void *esp) {
+static TEMP_INLINE void check_lazy_stack_finished (PTState_t *pts, void *esp) {
   assert(pts->curr_lazy_stack);
   DEBUG_STACK(DEBUGPRINTF(DEBUG_STACK_PREFIX
   			  "> CheckLazyStackFinished(s=%p,esp+buf=%p)\n",
@@ -345,7 +346,7 @@ static void check_lazy_stack_finished (PTState_t *pts, void *esp) {
 
 // Allocate a lazy stack for this awe's continuation to execute on.
 
-static void alloc_lazy_stack (awe_t *awe) {
+static TEMP_INLINE void alloc_lazy_stack (awe_t *awe) {
 	void * new_esp;
   DEBUG_STACK(DEBUGPRINTF(DEBUG_STACK_PREFIX "> AllocLazyStack(awe=%p)\n", 
   			  awe));
@@ -441,6 +442,7 @@ static void thc_dispatch_loop(void) {
   thc_pendingfree(pts);
 
   // Pick up work passed to us from other threads
+  /*
   if (pts->aweRemoteHead.next != &pts->aweRemoteTail) {
     awe_t *tmp = pts->aweHead.next;
     thc_pts_lock(pts);
@@ -453,7 +455,7 @@ static void thc_dispatch_loop(void) {
     pts->aweRemoteHead.next = &pts->aweRemoteTail;
     pts->aweRemoteTail.prev = &pts->aweRemoteHead;
     thc_pts_unlock(pts);
-  } 
+  } */
   
   if (pts->aweHead.next == &pts->aweTail) {
     awe_t idle_awe;
@@ -539,7 +541,7 @@ static void thc_exit_dispatch_loop(void) {
 // the caller's)
 
 static void thc_dispatch(PTState_t *pts) {
-  assert(pts && pts->doneInit && "Not initialized RTS");
+  //assert(pts && pts->doneInit && "Not initialized RTS");
   thc_awe_execute_0(&pts->dispatch_awe);
 }
 
@@ -579,7 +581,7 @@ static void thc_end_rts(void) {
 #endif
   }
   // Done
-  thc_print_pts_stats(PTS(), 0);
+  //thc_print_pts_stats(PTS(), 0);
   PTS()->doneInit = 0;
   DEBUG_INIT(DEBUGPRINTF(DEBUG_INIT_PREFIX "< Ending\n"));
 }
@@ -588,7 +590,7 @@ static void thc_end_rts(void) {
 
 // AWE management
 
-static void thc_awe_init(awe_t *awe, void *eip, void *ebp, void *esp) {
+static TEMP_INLINE void thc_awe_init(awe_t *awe, void *eip, void *ebp, void *esp) {
   PTState_t *pts = PTS();
   DEBUG_AWE(DEBUGPRINTF(DEBUG_AWE_PREFIX "> AWEInit(%p, %p, %p, %p)\n",
                         awe, eip, ebp, esp));
@@ -699,7 +701,7 @@ static inline void check_for_lazy_awe (void * ebp) { }
 // fb->finish_awe which will be resumed when the final async
 // call finsihes.  _thc_endasync picks this up.
 
-void 
+void TEMP_INLINE 
 LIBASYNC_FUNC_ATTR 
 _thc_startfinishblock(finish_t *fb, int fb_kind) {
   PTState_t *pts = PTS();
@@ -771,7 +773,7 @@ _thc_startfinishblock(finish_t *fb, int fb_kind) {
 EXPORT_SYMBOL(_thc_startfinishblock);
 
 __attribute__ ((unused))
-static void _thc_endfinishblock0(void *a, void *f) {
+static TEMP_INLINE void _thc_endfinishblock0(void *a, void *f) {
   finish_t *fb = (finish_t*)f;
   awe_t *awe = (awe_t*)a;
 
@@ -847,7 +849,7 @@ _thc_do_cancel_request(finish_t *fb) {
 }
 EXPORT_SYMBOL(_thc_do_cancel_request);
 
-void 
+void TEMP_INLINE 
 LIBASYNC_FUNC_ATTR 
 _thc_endfinishblock(finish_t *fb, void *stack) {
   PTState_t *pts = PTS();
@@ -897,7 +899,7 @@ _thc_endfinishblock(finish_t *fb, void *stack) {
 EXPORT_SYMBOL(_thc_endfinishblock);
 
 
-void 
+void TEMP_INLINE 
 LIBASYNC_FUNC_ATTR 
 _thc_startasync(void *f, void *stack) {
   finish_t *fb = (finish_t*)f;
@@ -912,7 +914,7 @@ _thc_startasync(void *f, void *stack) {
 }
 EXPORT_SYMBOL(_thc_startasync);
 
-void 
+TEMP_INLINE void 
 LIBASYNC_FUNC_ATTR 
 _thc_endasync(void *f, void *s) {
   finish_t *fb = (finish_t*)f;
@@ -1112,9 +1114,10 @@ THCYieldToId(uint32_t id_to)
     return -EINVAL;
   }
 
+  CALL_CONT_LAZY((void*)&thc_yieldto_with_cont, (void*)awe_ptr);
+  
   if ( likely(PTS() == awe_ptr->pts) ) {
     // Switch to target awe
-    CALL_CONT_LAZY((void*)&thc_yieldto_with_cont, (void*)awe_ptr);
     // We were woken up
     return 0;
   }
@@ -1291,21 +1294,22 @@ THCSchedule(awe_t *awe) {
   DEBUG_AWE(DEBUGPRINTF(DEBUG_AWE_PREFIX "> THCSchedule(%p)\n",
                         awe));
   awe_pts = awe->pts;
-  if (awe_pts == PTS()) {
+  //if (awe_pts == PTS()) {
     // Work is for us
     awe->prev = &(awe_pts->aweHead);
     awe->next = awe_pts->aweHead.next;
     awe_pts->aweHead.next->prev = awe;
     awe_pts->aweHead.next = awe;
-  } else {
+  //} else {
     // Work is remote
+    /*
     thc_pts_lock(awe_pts);
     awe->prev = &(awe_pts->aweRemoteHead);
     awe->next = awe_pts->aweRemoteHead.next;
     awe_pts->aweRemoteHead.next->prev = awe;
     awe_pts->aweRemoteHead.next = awe;
     thc_pts_unlock(awe_pts);
-  }
+  }*/
   DEBUG_AWE(DEBUGPRINTF(DEBUG_AWE_PREFIX "  added AWE between %p %p\n",
                         awe->prev, awe->next));
   DEBUG_AWE(DEBUGPRINTF(DEBUG_AWE_PREFIX "< THCSchedule\n"));

@@ -19,11 +19,11 @@
 
 MODULE_LICENSE("GPL");
 
-#define NUM_SWITCH_MEASUREMENTS 100000
+#define NUM_SWITCH_MEASUREMENTS 14
 #define CPU_NUM 2
 
-static unsigned long ctx_measurements_arr[NUM_SWITCH_MEASUREMENTS];
-static unsigned long thd_measurements_arr[NUM_SWITCH_MEASUREMENTS];
+//static unsigned long ctx_measurements_arr[NUM_SWITCH_MEASUREMENTS];
+//static unsigned long thd_measurements_arr[NUM_SWITCH_MEASUREMENTS];
 
 static const int USE_OTHER_CORE = 0;
 
@@ -31,32 +31,56 @@ static int test_ctx_switch_and_thd_creation(void)
 {
     unsigned long t1, t2, t3;
     uint32_t msg_id;
-    int i;    
     int ret;
 
+    int i = 0;
     thc_init();
+
         for( i = 0; i < NUM_SWITCH_MEASUREMENTS; i++ )
         {
             DO_FINISH_(ctx_switch,{
-                    t1 = test_fipc_start_stopwatch();
+//                    t1 = test_fipc_start_stopwatch();
                     ASYNC({
-                        t2 = test_fipc_stop_stopwatch();
-                        thd_measurements_arr[i] = t2 - t1;
+  //                      t2 = test_fipc_stop_stopwatch();
+                       // thd_measurements_arr[i] = t2 - t1;
 
                         ret = awe_mapper_create_id(&msg_id);
+          //            THCYieldAndSave  
                         BUG_ON(ret);
                         THCYieldAndSave(msg_id);
+                        //THCYield();
 
-                        t3 = test_fipc_stop_stopwatch();
+        //                t3 = test_fipc_stop_stopwatch();
                         awe_mapper_remove_id(msg_id);
+                        printk(KERN_ERR "async 1 done\n");
                     });             
                     ASYNC({
-                        t2 = test_fipc_start_stopwatch(); 
-                        BUG_ON(THCYieldToId(msg_id));
+      //                  t2 = test_fipc_start_stopwatch(); 
+                        //BUG_ON(THCYieldToId(msg_id));
+                        THCYieldToId(msg_id);
+                        //THCYield();//To(awe_pointer);
+                        printk(KERN_ERR "async 2 done\n");
                         });             
             });
-            ctx_measurements_arr[i] = t3 - t2;
+        printk(KERN_ERR "outside of DO_FINISH\n");
+    //        ctx_measurements_arr[i] = t3 - t2;
         }
+        printk(KERN_ERR "outside of loop \n");
+#if 0
+
+	DO_FINISH_(ctx_switch,{
+	    ASYNC({
+		int i;
+		for (i = 0; i < NUM_SWITCH_MEASUREMENTS; i++)
+		  THCYield();
+	      });
+	    ASYNC({
+		int i;
+		for (i = 0; i < NUM_SWITCH_MEASUREMENTS; i++)
+		  THCYield();
+	      });
+	  });
+#endif
     thc_done();
 
     return 0;
@@ -77,7 +101,7 @@ static int thread_fn(void* data)
         
         return ret;
 }
-
+#if 0
 static void print_max(unsigned long* arr)
 {
     int max_iter = 0;
@@ -94,7 +118,7 @@ static void print_max(unsigned long* arr)
 
     printk(KERN_ERR "\nmax_num = %lu, max iter = %d\n\n", max_num, max_iter);
 }
-
+#endif
 
 
 static int run_test_fn_thread(int (*fn)(void))
@@ -120,13 +144,13 @@ static int run_test_fn_thread(int (*fn)(void))
        printk(KERN_ERR "Error waiting for thread.\n"); 
     }
 
-    printk(KERN_ERR "\nTiming results for context switches:\n");
+/*    printk(KERN_ERR "\nTiming results for context switches:\n");
     print_max(ctx_measurements_arr);
     test_fipc_dump_time(ctx_measurements_arr, NUM_SWITCH_MEASUREMENTS);
     print_max(thd_measurements_arr);
     printk(KERN_ERR "\nTiming results for thread creation:\n");
     test_fipc_dump_time(thd_measurements_arr, NUM_SWITCH_MEASUREMENTS);
-    printk(KERN_ERR "\n\n");
+    printk(KERN_ERR "\n\n");*/
 
     return 0;
 fail:
@@ -148,7 +172,7 @@ static int run_test_fn_nothread(int (*fn)(void))
        printk(KERN_ERR "Error running test.\n"); 
        goto fail1;
     }
-    
+   /* 
     printk(KERN_ERR "\nTiming results for context switches:\n");
     print_max(ctx_measurements_arr);
     test_fipc_dump_time(ctx_measurements_arr, NUM_SWITCH_MEASUREMENTS);
@@ -156,7 +180,7 @@ static int run_test_fn_nothread(int (*fn)(void))
     print_max(thd_measurements_arr);
     test_fipc_dump_time(thd_measurements_arr, NUM_SWITCH_MEASUREMENTS);
     printk(KERN_ERR "\n\n");
-
+*/
     return 0;
 fail1:
     return ret;
@@ -169,7 +193,7 @@ static int test_fn(void)
 {
     int ret;
 
-    printk(KERN_ERR "Starting tests. Using %d samples per test.\n\n", NUM_SWITCH_MEASUREMENTS);
+//    printk(KERN_ERR "Starting tests. Using %d samples per test.\n\n", NUM_SWITCH_MEASUREMENTS);
 
     if( USE_OTHER_CORE )
     {
