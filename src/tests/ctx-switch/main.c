@@ -19,7 +19,7 @@
 
 MODULE_LICENSE("GPL");
 
-#define NUM_SWITCH_MEASUREMENTS 200000
+#define NUM_SWITCH_MEASUREMENTS 100
 #define CPU_NUM 2
 
 static unsigned long ctx_measurements_arr[NUM_SWITCH_MEASUREMENTS];
@@ -35,8 +35,14 @@ static int test_ctx_switch_and_thd_creation(void)
     int i = 0;
     thc_init();
 
+    unsigned long noise_1 = test_fipc_start_stopwatch();
+    unsigned long noise_2 = test_fipc_stop_stopwatch();
+
         for( i = 0; i < NUM_SWITCH_MEASUREMENTS; i++ )
         {
+            noise_1 = test_fipc_start_stopwatch();
+            noise_2 = test_fipc_stop_stopwatch();
+            printk(KERN_ERR "Noise = %lu\n", noise_2 - noise_1);
             DO_FINISH_(ctx_switch,{
                     t1 = test_fipc_start_stopwatch();
                     ASYNC({

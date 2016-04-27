@@ -993,10 +993,12 @@ EXPORT_SYMBOL(THCIncRecvCount);
 static inline void thc_yield_with_cont_should_dispatch(void *a, void *arg, int use_dispatch)
 {
   awe_t *awe = (awe_t*)a; 
-  awe->lazy_stack = awe->pts->curr_lazy_stack;
 
+#ifdef CONFIG_LAZY_THC
+  awe->lazy_stack = awe->pts->curr_lazy_stack;
   // check if we have yielded within a lazy awe
   check_for_lazy_awe(awe->ebp);
+#endif
 
   if( use_dispatch )
   {
@@ -1059,16 +1061,21 @@ thc_yieldto_with_cont_no_dispatch_top_level(void* a, void* arg)
                           ((awe_t*)a)->eip,
                           ((awe_t*)a)->ebp,
                           ((awe_t*)a)->esp));
-  
+#ifdef CONFIG_LAZY_THC 
   last_awe->lazy_stack = last_awe->pts->curr_lazy_stack;
   // check if we have yielded within a lazy awe
   check_for_lazy_awe(last_awe->ebp);
+#endif
+
   awe = (awe_t *)arg;
 #ifndef NDEBUG
   PTS()->aweResumed++;
 #endif
 
+#ifdef CONFIG_LAZY_THC
   awe->pts->curr_lazy_stack = awe->lazy_stack;
+#endif
+
   awe->pts->current_fb = awe->current_fb;
 
   THCScheduleBack(last_awe);
@@ -1081,17 +1088,13 @@ thc_yieldto_with_cont_no_dispatch_top_level(void* a, void* arg)
 static inline void 
 thc_yieldto_with_cont_should_dispatch(void* a, void* arg , int use_dispatch)
 {
-  awe_t *last_awe = (awe_t*)a; 
   awe_t *awe;
   DEBUG_YIELD(DEBUGPRINTF(DEBUG_YIELD_PREFIX "! %p (%p,%p,%p) yield\n",
                           a,
                           ((awe_t*)a)->eip,
                           ((awe_t*)a)->ebp,
                           ((awe_t*)a)->esp));
-  
-  last_awe->lazy_stack = last_awe->pts->curr_lazy_stack;
-  // check if we have yielded within a lazy awe
-  check_for_lazy_awe(last_awe->ebp);
+ 
   awe = (awe_t *)arg;
 #ifndef NDEBUG
   PTS()->aweResumed++;
@@ -1102,6 +1105,14 @@ thc_yieldto_with_cont_should_dispatch(void* a, void* arg , int use_dispatch)
 
   if( use_dispatch )
   {
+      awe_t *last_awe = (awe_t*)a; 
+
+      #ifdef CONFIG_LAZY_THC 
+        last_awe->lazy_stack = last_awe->pts->curr_lazy_stack;
+      #endif
+         // check if we have yielded within a lazy awe
+      check_for_lazy_awe(last_awe->ebp);
+
       THCScheduleBack(last_awe);
       // Bug in original Barrelfish version; awe wasn't removed from
       // dispatch queue when we yielded to it here. (Note that in
