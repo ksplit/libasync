@@ -329,6 +329,9 @@ void THCAbort(void);
 // Yields and saves awe_ptr to correspond to the provided id number
 void THCYieldAndSave(uint32_t id_num);
 
+//Yields and saves awe_ptr, but does will not put current AWE in dispatch queue.
+void THCYieldAndSaveNoDispatch(uint32_t id_num);
+
 // Finish the current AWE, creating a new AWE from its continuation, and
 // passing this immediately to the scheduler.
 void THCYield(void);
@@ -350,11 +353,21 @@ void THCYieldTo(awe_t *awe_ptr);
 // If id_to is invalid, returns -EINVAL, zero otherwise.
 int THCYieldToIdAndSave(uint32_t id_to, uint32_t id_from);
 
+//Same as THCYieldToIdAndSave, but assumes AWEs don't use dispatch queue.
+int THCYieldToIdAndSaveNoDispatch(uint32_t id_to, uint32_t id_from);
+
 // Yields to without saving curent awe id.
 // 
 // If there is no awe associated with id_to, returns non-zero.
 int THCYieldToId(uint32_t id_to);
 
+//Same as THCYieldToId, but does not put current AWE in dispatch queue.
+//Also assumes the AWE that is being yielded to is not in the dispatch queue.
+int THCYieldToIdNoDispatch(uint32_t id_to);
+
+//Same as THCYieldToIdNoDispatch except that it assumes the caller should be put in the dispatch loop
+//(but that the AWE beign yielded to is not in the dispatch loop)
+int THCYieldToIdNoDispatch_TopLevel(uint32_t id_to);
 // Cancellation actions.  These are executed in LIFO order when cancellation 
 // occurs.  Once cancellation has been requested, it is assumed that no
 // further cancellation actions will be added.  Cancellation actions can be 

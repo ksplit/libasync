@@ -15,7 +15,7 @@ AM_CPPFLAGS = \
 	-I$(abs_top_builddir)/src/include \
 	-I$(LIBFIPC_DIR)/include
 
-AM_CFLAGS = -DLINUX_KERNEL $(EAGER_OR_LAZY)
+AM_CFLAGS = -DLINUX_KERNEL $(EAGER_OR_LAZY) -DNDEBUG
 
 COMMON_SRCS= \
 	common/thc.c \

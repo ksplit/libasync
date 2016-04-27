@@ -3,8 +3,6 @@
 #ifndef _THC_INTERNAL_H_
 #define _THC_INTERNAL_H_
 
-#define TEMP_INLINE 
-
 /***********************************************************************/
 typedef struct ptstate_t PTState_t;
 typedef struct thcstack_t thcstack_t;
@@ -161,7 +159,6 @@ struct ptstate_t {
   // this thread
   struct awe_t aweRemoteHead;
   struct awe_t aweRemoteTail;
-
   // Map for resolving integer IDs to awe's. This is used in the
   // async ipc code.
   struct awe_table *awe_map;
@@ -170,22 +167,24 @@ struct ptstate_t {
   int awes_should_stop;
 };
 
-PTState_t TEMP_INLINE *PTS(void);
+PTState_t *PTS(void);
 
 typedef void (*THCContFn_t)(void *cont, void *args);
 
-TEMP_INLINE void *_thc_allocstack(void);
-TEMP_INLINE void _thc_freestack(void *s);
+void *_thc_allocstack(void);
+void _thc_freestack(void *s);
 void _thc_onaltstack(void *s, void *fn, void *args);
 void _thc_startasync(void *f, void *stack);
-TEMP_INLINE void _thc_endasync(void *f, void *s);
- TEMP_INLINE void _thc_startfinishblock(finish_t *fb, int fb_kind);
- TEMP_INLINE void _thc_endfinishblock(finish_t *fb, void *stack);
+
+void _thc_endasync(void *f, void *s);
+void _thc_startfinishblock(finish_t *fb, int fb_kind);
+void _thc_endfinishblock(finish_t *fb, void *stack);
+
 void _thc_do_cancel_request(finish_t *fb);
 void _thc_callcont(struct awe_t *awe, THCContFn_t fn, void *args) __attribute__((returns_twice));
 int  _thc_schedulecont(struct awe_t *awe) __attribute__((returns_twice));
 void _thc_lazy_awe_marker(void);
-TEMP_INLINE void _thc_pendingfree(void);
+void _thc_pendingfree(void);
 
 /***********************************************************************/
 

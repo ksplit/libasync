@@ -40,7 +40,6 @@
  */
 static unsigned long initialized_marker = 0xDeadBeef;
 
-awe_table_t* global_awe_map;
 
 /*
  * Initilaizes awe mapper.
@@ -68,14 +67,13 @@ void
 LIBASYNC_FUNC_ATTR 
 awe_mapper_uninit(void)
 {
-    printk(KERN_ERR "in awe_mapper_uninit\n");
     awe_table_t *awe_map =  get_awe_map();
     kfree(awe_map);
 }
 
 
 
-static bool is_slot_allocated(uint32_t id)
+static inline bool is_slot_allocated(uint32_t id)
 {
     awe_table_t *awe_map =  get_awe_map();
     return ((awe_map->awe_list)[id] != NULL);
@@ -90,9 +88,7 @@ int
 LIBASYNC_FUNC_ATTR 
 awe_mapper_create_id(uint32_t *new_id)
 {
-    printk(KERN_ERR "before awe_map\n");
     awe_table_t *awe_map =  get_awe_map();
-    printk(KERN_ERR "after awe_map = %lx\n", (unsigned long)awe_map);
 
     if (unlikely(awe_map->used_slots >= AWE_TABLE_COUNT))
     {
