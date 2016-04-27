@@ -19,7 +19,7 @@
 
 MODULE_LICENSE("GPL");
 
-#define NUM_SWITCH_MEASUREMENTS 100
+#define NUM_SWITCH_MEASUREMENTS 100000
 #define CPU_NUM 2
 
 static unsigned long ctx_measurements_arr[NUM_SWITCH_MEASUREMENTS];
@@ -37,7 +37,7 @@ static int test_ctx_switch_and_thd_creation(void)
 
     unsigned long noise_1 = test_fipc_start_stopwatch();
     unsigned long noise_2 = test_fipc_stop_stopwatch();
-
+#if 0
         for( i = 0; i < NUM_SWITCH_MEASUREMENTS; i++ )
         {
             noise_1 = test_fipc_start_stopwatch();
@@ -67,20 +67,37 @@ static int test_ctx_switch_and_thd_creation(void)
             });
             ctx_measurements_arr[i] = t4 - t3;
         }
-#if 0
+#endif
 
-	DO_FINISH_(ctx_switch,{
-	    ASYNC({
-		int i;
-		for (i = 0; i < NUM_SWITCH_MEASUREMENTS; i++)
-		  THCYield();
-	      });
-	    ASYNC({
-		int i;
-		for (i = 0; i < NUM_SWITCH_MEASUREMENTS; i++)
-		  THCYield();
-	      });
-	  });
+#if 1
+            DO_FINISH_(ctx_switch,{
+
+                    ASYNC({
+                            int i;
+                            ret = awe_mapper_create_id(&id_1);
+                            THCYieldAndSaveNoDispatch(id_1);
+                            
+                            for(i = 0; i < NUM_SWITCH_MEASUREMENTS / 2; i++)
+                            {
+                                THCYieldToIdAndSaveNoDispatch(id_2,id_1);
+                            }
+                            t4 = test_fipc_stop_stopwatch();
+                            awe_mapper_remove_id(id_1);
+                            awe_mapper_remove_id(id_2);
+                        });
+                    ASYNC({
+                            int i;
+                            ret = awe_mapper_create_id(&id_2);
+                            t3 = test_fipc_start_stopwatch(); 
+                            for(i = 0; i < NUM_SWITCH_MEASUREMENTS / 2; i++)
+                            {
+                                THCYieldToIdAndSaveNoDispatch(id_1,id_2);
+                            }
+                        });
+                        THCYieldToIdNoDispatch_TopLevel(id_1);
+                    });
+                printk(KERN_ERR "Average time per context switch: %lu.", 
+                                        (t4 - t3)/NUM_SWITCH_MEASUREMENTS);
 #endif
     thc_done();
 
