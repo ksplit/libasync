@@ -33,16 +33,75 @@ static int test_ctx_switch_and_thd_creation(void)
     int ret;
     int id_1, id_2;
     int i = 0;
+
     thc_init();
 
-    unsigned long noise_1 = test_fipc_start_stopwatch();
-    unsigned long noise_2 = test_fipc_stop_stopwatch();
-#if 0
         for( i = 0; i < NUM_SWITCH_MEASUREMENTS; i++ )
         {
-            noise_1 = test_fipc_start_stopwatch();
-            noise_2 = test_fipc_stop_stopwatch();
-            printk(KERN_ERR "Noise = %lu\n", noise_2 - noise_1);
+            DO_FINISH_(ctx_switch,{
+                    t1 = test_fipc_start_stopwatch();
+                    ASYNC({
+                        t2 = test_fipc_stop_stopwatch();
+                        thd_measurements_arr[i] = t2 - t1;
+                        ret = awe_mapper_create_id(&id_1);
+                        THCYieldAndSave(id_1);
+                        t4 = test_fipc_stop_stopwatch();
+                        awe_mapper_remove_id(id_1);
+                    });             
+                    ASYNC({
+                        t3 = test_fipc_start_stopwatch(); 
+                        THCYieldToId(id_1);
+                        });             
+            });
+            ctx_measurements_arr[i] = t4 - t3;
+        }
+
+            DO_FINISH_(ctx_switch,{
+
+                    ASYNC({
+                            int i;
+                            ret = awe_mapper_create_id(&id_1);
+                            THCYieldAndSave(id_1);
+                            
+                            for(i = 0; i < NUM_SWITCH_MEASUREMENTS / 2; i++)
+                            {
+                                THCYieldToIdAndSave(id_2,id_1);
+                            }
+                            t4 = test_fipc_stop_stopwatch();
+                            awe_mapper_remove_id(id_1);
+                            awe_mapper_remove_id(id_2);
+                        });
+                    ASYNC({
+                            int i;
+                            ret = awe_mapper_create_id(&id_2);
+                            t3 = test_fipc_start_stopwatch(); 
+                            for(i = 0; i < NUM_SWITCH_MEASUREMENTS / 2; i++)
+                            {
+                                THCYieldToIdAndSave(id_1,id_2);
+                            }
+                        });
+                    });
+                printk(KERN_ERR "Average time per context switch: %lu.", 
+                                        (t4 - t3)/NUM_SWITCH_MEASUREMENTS);
+                                        
+
+    thc_done();
+
+    return 0;
+}
+
+
+
+static int test_ctx_switch_and_thd_creation_no_dispatch(void)
+{
+    unsigned long t1, t2, t3, t4;
+    int ret;
+    int id_1, id_2;
+    int i = 0;
+    thc_init();
+
+        for( i = 0; i < NUM_SWITCH_MEASUREMENTS; i++ )
+        {
             DO_FINISH_(ctx_switch,{
                     t1 = test_fipc_start_stopwatch();
                     ASYNC({
@@ -67,9 +126,7 @@ static int test_ctx_switch_and_thd_creation(void)
             });
             ctx_measurements_arr[i] = t4 - t3;
         }
-#endif
 
-#if 1
             DO_FINISH_(ctx_switch,{
 
                     ASYNC({
@@ -98,12 +155,10 @@ static int test_ctx_switch_and_thd_creation(void)
                     });
                 printk(KERN_ERR "Average time per context switch: %lu.", 
                                         (t4 - t3)/NUM_SWITCH_MEASUREMENTS);
-#endif
     thc_done();
 
     return 0;
 }
-
 
 static int thread_fn(void* data)
 {
@@ -207,15 +262,21 @@ static int test_fn(void)
 {
     int ret;
 
-//    printk(KERN_ERR "Starting tests. Using %d samples per test.\n\n", NUM_SWITCH_MEASUREMENTS);
+    printk(KERN_ERR "Starting tests. Using %d samples per test.\n\n", NUM_SWITCH_MEASUREMENTS);
 
     if( USE_OTHER_CORE )
     {
-        ret = run_test_fn_thread(test_ctx_switch_and_thd_creation);
+        printk(KERN_ERR "\n\nTesting no dispatch\n");
+        ret = run_test_fn_thread(test_ctx_switch_and_thd_creation_no_dispatch);
+        printk(KERN_ERR "\n\nTesting with dispatch\n");
+        ret |= run_test_fn_thread(test_ctx_switch_and_thd_creation);
     }
     else
     {
-        ret = run_test_fn_nothread(test_ctx_switch_and_thd_creation);
+        printk(KERN_ERR "\n\nTesting no dispatch\n");
+        ret = run_test_fn_nothread(test_ctx_switch_and_thd_creation_no_dispatch);
+        printk(KERN_ERR "\n\nTesting with dispatch\n");
+        ret |= run_test_fn_nothread(test_ctx_switch_and_thd_creation);
     }
 
     if( ret )

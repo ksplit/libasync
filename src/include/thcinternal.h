@@ -26,8 +26,9 @@ struct awe_t {
   void  *esp;
 
   // Can be EAGER_ASYNC, LAZY_ASYNC or NEEDS_LASY_STACK
+#ifdef CONFIG_LAZY_THC
   enum awe_status status;
-
+#endif
   // Stack which is allocated if awe is caller yields to this AWE.
   void  *lazy_stack; 
 
@@ -483,7 +484,6 @@ extern int _end_text_nx;
 #define CALL_CONT(_FN,_ARG)                                     \
   do {                                                          \
     awe_t _awe;                                                 \
-    _awe.status     = EAGER_AWE;				\
     KILL_CALLEE_SAVES();                                        \
     _thc_callcont(&_awe, (THCContFn_t)(_FN), (_ARG));           \
   } while (0)
@@ -494,7 +494,6 @@ extern int _end_text_nx;
 #define CALL_CONT_AND_SAVE(_FN,_IDNUM,_ARG)                     \
   do {                                                          \
     awe_t _awe;                                                 \
-    _awe.status     = EAGER_AWE;				\
     awe_mapper_set_id((_IDNUM), &_awe);			            	\
     KILL_CALLEE_SAVES();                                        \
     _thc_callcont(&_awe, (THCContFn_t)(_FN), (_ARG));           \

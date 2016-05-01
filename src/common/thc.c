@@ -409,7 +409,9 @@ static void re_init_dispatch_awe(void *a, void *arg) {
   PTState_t *pts = PTS();
   awe_t *awe = (awe_t *)a;
   pts->dispatch_awe = *awe;
+#ifdef CONFIG_LAZY_THC
   assert(awe->status == EAGER_AWE && "AWE status is not eager");
+#endif
   assert(!pts->curr_lazy_stack && "Lazy stack not null");
 #ifndef NDEBUG
   // Do not count dispatch AWE in the debugging stats (it is created 
@@ -599,7 +601,9 @@ static inline void thc_awe_init(awe_t *awe, void *eip, void *ebp, void *esp) {
   awe->ebp = ebp;
   awe->esp = esp;
   awe->pts = pts;
+#ifdef CONFIG_LAZY_THC
   awe->status = EAGER_AWE;
+#endif
   awe->lazy_stack = NULL;
   awe->current_fb = NULL;
   awe->next = NULL;
@@ -1061,13 +1065,17 @@ thc_yieldto_with_cont_no_dispatch_top_level(void* a, void* arg)
                           ((awe_t*)a)->eip,
                           ((awe_t*)a)->ebp,
                           ((awe_t*)a)->esp));
+
+
 #ifdef CONFIG_LAZY_THC 
   last_awe->lazy_stack = last_awe->pts->curr_lazy_stack;
   // check if we have yielded within a lazy awe
   check_for_lazy_awe(last_awe->ebp);
 #endif
 
+  THCScheduleBack(last_awe);
   awe = (awe_t *)arg;
+
 #ifndef NDEBUG
   PTS()->aweResumed++;
 #endif
@@ -1078,7 +1086,6 @@ thc_yieldto_with_cont_no_dispatch_top_level(void* a, void* arg)
 
   awe->pts->current_fb = awe->current_fb;
 
-  THCScheduleBack(last_awe);
 
   thc_awe_execute_0(awe);
 }
@@ -1094,25 +1101,19 @@ thc_yieldto_with_cont_should_dispatch(void* a, void* arg , int use_dispatch)
                           ((awe_t*)a)->eip,
                           ((awe_t*)a)->ebp,
                           ((awe_t*)a)->esp));
- 
-  awe = (awe_t *)arg;
-#ifndef NDEBUG
-  PTS()->aweResumed++;
-#endif
 
-  awe->pts->curr_lazy_stack = awe->lazy_stack;
-  awe->pts->current_fb = awe->current_fb;
+  awe_t *last_awe = (awe_t*)a; 
+
+  #ifdef CONFIG_LAZY_THC 
+    last_awe->lazy_stack = last_awe->pts->curr_lazy_stack;
+    // check if we have yielded within a lazy awe
+    check_for_lazy_awe(last_awe->ebp);
+  #endif
+
+  awe = (awe_t *)arg;
 
   if( use_dispatch )
   {
-      awe_t *last_awe = (awe_t*)a; 
-
-      #ifdef CONFIG_LAZY_THC 
-        last_awe->lazy_stack = last_awe->pts->curr_lazy_stack;
-      #endif
-         // check if we have yielded within a lazy awe
-      check_for_lazy_awe(last_awe->ebp);
-
       THCScheduleBack(last_awe);
       // Bug in original Barrelfish version; awe wasn't removed from
       // dispatch queue when we yielded to it here. (Note that in
@@ -1120,6 +1121,15 @@ thc_yieldto_with_cont_should_dispatch(void* a, void* arg , int use_dispatch)
       // when we yield to them.)
       remove_awe_from_list(awe);
   }
+
+#ifndef NDEBUG
+  PTS()->aweResumed++;
+#endif
+
+#ifdef CONFIG_LAZY_THC
+  awe->pts->curr_lazy_stack = awe->lazy_stack;
+#endif
+  awe->pts->current_fb = awe->current_fb;
 
   thc_awe_execute_0(awe);
 }
