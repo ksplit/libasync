@@ -326,10 +326,13 @@ int THCShouldStop(void);
 // marker we can walk back to.)
 void THCAbort(void);
 
-// Yields and saves awe_ptr to correspond to the provided id number
+//Yields and saves AWE for continuation (associates it with an id using 
+//the awe_mapper).
 void THCYieldAndSave(uint32_t id_num);
 
-//Yields and saves awe_ptr, but does will not put current AWE in dispatch queue.
+//Yields and saves AWE for continuation (associates it with an id using 
+//the awe_mapper),but will not put AWE for the continuation in the dispatch 
+//queue.
 void THCYieldAndSaveNoDispatch(uint32_t id_num);
 
 // Finish the current AWE, creating a new AWE from its continuation, and
@@ -365,9 +368,11 @@ int THCYieldToId(uint32_t id_to);
 //Also assumes the AWE that is being yielded to is not in the dispatch queue.
 int THCYieldToIdNoDispatch(uint32_t id_to);
 
-//Same as THCYieldToIdNoDispatch except that it assumes the caller should be put in the dispatch loop
-//(but that the AWE beign yielded to is not in the dispatch loop)
+//Same as THCYieldToIdNoDispatch except that it assumes the caller should 
+//be put in the dispatch queue (but that the AWE being yielded to is not 
+//in the dispatch queue).
 int THCYieldToIdNoDispatch_TopLevel(uint32_t id_to);
+
 // Cancellation actions.  These are executed in LIFO order when cancellation 
 // occurs.  Once cancellation has been requested, it is assumed that no
 // further cancellation actions will be added.  Cancellation actions can be 

@@ -175,23 +175,6 @@ static int thread_fn(void* data)
         return ret;
 }
 
-static void print_max(unsigned long* arr)
-{
-    int max_iter = 0;
-    unsigned long max_num  = 0;
-    int i = 0;
-    for(i = 0; i < NUM_SWITCH_MEASUREMENTS; i++)
-    {
-        if( arr[i] > max_num )
-        {
-            max_num = arr[i];
-            max_iter = i;
-        }
-    }
-
-    printk(KERN_ERR "\nmax_num = %lu, max iter = %d\n\n", max_num, max_iter);
-}
-
 static int run_test_fn_thread(int (*fn)(void))
 {
     int ret; 
@@ -215,9 +198,9 @@ static int run_test_fn_thread(int (*fn)(void))
        printk(KERN_ERR "Error waiting for thread.\n"); 
     }
 
+    printk(KERN_ERR "\nTiming results for context switches (ignoring rdtsc timer overhead):\n");
     test_fipc_dump_time(ctx_measurements_arr, NUM_SWITCH_MEASUREMENTS);
-    print_max(thd_measurements_arr);
-    printk(KERN_ERR "\nTiming results for thread creation:\n");
+    printk(KERN_ERR "\nTiming results for thread creation (ignoring rdtsc timer overhead):\n");
     test_fipc_dump_time(thd_measurements_arr, NUM_SWITCH_MEASUREMENTS);
     printk(KERN_ERR "\n\n");
 
@@ -242,11 +225,9 @@ static int run_test_fn_nothread(int (*fn)(void))
        goto fail1;
     }
     
-    printk(KERN_ERR "\nTiming results for context switches:\n");
-    print_max(ctx_measurements_arr);
+    printk(KERN_ERR "\nTiming results for context switches (ignoring rdtsc overhead):\n");
     test_fipc_dump_time(ctx_measurements_arr, NUM_SWITCH_MEASUREMENTS);
-    printk(KERN_ERR "\nTiming results for thread creation:\n");
-    print_max(thd_measurements_arr);
+    printk(KERN_ERR "\nTiming results for thread creation (ignoring rdtsc overhead):\n");
     test_fipc_dump_time(thd_measurements_arr, NUM_SWITCH_MEASUREMENTS);
     printk(KERN_ERR "\n\n");
 
@@ -266,16 +247,16 @@ static int test_fn(void)
 
     if( USE_OTHER_CORE )
     {
-        printk(KERN_ERR "\n\nTesting no dispatch\n");
+        printk(KERN_ERR "\n\nTesting no dispatch yields\n");
         ret = run_test_fn_thread(test_ctx_switch_and_thd_creation_no_dispatch);
-        printk(KERN_ERR "\n\nTesting with dispatch\n");
+        printk(KERN_ERR "\n\nTesting with dispatch yields\n");
         ret |= run_test_fn_thread(test_ctx_switch_and_thd_creation);
     }
     else
     {
-        printk(KERN_ERR "\n\nTesting no dispatch\n");
+        printk(KERN_ERR "\n\nTesting no dispatch yields\n");
         ret = run_test_fn_nothread(test_ctx_switch_and_thd_creation_no_dispatch);
-        printk(KERN_ERR "\n\nTesting with dispatch\n");
+        printk(KERN_ERR "\n\nTesting with dispatch yields\n");
         ret |= run_test_fn_nothread(test_ctx_switch_and_thd_creation);
     }
 
