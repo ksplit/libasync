@@ -18,8 +18,7 @@ include/linux/sched.h:
 
     struct ptstate_t *ptstate;
 
-and you should add an initializer to include/linux/init_task.h. Finally,
-you should re-build your kernel with CONFIG_LAZY_THC set.
+and you should add an initializer to include/linux/init_task.h.
 
 Build Instructions
 ------------------
