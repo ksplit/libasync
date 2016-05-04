@@ -1,4 +1,3 @@
-
 Overview
 --------
 
@@ -17,9 +16,7 @@ Note: If this is being used in the vanilla kernel, the following should
 be added to the end of the struct task_struct definition in 
 include/linux/sched.h:
 
-#ifdef CONFIG_LAZY_THC
-         struct ptstate_t *ptstate;
-#endif
+    struct ptstate_t *ptstate;
 
 and you should add an initializer to include/linux/init_task.h. Finally,
 you should re-build your kernel with CONFIG_LAZY_THC set.
@@ -64,4 +61,6 @@ This will install libasync.a in async-install/lib and the headers in
 async-install/include. It will also put kernel module tests in the lib/
 folder. Note that these tests depend on libfipc, and are statically linked
 with it. So, you don't need to do any further linking after they are
-built; they are ready to go.
+built; they are ready to go. By default, libasync is in the lazy configuration.
+If you want to use the eager configuration, pass the flag --enable-eager to the
+libasync configure script in addition to the arguments already specified above.
