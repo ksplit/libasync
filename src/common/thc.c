@@ -636,6 +636,7 @@ _thc_callcont_c(awe_t *awe,
                      THCContFn_t fn,
                      void *args) {
   PTState_t *pts = PTS();
+
   awe->pts = pts;
   awe->current_fb = pts->current_fb;
 #ifndef NDEBUG
@@ -1209,11 +1210,11 @@ THCYieldToId(uint32_t id_to)
     return -EINVAL;
   }
 
-  CALL_CONT_LAZY((void*)&thc_yieldto_with_cont, (void*)awe_ptr);
   
   if ( likely(PTS() == awe_ptr->pts) ) {
     // Switch to target awe
     // We were woken up
+    CALL_CONT_LAZY((void*)&thc_yieldto_with_cont, (void*)awe_ptr);
     return 0;
   }
   else {
@@ -1410,7 +1411,6 @@ THCSchedule(awe_t *awe) {
     awe_pts->aweHead.next = awe;
   } else {
     // Work is remote
-    
     thc_pts_lock(awe_pts);
     awe->prev = &(awe_pts->aweRemoteHead);
     awe->next = awe_pts->aweRemoteHead.next;

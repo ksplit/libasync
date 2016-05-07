@@ -19,13 +19,182 @@
 
 MODULE_LICENSE("GPL");
 
-#define NUM_SWITCH_MEASUREMENTS 100000
+#define NUM_SWITCH_MEASUREMENTS 1000000
 #define CPU_NUM 2
+
 
 static unsigned long ctx_measurements_arr[NUM_SWITCH_MEASUREMENTS];
 static unsigned long thd_measurements_arr[NUM_SWITCH_MEASUREMENTS];
 
 static const int USE_OTHER_CORE = 0;
+
+
+static int avg_thread_creation_test(void)
+{
+    unsigned long t1, t2;
+    //NUM_ASYNCs should be set to equal the number of asyncs used per iteration.
+    static const unsigned long long NUM_ASYNCS = 64;
+    static const unsigned long long NUM_AWE_CREATION_ITERS = 100000;
+    //number of iterations to average over
+    unsigned long long awe_creation_time_sum = 0;
+
+    thc_init();
+    int i;
+    for( i = 0; i < NUM_AWE_CREATION_ITERS; i++ )
+    {
+        DO_FINISH({
+                t1 = test_fipc_start_stopwatch();
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                ASYNC({
+                    t2 = test_fipc_stop_stopwatch();
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                    });
+                });
+            awe_creation_time_sum += t2 - t1;
+            }
+            thc_done();
+
+            printk(KERN_ERR "Average time per AWE creation.\nUsing %d iterations with %d AWEs created per iteration (in cycles): %lu", 
+                    NUM_AWE_CREATION_ITERS, 
+                    NUM_ASYNCS, 
+                    awe_creation_time_sum / (NUM_AWE_CREATION_ITERS*NUM_ASYNCS));
+            return 0;
+}
+
+static int print_timing_data()
+{
+    printk(KERN_ERR "\nMore comprehensive approximate timing results\n for context switches (ignoring rdtsc timer overhead):\n");
+    test_fipc_dump_time(ctx_measurements_arr, NUM_SWITCH_MEASUREMENTS);
+    printk(KERN_ERR "\nMore comprehensive approximate timing results\n for thread creation (ignoring rdtsc timer overhead):\n");
+    test_fipc_dump_time(thd_measurements_arr, NUM_SWITCH_MEASUREMENTS);
+    printk(KERN_ERR "\n\n");
+    
+    return 0;
+}
 
 static int test_ctx_switch_and_thd_creation(void)
 {
@@ -56,6 +225,8 @@ static int test_ctx_switch_and_thd_creation(void)
             ctx_measurements_arr[i] = t4 - t3;
         }
 
+
+            //Average time per context switch
             DO_FINISH_(ctx_switch,{
 
                     ASYNC({
@@ -86,6 +257,7 @@ static int test_ctx_switch_and_thd_creation(void)
                                         
 
     thc_done();
+    print_timing_data();
 
     return 0;
 }
@@ -156,6 +328,7 @@ static int test_ctx_switch_and_thd_creation_no_dispatch(void)
                 printk(KERN_ERR "Average time per context switch: %lu.", 
                                         (t4 - t3)/NUM_SWITCH_MEASUREMENTS);
     thc_done();
+    print_timing_data();
 
     return 0;
 }
@@ -198,11 +371,6 @@ static int run_test_fn_thread(int (*fn)(void))
        printk(KERN_ERR "Error waiting for thread.\n"); 
     }
 
-    printk(KERN_ERR "\nTiming results for context switches (ignoring rdtsc timer overhead):\n");
-    test_fipc_dump_time(ctx_measurements_arr, NUM_SWITCH_MEASUREMENTS);
-    printk(KERN_ERR "\nTiming results for thread creation (ignoring rdtsc timer overhead):\n");
-    test_fipc_dump_time(thd_measurements_arr, NUM_SWITCH_MEASUREMENTS);
-    printk(KERN_ERR "\n\n");
 
     return 0;
 fail:
@@ -224,46 +392,38 @@ static int run_test_fn_nothread(int (*fn)(void))
        printk(KERN_ERR "Error running test.\n"); 
        goto fail1;
     }
-    
-    printk(KERN_ERR "\nTiming results for context switches (ignoring rdtsc overhead):\n");
-    test_fipc_dump_time(ctx_measurements_arr, NUM_SWITCH_MEASUREMENTS);
-    printk(KERN_ERR "\nTiming results for thread creation (ignoring rdtsc overhead):\n");
-    test_fipc_dump_time(thd_measurements_arr, NUM_SWITCH_MEASUREMENTS);
-    printk(KERN_ERR "\n\n");
 
     return 0;
 fail1:
     return ret;
 }
 
-
-
+static int run_test_fn(int (*fn)(void), int use_other_core)
+{
+        return use_other_core ? run_test_fn_thread(fn) : run_test_fn_nothread(fn);
+}
 
 static int test_fn(void)
 {
     int ret;
 
-    printk(KERN_ERR "Starting tests. Using %d samples per test.\n\n", NUM_SWITCH_MEASUREMENTS);
+    printk(KERN_ERR "Starting tests. Using %d samples per test.\n\n", 
+                                            NUM_SWITCH_MEASUREMENTS);
 
-    if( USE_OTHER_CORE )
-    {
-        printk(KERN_ERR "\n\nTesting no dispatch yields\n");
-        ret = run_test_fn_thread(test_ctx_switch_and_thd_creation_no_dispatch);
-        printk(KERN_ERR "\n\nTesting with dispatch yields\n");
-        ret |= run_test_fn_thread(test_ctx_switch_and_thd_creation);
-    }
-    else
-    {
-        printk(KERN_ERR "\n\nTesting no dispatch yields\n");
-        ret = run_test_fn_nothread(test_ctx_switch_and_thd_creation_no_dispatch);
-        printk(KERN_ERR "\n\nTesting with dispatch yields\n");
-        ret |= run_test_fn_nothread(test_ctx_switch_and_thd_creation);
-    }
+    printk(KERN_ERR "\n\nTesting no dispatch yields\n");
+    ret = run_test_fn(test_ctx_switch_and_thd_creation_no_dispatch, 
+                                            USE_OTHER_CORE);
+    printk(KERN_ERR "\n\nTesting with dispatch yields\n");
+    ret |= run_test_fn(test_ctx_switch_and_thd_creation, 
+                                            USE_OTHER_CORE);
+    printk(KERN_ERR "\n\nTesting average thread creation time\n");
+    ret |= run_test_fn(avg_thread_creation_test, 
+                                            USE_OTHER_CORE);
+
 
     if( ret )
     {
-        printk(KERN_ERR "test_ctx_switch returned non-zero\n");
-        return ret;
+        printk(KERN_ERR "Tests returned non-zero\n");
     }
 
     return ret;
