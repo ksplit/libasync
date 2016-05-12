@@ -134,6 +134,7 @@ AC_CONFIG_FILES(
   src/tests/ctx-switch/Kbuild
   src/tests/async-msg-benchmarks/Kbuild
   src/tests/abort/Kbuild
+  src/tests/create-tear-down/Kbuild
 )
 AC_OUTPUT
 

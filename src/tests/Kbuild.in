@@ -4,5 +4,6 @@ obj-m += dispatch/
 obj-m += ctx-switch/
 obj-m += async-msg-benchmarks/
 obj-m += abort/
+obj-m += create-tear-down/
 
 

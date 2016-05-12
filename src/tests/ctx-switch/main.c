@@ -20,13 +20,11 @@
 MODULE_LICENSE("GPL");
 
 #define NUM_SWITCH_MEASUREMENTS 1000000
-#define CPU_NUM 2
-
 
 static unsigned long ctx_measurements_arr[NUM_SWITCH_MEASUREMENTS];
 static unsigned long thd_measurements_arr[NUM_SWITCH_MEASUREMENTS];
 
-static const int USE_OTHER_CORE = 0;
+static const int CPU_NUM = 1;
 
 
 static int avg_thread_creation_test(void)
@@ -37,9 +35,9 @@ static int avg_thread_creation_test(void)
     static const unsigned long long NUM_AWE_CREATION_ITERS = 100000;
     //number of iterations to average over
     unsigned long long awe_creation_time_sum = 0;
+    int i;
 
     thc_init();
-    int i;
     for( i = 0; i < NUM_AWE_CREATION_ITERS; i++ )
     {
         DO_FINISH({
@@ -178,14 +176,14 @@ static int avg_thread_creation_test(void)
             }
             thc_done();
 
-            printk(KERN_ERR "Average time per AWE creation.\nUsing %d iterations with %d AWEs created per iteration (in cycles): %lu", 
+            printk(KERN_ERR "Average time per AWE creation.\nUsing %llu iterations with %llu AWEs created per iteration (in cycles): %llu", 
                     NUM_AWE_CREATION_ITERS, 
                     NUM_ASYNCS, 
                     awe_creation_time_sum / (NUM_AWE_CREATION_ITERS*NUM_ASYNCS));
             return 0;
 }
 
-static int print_timing_data()
+static int print_timing_data(void)
 {
     printk(KERN_ERR "\nMore comprehensive approximate timing results\n for context switches (ignoring rdtsc timer overhead):\n");
     test_fipc_dump_time(ctx_measurements_arr, NUM_SWITCH_MEASUREMENTS);
@@ -333,76 +331,6 @@ static int test_ctx_switch_and_thd_creation_no_dispatch(void)
     return 0;
 }
 
-static int thread_fn(void* data)
-{
-        int ret;
-
-        preempt_disable();
-        local_irq_disable();
-
-        LCD_MAIN({ret = ((int (*)(void)) data)();});
-
-        preempt_enable();
-        local_irq_enable();
-        
-        return ret;
-}
-
-static int run_test_fn_thread(int (*fn)(void))
-{
-    int ret; 
-    struct task_struct* thread;
-
-    thread = test_pin_to_core(fn, thread_fn, CPU_NUM);
-
-    if( !thread )
-    {
-       printk(KERN_ERR "Error setting up thread.\n"); 
-       goto fail;
-    }
-
-    wake_up_process(thread);
-    msleep(1000);
-
-    ret = test_fipc_wait_for_thread(thread);
-
-    if( ret )
-    {
-       printk(KERN_ERR "Error waiting for thread.\n"); 
-    }
-
-
-    return 0;
-fail:
-    test_fipc_release_thread(thread);
-
-    return ret;
-}
-
-
-
-static int run_test_fn_nothread(int (*fn)(void))
-{
-    int ret; 
-
-    ret = thread_fn(fn);
-
-    if( ret )
-    {
-       printk(KERN_ERR "Error running test.\n"); 
-       goto fail1;
-    }
-
-    return 0;
-fail1:
-    return ret;
-}
-
-static int run_test_fn(int (*fn)(void), int use_other_core)
-{
-        return use_other_core ? run_test_fn_thread(fn) : run_test_fn_nothread(fn);
-}
-
 static int test_fn(void)
 {
     int ret;
@@ -411,14 +339,14 @@ static int test_fn(void)
                                             NUM_SWITCH_MEASUREMENTS);
 
     printk(KERN_ERR "\n\nTesting no dispatch yields\n");
-    ret = run_test_fn(test_ctx_switch_and_thd_creation_no_dispatch, 
-                                            USE_OTHER_CORE);
+    ret = test_fipc_run_test_fn(test_ctx_switch_and_thd_creation_no_dispatch, 
+                                            CPU_NUM);
     printk(KERN_ERR "\n\nTesting with dispatch yields\n");
-    ret |= run_test_fn(test_ctx_switch_and_thd_creation, 
-                                            USE_OTHER_CORE);
+    ret |= test_fipc_run_test_fn(test_ctx_switch_and_thd_creation, 
+                                            CPU_NUM);
     printk(KERN_ERR "\n\nTesting average thread creation time\n");
-    ret |= run_test_fn(avg_thread_creation_test, 
-                                            USE_OTHER_CORE);
+    ret |= test_fipc_run_test_fn(avg_thread_creation_test, 
+                                            CPU_NUM);
 
 
     if( ret )
