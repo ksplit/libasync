@@ -24,7 +24,7 @@ MODULE_LICENSE("GPL");
 static unsigned long ctx_measurements_arr[NUM_SWITCH_MEASUREMENTS];
 static unsigned long thd_measurements_arr[NUM_SWITCH_MEASUREMENTS];
 
-static const int CPU_NUM = 1;
+static const int CPU_NUM = -1;
 
 
 static int avg_thread_creation_test(void)
