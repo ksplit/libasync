@@ -23,8 +23,17 @@ MODULE_LICENSE("GPL");
 
 static const int CPU_NUM = -1;
 
+static unsigned long id_1, id_2;
+
 /*dummy_ret_val prevents the call to foo() from being optimized out.*/
 static volatile int dummy_ret_val = 0;
+
+__attribute__((used)) noinline static int foo_yieldto(void)
+{
+    THCYieldToIdAndSave(id_2, id_1);
+
+    return 0;
+}
 
 __attribute__((used)) noinline static int foo_yield(void)
 {
@@ -44,7 +53,10 @@ static int test_create_and_tear_down(void)
     int ret = 0;
     int i = 0;
 
+
     thc_init();
+    awe_mapper_create_id(&id_1);
+    awe_mapper_create_id(&id_2);
 
 
     t1 = test_fipc_start_stopwatch();
@@ -74,7 +86,22 @@ static int test_create_and_tear_down(void)
         }
     });
     t2 = test_fipc_stop_stopwatch();
-    printk(KERN_ERR "Cycles for blocking function invocation in ASYNC: %lu\n", (t2 - t1)/NUM_ITERS);   
+    printk(KERN_ERR "Cycles for blocking function invocation in ASYNC (Yield): %lu\n", (t2 - t1)/NUM_ITERS);   
+
+    t1 = test_fipc_start_stopwatch();
+    DO_FINISH({
+        THCYieldAndSave(id_2);
+        for( i = 0; i < NUM_ITERS; i++ )
+        {
+            ASYNC(foo_yieldto(););
+            THCYieldToIdAndSave(id_1, id_2);
+        }
+    });
+    t2 = test_fipc_stop_stopwatch();
+
+    awe_mapper_remove_id(id_1);
+    awe_mapper_remove_id(id_2);
+    printk(KERN_ERR "Cycles for blocking function invocation in ASYNC (YieldTo): %lu\n", (t2 - t1)/NUM_ITERS);   
 
 
     thc_done();
