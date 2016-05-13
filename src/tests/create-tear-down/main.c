@@ -23,14 +23,91 @@ MODULE_LICENSE("GPL");
 
 static const int CPU_NUM = -1;
 
-static unsigned long id_1, id_2;
+static int id_1, id_2;
 
 /*dummy_ret_val prevents the call to foo() from being optimized out.*/
 static volatile int dummy_ret_val = 0;
 
+static int thread_fn(void* data)
+{
+        int ret;
+
+        preempt_disable();
+        local_irq_disable();
+
+        LCD_MAIN({ret = ((int (*)(void)) data)();});
+
+        preempt_enable();
+        local_irq_enable();
+        
+        return ret;
+}
+
+static int run_test_fn_thread(int (*fn)(void), int cpu_num)
+{
+    int ret; 
+    struct task_struct* thread;
+
+    thread = test_pin_to_core(fn, thread_fn, cpu_num);
+
+    if( !thread )
+    {
+       printk(KERN_ERR "Error setting up thread.\n"); 
+       goto fail;
+    }
+
+    wake_up_process(thread);
+    msleep(1000);
+
+    ret = test_fipc_wait_for_thread(thread);
+
+    if( ret )
+    {
+       printk(KERN_ERR "Error waiting for thread.\n"); 
+    }
+
+
+    return 0;
+fail:
+    test_fipc_release_thread(thread);
+
+    return ret;
+}
+
+static int run_test_fn_nothread(int (*fn)(void))
+{
+    int ret; 
+
+    ret = thread_fn(fn);
+
+    if( ret )
+    {
+       printk(KERN_ERR "Error running test.\n"); 
+       goto fail1;
+    }
+
+    return 0;
+fail1:
+    return ret;
+}
+
+/*run_test_fn
+ Runs provided function 'fn' with the appropriate setup 
+ (irq and preemption disabled during execution)
+ if core_num is -1, then the provided function is run 
+ on the current core, otherwise, it is run
+ in a kthread on core 'core_num'.*/
+static int run_test_fn(int (*fn)(void), int core_num)
+{
+        return (core_num == -1) ? 
+            run_test_fn_nothread(fn) 
+            : run_test_fn_thread(fn, core_num);
+}
+
+
 __attribute__((used)) noinline static int foo_yieldto(void)
 {
-    THCYieldToIdAndSave(id_2, id_1);
+    THCYieldAndSave(id_1);
 
     return 0;
 }
@@ -90,11 +167,10 @@ static int test_create_and_tear_down(void)
 
     t1 = test_fipc_start_stopwatch();
     DO_FINISH({
-        THCYieldAndSave(id_2);
         for( i = 0; i < NUM_ITERS; i++ )
         {
             ASYNC(foo_yieldto(););
-            THCYieldToIdAndSave(id_1, id_2);
+            THCYieldToId(id_1);
         }
     });
     t2 = test_fipc_stop_stopwatch();
@@ -116,7 +192,7 @@ static int test_fn(void)
     printk(KERN_ERR "Starting tests. Using %d iterations per test.\n\n", 
                                             NUM_ITERS);
 
-    ret = test_fipc_run_test_fn(test_create_and_tear_down, CPU_NUM);
+    ret = run_test_fn(test_create_and_tear_down, CPU_NUM);
 
     if( ret )
     {

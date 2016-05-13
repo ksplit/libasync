@@ -41,8 +41,6 @@
                                         \
         } while (0);
 
-int test_fipc_run_test_fn(int (*fn)(void), int core_num);
-
 static inline
 struct task_struct*
 test_pin_to_core(void* thd_data, int (*threadfn)(void *data), int cpu_pin)
