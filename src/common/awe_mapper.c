@@ -88,7 +88,19 @@ int
 LIBASYNC_FUNC_ATTR 
 awe_mapper_create_id(uint32_t *new_id)
 {
-    awe_table_t *awe_map =  get_awe_map();
+    awe_table_t *awe_map; 
+    
+    if (!current->ptstate) {
+	printk("ptstate is null!");
+    	return -EFAULT;	
+    }
+
+    awe_map = get_awe_map();
+
+    if(!awe_map) {
+	printk("awe_map returned null\n");
+    	return -EFAULT; 
+    }
 
     if (unlikely(awe_map->used_slots >= AWE_TABLE_COUNT))
     {

@@ -3,6 +3,7 @@
 #include <lcd_config/pre_hook.h>
 #endif
 
+#include <liblcd/console.h>
 #include <thc_ipc.h>
 #include <thc_ipc_types.h>
 #include <libfipc_types.h>
@@ -18,6 +19,18 @@
 #undef EXPORT_SYMBOL
 #define EXPORT_SYMBOL(x)
 #endif
+
+/* static inline void __ipc_debug(const char* format, ...)
+{
+	va_list args;
+
+    va_start(args, format);
+    lcd_printk(format, args);
+    va_end(args);
+}
+*/
+
+#define IPC_DEBUG(format,...) lcd_printk("%p %s: %d: " format "\n",current,__func__,__LINE__,##__VA_ARGS__)
 
 int 
 LIBASYNC_FUNC_ATTR
@@ -78,10 +91,14 @@ static int poll_recv_predicate(struct fipc_message* msg, void* data)
         payload_ptr->msg_type = msg_type_request;
         return 1;
     }
-    else
+    else if ( thc_get_msg_type(msg) == (uint32_t)msg_type_response )
     {
         payload_ptr->actual_msg_id = thc_get_msg_id(msg);
         return 0; //message not for this awe
+    }
+    else {
+	    printk(KERN_ERR "poll_recv_predicate: Unexpected msg type 0x%x \n",thc_get_msg_type(msg));
+     	return 0;
     }
 }
 
@@ -92,7 +109,7 @@ static void drop_one_rx_msg(struct thc_channel *chnl)
 
 	ret = fipc_recv_msg_start(thc_channel_to_fipc(chnl), &msg);
 	if (ret)
-		printk(KERN_ERR "thc_ipc_recv_response: failed to drop bad message\n");
+		printk(KERN_ERR "thc_ipc_recv_response: failed to drop bad message current: %p ptstate %p \n", current, current->ptstate);
 	ret = fipc_recv_msg_end(thc_channel_to_fipc(chnl), msg);
 	if (ret)
 		printk(KERN_ERR "thc_ipc_recv_response: failed to drop bad message (mark as received)\n");
@@ -112,8 +129,8 @@ static void try_yield(struct thc_channel *chnl, uint32_t our_request_cookie,
 		/*
 		 * Oops, the switch failed
 		 */
-		printk(KERN_ERR "thc_ipc_recv_response: Invalid request cookie 0x%x received; dropping the message\n",
-			received_request_cookie);
+		printk(KERN_ERR "thc_ipc_recv_response: Invalid request cookie 0x%x received; dropping the message: current %p ptstate %p\n",
+			received_request_cookie, current, current->ptstate);
 		drop_one_rx_msg(chnl);
 		return;
 	}
@@ -122,6 +139,8 @@ static void try_yield(struct thc_channel *chnl, uint32_t our_request_cookie,
 	 */
 	return;
 }
+
+
 
 int 
 LIBASYNC_FUNC_ATTR 
@@ -134,6 +153,9 @@ thc_ipc_recv_response(struct thc_channel *chnl,
 	};
 	int ret;
 
+	//IPC_DEBUG("req cookie 0x%x", request_cookie);
+
+    	//printk("thc_ipc: call recv_msg_if \n");
 retry:
         ret = fipc_recv_msg_if(thc_channel_to_fipc(chnl), thc_recv_predicate, 
 			&payload, response);
@@ -141,6 +163,8 @@ retry:
 		/*
 		 * Message for us; remove request_cookie from awe mapper
 		 */
+		//IPC_DEBUG("rxd message response for us, request_cookie 0x%x",
+		//request_cookie);
                 awe_mapper_remove_id(request_cookie);
 		return 0;
 	} else if (ret == -ENOMSG && payload.msg_type == msg_type_request) {
@@ -148,12 +172,20 @@ retry:
 		 * Ignore requests; yield so someone else can receive it (msgs
 		 * are received in fifo order).
 		 */
+		//IPC_DEBUG("rxd request for dispatch loop, we are waiting for "
+		//"request_cookie 0x%x "
+		//,request_cookie);
 		goto yield;
 	} else if (ret == -ENOMSG && payload.msg_type == msg_type_response) {
 		/*
 		 * Response for someone else. Try to yield to them.
 		 */
+		//IPC_DEBUG("response for someone else, we are waiting for "
+		//	"request_cookie 0x%x resp is for req_cookie 0x%x"
+		//	,request_cookie, payload.actual_msg_id);
 		try_yield(chnl, request_cookie, payload.actual_msg_id);
+		
+		//IPC_DEBUG("somebody woke us up");
 		/*
 		 * We either yielded to the pending awe the response
 		 * belonged to, or the switch failed.
@@ -161,19 +193,25 @@ retry:
 		 * Make sure the channel didn't die in case we did go to
 		 * sleep.
 		 */
-		if (unlikely(thc_channel_is_dead(chnl)))
+		if (unlikely(thc_channel_is_dead(chnl))) {
+    			printk("channel dead \n");
 			return -EPIPE; /* someone killed the channel */
+		}
 		goto retry;
 	} else if (ret == -ENOMSG) {
 		/*
 		 * Unknown or unspecified message type; yield and let someone
 		 * else handle it.
 		 */
+		//IPC_DEBUG("unknown message type");
+    		//printk("thc_ipc: unknown msg \n");
 		goto yield;
 	} else if (ret == -EWOULDBLOCK) {
 		/*
 		 * No messages in rx buffer; go to sleep.
 		 */
+    		//printk("thc_ipc: no msg \n");
+	  //		IPC_DEBUG("no messages in the rx buffer");
 		goto yield;
 	} else {
 		/*
@@ -237,21 +275,30 @@ thc_ipc_poll_recv(struct thc_channel* chnl,
     int ret;
 
     while( true )
-    {
+    {	
+      //      	IPC_DEBUG("poll, top of loop");
         ret = fipc_recv_msg_if(thc_channel_to_fipc(chnl), poll_recv_predicate, 
                        &payload, out_msg);
         if( !ret ) //message for us
         {
+		//IPC_DEBUG("got a request from other side, msg status 0x%x flags 0x%x",
+		//	(*out_msg)->msg_status, (*out_msg)->flags);
             return 0; 
         }
         else if( ret == -ENOMSG ) //message not for us
         {
-            THCYieldToId((uint32_t)payload.actual_msg_id);
+	/* IPC_DEBUG("got a response from other side, msg status 0x%x flags 0x%x", */
+	/* 		(*out_msg)->msg_status, (*out_msg)->flags); */
+            if (THCYieldToId((uint32_t)payload.actual_msg_id) == -EINVAL) {
+	      		//IPC_DEBUG("yield returns -EINVAL %x",payload.actual_msg_id);
+	    }
+	    //	    	IPC_DEBUG("back in poll_recv");
             if (unlikely(thc_channel_is_dead(chnl)))
                 return -EPIPE; // channel died
         }
         else if( ret == -EWOULDBLOCK ) //no message, return
         {
+	  //	IPC_DEBUG("nothing to rx in poll_recv");
             return ret;
         }
         else
@@ -262,6 +309,13 @@ thc_ipc_poll_recv(struct thc_channel* chnl,
     }
 }
 EXPORT_SYMBOL(thc_ipc_poll_recv);
+
+static inline
+int
+async_msg_get_fn_type(struct fipc_message *msg)
+{
+        return fipc_get_flags(msg) >> THC_RESERVED_MSG_FLAG_BITS;
+}
 
 int
 LIBASYNC_FUNC_ATTR
@@ -274,6 +328,10 @@ thc_ipc_call(struct thc_channel *chnl,
     /*
      * Send request
      */
+    //if(async_msg_get_fn_type(request) == 15) {
+//	    printk("thc_ipc: send req \n");
+  //  }
+	//IPC_DEBUG("start of call, sending request");
     ret = thc_ipc_send_request(chnl, request, &request_cookie);
     if (ret) {
         printk(KERN_ERR "thc_ipc_call: error sending request\n");
@@ -282,11 +340,16 @@ thc_ipc_call(struct thc_channel *chnl,
     /*
      * Receive response
      */
+    //if(async_msg_get_fn_type(request) == 15) {
+//	    printk("thc_ipc: rx resp \n");
+  //  }
+	//IPC_DEBUG("receiving response, request cookie %d", request_cookie);	
     ret = thc_ipc_recv_response(chnl, request_cookie, response);
     if (ret) {
         printk(KERN_ERR "thc_ipc_call: error receiving response\n");
         goto fail2;
     }
+	//IPC_DEBUG("got response");
 
     return 0;
 
@@ -318,12 +381,13 @@ thc_ipc_send_request(struct thc_channel *chnl,
     /*
      * Send request
      */
+	//IPC_DEBUG("sending request with msg id 0x%x", msg_id);
     ret = fipc_send_msg_end(thc_channel_to_fipc(chnl), request);
     if (ret) {
         printk(KERN_ERR "thc: error sending request");
         goto fail1;	
     }
-
+	//IPC_DEBUG("sent request");
     *request_cookie = msg_id;
 
     return 0;
@@ -341,6 +405,7 @@ thc_ipc_reply(struct thc_channel *chnl,
 	uint32_t request_cookie,
 	struct fipc_message *response)
 {
+	//IPC_DEBUG("replying with req cookie %d", request_cookie);
     thc_set_msg_type(response, msg_type_response);
     thc_set_msg_id(response, request_cookie);
     return fipc_send_msg_end(thc_channel_to_fipc(chnl), response);

@@ -1081,11 +1081,14 @@ LIBASYNC_FUNC_ATTR
 THCYieldToIdAndSave(uint32_t id_to, uint32_t id_from) {
   awe_t *awe_ptr = (awe_t *)awe_mapper_get_awe_ptr(id_to);
 
-  if (!awe_ptr)
+  if (!awe_ptr) {
+	  printk("#### awe ptr is NULL! - current %p pts %p \n",current, current->ptstate);
     return -EINVAL; // id_to not valid
+  }
 
   if ( likely(PTS() == awe_ptr->pts) ) {
     // Switch to awe_ptr
+	//printk("[YTIDS] awe->eip: %p current %p pts %p \n", awe_ptr->eip, current, current->ptstate);
     CALL_CONT_LAZY_AND_SAVE((void*)&thc_yieldto_with_cont, id_from, (void*)awe_ptr);
     // We were woken up
     return 0;
@@ -1118,6 +1121,7 @@ THCYieldToId(uint32_t id_to)
     return 0;
   }
   else {
+	  printk("YTID trying to schedule awe for another thread\n");
     THCSchedule(awe_ptr);
     return 0;
   }
