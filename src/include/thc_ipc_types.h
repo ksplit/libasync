@@ -52,6 +52,7 @@ struct thc_channel_group_item
     struct list_head list;
     bool xmit_channel;
     struct thc_channel *channel;
+    int channel_id;
     int (*dispatch_fn)(struct thc_channel_group_item*, struct fipc_message*);
 };
 

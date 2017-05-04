@@ -21,7 +21,7 @@ struct awe_t {
 
   // Link from an AWE to the per-thread state for the thread it
   // runs in.
-  //PTState_t *pts;
+  PTState_t *pts;
 
   // Link from an AWE to the immediately-enclosing finish
   //finish_t *current_fb;
@@ -73,6 +73,10 @@ struct ptstate_t {
   // set if the process is killed. do it in do_exit()
   // so that we can clean up pts
   bool exited;
+
+  //Two fields for creating new channels on the fly
+  struct thc_channel *chnl;
+  bool thread_ctx;
 
   // Thread-local fields: .............................................
 

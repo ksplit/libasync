@@ -103,6 +103,7 @@
 // in inline-asm, and so the definition is not visible to the compiler.
 
 static void thc_awe_init(awe_t *awe, void *eip, void *ebp, void *esp);
+static void thc_awe_init_with_pts(PTState_t *pts, awe_t *awe, void *eip, void *ebp, void *esp);
 static void thc_dispatch(PTState_t *pts);
 
 extern void thc_awe_execute_0(awe_t *awe);
@@ -381,6 +382,23 @@ static void thc_exit_dispatch_loop(void) {
   _thc_freestack_void(pts, pts->dispatchStack);
 }
 
+static void thc_exit_dispatch_loop_with_pts(PTState_t *pts) {
+  
+  assert(!pts->shouldExit);
+  pts->shouldExit = 1;
+  // Wait for idle loop to finish
+  while (pts->aweHead.next != &(pts->aweTail)) {
+    THCYield();
+  }
+  // Exit
+  assert((pts->aweHead.next == &(pts->aweTail)) && 
+         "Dispatch queue not empty at exit");
+  DEBUG_INIT(DEBUGPRINTF(DEBUG_INIT_PREFIX
+                         "  NULLing out dispatch AWE\n"));
+  thc_awe_init_with_pts(pts, &pts->dispatch_awe, NULL, NULL, NULL);
+  _thc_freestack_void(pts, pts->dispatchStack);
+}
+
 // Enter the dispatch function via dispatch_awe.
 //
 // (Hence the dispatch loop will run on its own stack, rather than
@@ -426,6 +444,37 @@ static void thc_start_rts(void) {
   DEBUG_INIT(DEBUGPRINTF(DEBUG_INIT_PREFIX "< Starting\n"));
 }
 
+static void thc_end_rts_with_pts(struct ptstate_t *pts) {
+  void *stack, *next_stack;
+  assert(pts->doneInit && "Not initialized RTS");
+  DEBUG_INIT(DEBUGPRINTF(DEBUG_INIT_PREFIX "> Ending\n"));
+  thc_exit_dispatch_loop_with_pts(pts);
+
+  // Count up the stacks that we have left.  This is merely for
+  // book-keeping: once the dispatch loop is done, then the
+  // number of stacks on our free list should equal the number
+  // allocated from the OS.
+  while (pts->free_stacks != NULL) {
+    next_stack = pts->free_stacks->next;
+#ifdef LINUX_KERNEL
+    // Get top of stack
+    stack = ((void *)pts->free_stacks) + sizeof(struct thcstack_t);
+    // Subtract off stack size to get to the bottom. This is the
+    // address we need to kfree.
+    stack -= (STACK_GUARD_BYTES + STACK_COMMIT_BYTES);
+    kfree(stack);
+#endif
+    pts->free_stacks = next_stack;
+#ifndef NDEBUG
+    pts->stackMemoriesDeallocated ++;
+#endif
+  }
+  // Done
+  //thc_print_pts_stats(pts, 0);
+  pts->doneInit = 0;
+  DEBUG_INIT(DEBUGPRINTF(DEBUG_INIT_PREFIX "< Ending\n"));
+}
+
 static void thc_end_rts(void) {
   void *stack, *next_stack;
   PTState_t *pts = PTS();
@@ -464,6 +513,20 @@ static void thc_end_rts(void) {
 /***********************************************************************/
 
 // AWE management
+static void thc_awe_init_with_pts(PTState_t *pts, awe_t *awe, void *eip, void *ebp, void *esp) {
+  DEBUG_AWE(DEBUGPRINTF(DEBUG_AWE_PREFIX "> AWEInit(%p, %p, %p, %p)\n",
+                        awe, eip, ebp, esp));
+  
+  awe->eip = eip;
+  awe->ebp = ebp;
+  awe->esp = esp;
+  awe->pts = pts;
+
+  //awe->current_fb = NULL;
+  awe->next = NULL;
+  awe->prev = NULL;
+  DEBUG_AWE(DEBUGPRINTF(DEBUG_AWE_PREFIX "< AWEInit\n"));
+}
 
 static inline void thc_awe_init(awe_t *awe, void *eip, void *ebp, void *esp) {
   //PTState_t *pts = PTS();
@@ -1101,8 +1164,7 @@ thc_init(void) {
   PTS()->idle_fn = IdleFn;
   PTS()->idle_args = NULL;
   PTS()->idle_stack = NULL;
-  PTS()->direct_cont = NULL;	
-
+  PTS()->direct_cont = NULL;
 #ifdef LCD_DOMAINS
 //  printk("2:%s, current %p | c->ptstate %p | PTS() %p\n",
 //		__func__, current, current->ptstate, PTS());
@@ -1121,6 +1183,15 @@ thc_done(void) {
   thc_end_rts();
 }
 EXPORT_SYMBOL(thc_done);
+
+void 
+LIBASYNC_FUNC_ATTR 
+thc_done_with_pts(void *pts) {
+  awe_mapper_uninit_with_pts(pts);
+  thc_end_rts_with_pts((struct ptstate_t *)pts);
+}
+EXPORT_SYMBOL(thc_done_with_pts);
+
 
 int 
 LIBASYNC_FUNC_ATTR 

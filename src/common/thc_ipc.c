@@ -32,7 +32,46 @@ thc_channel_init(struct thc_channel *chnl,
 }
 EXPORT_SYMBOL(thc_channel_init);
 
-int
+void LIBASYNC_FUNC_ATTR thc_pts_set_chnl(struct thc_channel *ch)
+{
+	if(PTS()) {
+		PTS()->chnl = ch;
+	}
+}
+EXPORT_SYMBOL(thc_pts_set_chnl);
+
+struct thc_channel* LIBASYNC_FUNC_ATTR thc_pts_get_chnl(void)
+{
+	if(PTS()) {
+		return PTS()->chnl;
+	}
+	else {
+		return NULL;
+	}
+}
+EXPORT_SYMBOL(thc_pts_get_chnl);
+
+void LIBASYNC_FUNC_ATTR thc_pts_set_state(bool state)
+{
+	if(PTS()) {
+		PTS()->thread_ctx = state;
+	}
+}
+
+EXPORT_SYMBOL(thc_pts_set_state);
+
+bool LIBASYNC_FUNC_ATTR thc_pts_get_state(void)
+{
+	if(PTS()) {
+		return PTS()->thread_ctx;
+	}
+	else {
+		return false;
+	}
+}
+EXPORT_SYMBOL(thc_pts_get_state);
+
+int 
 LIBASYNC_FUNC_ATTR
 thc_channel_init_0(struct thc_channel *chnl,
 		struct fipc_ring_channel *async_chnl)
@@ -554,7 +593,7 @@ thc_poll_recv_group(struct thc_channel_group* chan_group,
 
     list_for_each_entry(curr_item, &(chan_group->head), list)
     {
-        ret = thc_ipc_poll_recv(thc_channel_group_item_channel(curr_item), 
+	ret = thc_ipc_poll_recv(thc_channel_group_item_channel(curr_item), 
                         &recv_msg);
         if( !ret )
         {

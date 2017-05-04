@@ -111,6 +111,22 @@ awe_mapper_uninit(void)
     }
 }
 
+void 
+LIBASYNC_FUNC_ATTR 
+awe_mapper_uninit_with_pts(void *pts)
+{
+    PTState_t *ptstate = (PTState_t *)pts;
+    awe_table_t *awe_map =  ptstate->awe_map;
+    if (awe_map) {
+#ifdef LINUX_KERNEL
+        kfree(awe_map);
+#else
+        free(awe_map);
+#endif
+        set_awe_map(NULL);
+    }
+}
+
 
 /*
  * Returns new available id.
