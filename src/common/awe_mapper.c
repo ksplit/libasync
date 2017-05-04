@@ -71,7 +71,14 @@ awe_mapper_uninit(void)
     kfree(awe_map);
 }
 
-
+void 
+LIBASYNC_FUNC_ATTR 
+awe_mapper_uninit_with_pts(void *pts)
+{
+    PTState_t *ptstate = (PTState_t *)pts;
+    awe_table_t *awe_map =  ptstate->awe_map;
+    kfree(awe_map);
+}
 
 static bool is_slot_allocated(uint32_t id)
 {

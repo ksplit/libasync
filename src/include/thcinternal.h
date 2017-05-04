@@ -87,6 +87,10 @@ struct awe_table;
 
 struct ptstate_t {
 
+  //Two fields for creating new channels on the fly
+  struct thc_channel *chnl;
+  bool thread_ctx;
+
   // Thread-local fields: .............................................
 
   // Head/tail sentinels of the dispatch list

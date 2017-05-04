@@ -52,6 +52,11 @@ static inline void thc_kill_request_cookie(uint32_t request_cookie)
     awe_mapper_remove_id(request_cookie);
 }
 
+void thc_pts_set_chnl(struct thc_channel *ch);
+struct thc_channel* thc_pts_get_chnl(void);
+void thc_pts_set_state(bool state);
+bool thc_pts_get_state(void);
+
 /* THC CHANNELS ------------------------------------------------------------ */
 
 /*

@@ -275,6 +275,7 @@ void thc_init(void);
 
 // Invoke this to destroy the context for a *single thread*
 void thc_done(void);
+void thc_done_with_pts(void *pts);
 
 // Finish the current AWE, and initialize (*awe_ptr_ptr) with a pointer
 // to an AWE for its continuation.  Typically, this will be stashed
