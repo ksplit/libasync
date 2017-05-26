@@ -1111,6 +1111,12 @@ THCYieldToId(uint32_t id_to)
     return -EINVAL;
   }
 
+  if (awe_ptr == (void*)0xDeadBeef) {
+	printk("%s, WARNING! awe_ptr is still uninitialized\n", __func__);
+	dump_stack();
+	return 0;
+  }
+
   if ( likely(PTS() == awe_ptr->pts) ) {
     // Switch to target awe
     CALL_CONT_LAZY((void*)&thc_yieldto_with_cont, (void*)awe_ptr);
@@ -1477,6 +1483,9 @@ thc_init(void) {
   PTS()->idle_stack = NULL;	
 #ifdef LINUX_KERNEL
   awe_mapper_init();
+  PTS()->nonlcd_ctx = false;
+  PTS()->syncep_present = false;
+  PTS()->sync_ep = 0ul;
 #endif
 }
 EXPORT_SYMBOL(thc_init);

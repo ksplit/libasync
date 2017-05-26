@@ -100,6 +100,14 @@ struct ptstate_t {
   int doneInit;
   int shouldExit;
 
+  // set this to true if a call arrives from non LCD context and
+  // we have explicity initialized a pt_state and friends for them
+  bool nonlcd_ctx;
+
+  bool syncep_present;
+
+  unsigned long sync_ep;
+
   // Stack that the thread's dispatch loop will run on
   void *dispatchStack;
 
