@@ -106,7 +106,14 @@ struct ptstate_t {
 
   bool syncep_present;
 
+  bool dofin;
+
   unsigned long sync_ep;
+
+  // Just use void pointer to save thc_channel info
+  // did not want to pollute PTS by referring to the actual
+  // datastructure
+  void *thc_chnl;
 
   // Stack that the thread's dispatch loop will run on
   void *dispatchStack;

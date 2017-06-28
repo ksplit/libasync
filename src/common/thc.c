@@ -1486,6 +1486,7 @@ thc_init(void) {
   PTS()->nonlcd_ctx = false;
   PTS()->syncep_present = false;
   PTS()->sync_ep = 0ul;
+  PTS()->dofin = false;
 #endif
 }
 EXPORT_SYMBOL(thc_init);
