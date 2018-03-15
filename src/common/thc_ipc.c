@@ -32,6 +32,20 @@ thc_channel_init(struct thc_channel *chnl,
 }
 EXPORT_SYMBOL(thc_channel_init);
 
+int
+LIBASYNC_FUNC_ATTR
+thc_channel_init_0(struct thc_channel *chnl,
+		struct fipc_ring_channel *async_chnl)
+{
+    chnl->state = THC_CHANNEL_LIVE;
+    atomic_set(&chnl->refcnt, 1);
+    chnl->fipc_channel = async_chnl;
+    chnl->one_slot = true;
+
+    return 0;
+}
+EXPORT_SYMBOL(thc_channel_init_0);
+
 static int thc_recv_predicate(struct fipc_message* msg, void* data)
 {
 	struct predicate_payload* payload_ptr = (struct predicate_payload*)data;
@@ -153,6 +167,7 @@ retry:
 		/*
 		 * Response for someone else. Try to yield to them.
 		 */
+
 		try_yield(chnl, request_cookie, payload.actual_msg_id);
 		/*
 		 * We either yielded to the pending awe the response
@@ -238,7 +253,11 @@ thc_ipc_poll_recv(struct thc_channel* chnl,
 
     while( true )
     {
-        ret = fipc_recv_msg_if(thc_channel_to_fipc(chnl), poll_recv_predicate, 
+	if (chnl->one_slot)
+	        ret = fipc_recv_msg_if_0(thc_channel_to_fipc(chnl), poll_recv_predicate,
+                       &payload, out_msg);
+	else
+	        ret = fipc_recv_msg_if(thc_channel_to_fipc(chnl), poll_recv_predicate,
                        &payload, out_msg);
         if( !ret ) //message for us
         {

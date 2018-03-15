@@ -37,6 +37,7 @@ struct thc_channel
     int state;
     atomic_t refcnt;
     struct fipc_ring_channel *fipc_channel;
+    bool one_slot;
 };
 
 
