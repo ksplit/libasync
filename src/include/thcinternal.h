@@ -3,6 +3,11 @@
 #ifndef _THC_INTERNAL_H_
 #define _THC_INTERNAL_H_
 
+#ifdef LINUX_KERNEL
+#include <linux/spinlock.h>
+#include <linux/hashtable.h>
+#endif
+
 /***********************************************************************/
 typedef struct ptstate_t PTState_t;
 typedef struct thcstack_t thcstack_t;
@@ -86,6 +91,9 @@ struct thcstack_t {
 struct awe_table;
 
 struct ptstate_t {
+  // set if the process is killed. do it in do_exit()
+  // so that we can clean up pts
+  bool exited;
 
   // Thread-local fields: .............................................
 
@@ -110,6 +118,21 @@ struct ptstate_t {
 
   unsigned long sync_ep;
 
+  uint64_t a, b;
+
+  uint64_t pid;
+
+  bool inited;
+//  uint64_t times_ndo_xmit[100000];
+  uint64_t *times_ndo_xmit;
+
+  uint64_t iter;
+
+  spinlock_t hash_lock;
+
+  DECLARE_HASHTABLE(cptr_table, 8);
+
+  struct hlist_node hentry;
   // Just use void pointer to save thc_channel info
   // did not want to pollute PTS by referring to the actual
   // datastructure
