@@ -670,6 +670,18 @@ EXPORT_SYMBOL(THCYieldToIdAndSaveNoDispatchDirect);
 
 int
 LIBASYNC_FUNC_ATTR 
+THCYieldToIdAndSaveNoDispatchDirectTrusted(uint32_t id_to, uint32_t id_from) {
+  awe_t *awe_to = (awe_t *)awe_mapper_get_awe_ptr_trusted(id_to);
+
+  EXEC_AWE_AND_SAVE(id_from, (void*)awe_to);
+
+  return 0;
+}
+EXPORT_SYMBOL(THCYieldToIdAndSaveNoDispatchDirect);
+
+
+int
+LIBASYNC_FUNC_ATTR 
 THCYieldToIdNoDispatch_TopLevel(uint32_t id_to)
 {
   awe_t *awe_ptr = (awe_t *)awe_mapper_get_awe_ptr(id_to);

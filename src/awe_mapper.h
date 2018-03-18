@@ -104,5 +104,12 @@ awe_mapper_get_awe_ptr(uint32_t id)
     return awe_map->awe_list[id];
 }
 
+static inline void*
+LIBASYNC_FUNC_ATTR 
+awe_mapper_get_awe_ptr_trusted(uint32_t id)
+{
+    awe_table_t *awe_map = get_awe_map();
+    return awe_map->awe_list[id];
+}
 
 #endif

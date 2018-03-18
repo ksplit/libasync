@@ -1,4 +1,51 @@
 /********************************************************************************/
+/* Direct path without checks for awe id in range
+/* 21 memory accesses with push/pop/mov x 2 = 42
+/* 10 register moves, adds, and so on... x1 = 10 
+/* Total is in the 52 range... of course some execute 
+/* in parallel, but in the end we're blocked on something
+/********************************************************************************/
+
+Dump of assembler code for function THCYieldToIdAndSaveNoDispatchDirectTrusted:
+   0x0000000000401150 <+0>:	push   %r15
+   0x0000000000401152 <+2>:	mov    %edi,%edi
+   0x0000000000401154 <+4>:	mov    %esi,%esi
+   0x0000000000401156 <+6>:	push   %r14
+   0x0000000000401158 <+8>:	push   %r13
+   0x000000000040115a <+10>:	push   %r12
+   0x000000000040115c <+12>:	push   %rbx
+   0x000000000040115d <+13>:	sub    $0x30,%rsp
+   0x0000000000401161 <+17>:	mov    0x202f38(%rip),%rax        # 0x6040a0 <global_pts>
+   0x0000000000401168 <+24>:	mov    0xb8(%rax),%rax
+   0x000000000040116f <+31>:	mov    (%rax,%rdi,8),%rdx
+   0x0000000000401173 <+35>:	mov    %rsp,(%rax,%rsi,8)
+   0x0000000000401177 <+39>:	mov    %rdx,%rsi
+   0x000000000040117a <+42>:	mov    %rsp,%rdi
+   0x000000000040117d <+45>:	callq  0x400ac0 <_thc_exec_awe_direct>
+   0x0000000000401182 <+50>:	add    $0x30,%rsp
+   0x0000000000401186 <+54>:	xor    %eax,%eax
+   0x0000000000401188 <+56>:	pop    %rbx
+   0x0000000000401189 <+57>:	pop    %r12
+   0x000000000040118b <+59>:	pop    %r13
+   0x000000000040118d <+61>:	pop    %r14
+   0x000000000040118f <+63>:	pop    %r15
+   0x0000000000401191 <+65>:	retq   
+End of assembler dump.
+(gdb) disas _thc_exec_awe_direct
+Dump of assembler code for function _thc_exec_awe_direct:
+   0x0000000000400ac0 <+0>:	mov    (%rsp),%rax
+   0x0000000000400ac4 <+4>:	mov    %rax,(%rdi)
+   0x0000000000400ac7 <+7>:	mov    %rbp,0x8(%rdi)
+   0x0000000000400acb <+11>:	mov    %rsp,0x10(%rdi)
+   0x0000000000400acf <+15>:	addq   $0x8,0x10(%rdi)
+   0x0000000000400ad4 <+20>:	mov    0x8(%rsi),%rbp
+   0x0000000000400ad8 <+24>:	mov    0x10(%rsi),%rsp
+   0x0000000000400adc <+28>:	jmpq   *(%rsi)
+   0x0000000000400ade <+30>:	int3   
+   0x0000000000400adf <+31>:	nop
+
+
+/********************************************************************************/
 /* Direct path */
 /********************************************************************************/
 
