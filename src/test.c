@@ -4,8 +4,8 @@
 #include <stdio.h>
 #include <test_helpers.h>
 
-//#define NUM_SWITCH_MEASUREMENTS 1000000
-#define NUM_SWITCH_MEASUREMENTS 8
+#define NUM_SWITCH_MEASUREMENTS 1000000
+//#define NUM_SWITCH_MEASUREMENTS 8
 
 void test_async(){
 
@@ -66,7 +66,6 @@ static int test_do_finish_yield(void)
     unsigned int id_1;
     int i = 0;
 
-    thc_init();
 
     t1 = test_fipc_start_stopwatch();
 
@@ -87,7 +86,6 @@ static int test_do_finish_yield(void)
     printf("Average time per do...finish and two yields: %lu\n", 
           (t2 - t1)/NUM_SWITCH_MEASUREMENTS);
  
-    thc_done();
 
     return 0;
 }
@@ -97,7 +95,6 @@ static int test_do_finish_yield_no_dispatch(void)
     unsigned long t1, t2;
     unsigned int id_1, id_2;
     int i = 0;
-    thc_init();
    
     t1 = test_fipc_start_stopwatch();
 
@@ -128,7 +125,6 @@ static int test_do_finish_yield_no_dispatch(void)
     printf("Average time per do_finish and two yields (no dispatch): %lu\n", 
           (t2 - t1)/NUM_SWITCH_MEASUREMENTS);
 
-    thc_done();
 
     return 0;
 }
@@ -140,7 +136,6 @@ static int test_ctx_switch(void)
     unsigned long t1, t2;
     unsigned int id_1, id_2;
 
-    thc_init();
 
     t1 = test_fipc_start_stopwatch();
 
@@ -176,7 +171,6 @@ static int test_ctx_switch(void)
           (t2 - t1)/NUM_SWITCH_MEASUREMENTS);
                                         
 
-    thc_done();
 
     return 0;
 }
@@ -185,7 +179,6 @@ static int test_ctx_switch_no_dispatch(void)
 {
     unsigned long t1, t2;
     unsigned int id_1, id_2;
-    thc_init();
    
     t1 = test_fipc_start_stopwatch();
 
@@ -194,15 +187,15 @@ static int test_ctx_switch_no_dispatch(void)
         ASYNC({
             int i;
             awe_mapper_create_id(&id_1);
-            printf("ASYNC 1: warm up yield\n");
+            //printf("ASYNC 1: warm up yield\n");
             THCYieldAndSaveNoDispatch(id_1);
-            printf("ASYNC 1: got control back\n");
+            //printf("ASYNC 1: got control back\n");
                             
             for(i = 0; i < NUM_SWITCH_MEASUREMENTS / 2; i++)
             {
-                printf("ASYNC 1: ready to yield\n");
+                //printf("ASYNC 1: ready to yield\n");
                 THCYieldToIdAndSaveNoDispatch(id_2,id_1);
-                printf("ASYNC 1: got control back\n");
+                //printf("ASYNC 1: got control back\n");
             }
             awe_mapper_remove_id(id_1);
             awe_mapper_remove_id(id_2);
@@ -214,9 +207,9 @@ static int test_ctx_switch_no_dispatch(void)
                             
             for(i = 0; i < NUM_SWITCH_MEASUREMENTS / 2; i++)
             {
-                printf("ASYNC 2: ready to yield\n");
+                //printf("ASYNC 2: ready to yield\n");
                 THCYieldToIdAndSaveNoDispatch(id_1,id_2);
-                printf("ASYNC 2: got control back\n");
+                //printf("ASYNC 2: got control back\n");
             }
         });
         THCYieldToIdNoDispatch_TopLevel(id_1);
@@ -227,7 +220,6 @@ static int test_ctx_switch_no_dispatch(void)
     printf("Average time per context switch (no dispatch): %lu\n", 
           (t2 - t1)/NUM_SWITCH_MEASUREMENTS);
 
-    thc_done();
 
     return 0;
 }

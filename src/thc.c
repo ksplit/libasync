@@ -124,8 +124,7 @@ static inline void thc_schedule_local(awe_t *awe);
 PTState_t *
 LIBASYNC_FUNC_ATTR 
 PTS(void) {
-  PTState_t *pts = thc_get_pts_0();
-  return pts;
+  return thc_get_pts_0();
 }
 EXPORT_SYMBOL(PTS);
 
@@ -352,7 +351,7 @@ static void thc_exit_dispatch_loop(void) {
 // the caller's)
 
 static void thc_dispatch(PTState_t *pts) {
-  //assert(pts && pts->doneInit && "Not initialized RTS");
+  assert(pts && pts->doneInit && "Not initialized RTS");
   thc_awe_execute_0(&pts->dispatch_awe);
 }
 
@@ -364,13 +363,18 @@ static void thc_start_rts(void) {
   DEBUG_INIT(DEBUGPRINTF(DEBUG_INIT_PREFIX "> Starting\n"));
   thc_init_dispatch_loop();
   PTS()->doneInit = 1;
+  printf("pts->doneInit:%d, pts:%p\n", PTS()->doneInit, PTS()); 
+
   DEBUG_INIT(DEBUGPRINTF(DEBUG_INIT_PREFIX "< Starting\n"));
 }
 
 static void thc_end_rts(void) {
   void *next_stack;
   PTState_t *pts = PTS();
-  
+ 
+
+  printf("pts->doneInit:%d, pts:%p\n", pts->doneInit, pts); 
+ 
   assert(pts->doneInit);
   DEBUG_INIT(DEBUGPRINTF(DEBUG_INIT_PREFIX "> Ending\n"));
   thc_exit_dispatch_loop();
@@ -925,14 +929,14 @@ thc_global_fini(void)
 EXPORT_SYMBOL(thc_global_fini);
 
 #if !defined(LINUX_KERNEL)
-static PTState_t *global_pts = NULL;
+static PTState_t * global_pts = NULL;
 
-static PTState_t *thc_get_pts_0(void) {
+static inline PTState_t *thc_get_pts_0(void) {
    //return (PTState_t *) (pthread_getspecific(TlsKey));
    return global_pts;
 }
 
-static void thc_set_pts_0(PTState_t *st) {
+static inline void thc_set_pts_0(PTState_t *st) {
   assert(TlsDoneInit);
   global_pts = st; 
   //pthread_setspecific(TlsKey, (void*)st);
