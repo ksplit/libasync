@@ -85,7 +85,8 @@
 #endif
 
 #if !defined(VERBOSE_ASSERT)
-#define assert(XX) do{ XX; } while (0)
+#undef assert
+#define assert(XX)
 #endif
 
 #define DEBUG_YIELD_PREFIX        "         yield:    "
@@ -144,7 +145,10 @@ static inline void InitPTS(void) {
 
   if (!TlsDoneInit) {
       int r = pthread_key_create(&TlsKey, NULL);
-      assert((!r) && "pthread_key_create failed");
+      if(r) {
+          printf("pthread_key_create failed");
+          return;
+      }
       TlsDoneInit = 1;
   }
 
@@ -652,9 +656,9 @@ THCYieldToIdAndSaveNoDispatch(uint32_t id_to, uint32_t id_from) {
   if (!awe_ptr)
     return -1; // id_to not valid
 
-    CALL_CONT_LAZY_AND_SAVE((void*)&thc_yieldto_with_cont_no_dispatch, id_from, (void*)awe_ptr);
+  CALL_CONT_LAZY_AND_SAVE((void*)&thc_yieldto_with_cont_no_dispatch, id_from, (void*)awe_ptr);
 
-    return 0;
+  return 0;
 }
 EXPORT_SYMBOL(THCYieldToIdAndSaveNoDispatch);
 
@@ -921,13 +925,17 @@ thc_global_fini(void)
 EXPORT_SYMBOL(thc_global_fini);
 
 #if !defined(LINUX_KERNEL)
+volatile static PTState_t *global_pts = NULL;
+
 static PTState_t *thc_get_pts_0(void) {
-   return (PTState_t *) (pthread_getspecific(TlsKey));
+   //return (PTState_t *) (pthread_getspecific(TlsKey));
+   return global_pts;
 }
 
 static void thc_set_pts_0(PTState_t *st) {
   assert(TlsDoneInit);
-  pthread_setspecific(TlsKey, (void*)st);
+  global_pts = st; 
+  //pthread_setspecific(TlsKey, (void*)st);
 }
 
 #elif defined(LINUX_KERNEL)

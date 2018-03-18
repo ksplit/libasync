@@ -4,7 +4,8 @@
 #include <stdio.h>
 #include <test_helpers.h>
 
-#define NUM_SWITCH_MEASUREMENTS 1000000
+//#define NUM_SWITCH_MEASUREMENTS 1000000
+#define NUM_SWITCH_MEASUREMENTS 8
 
 void test_async(){
 
@@ -193,11 +194,15 @@ static int test_ctx_switch_no_dispatch(void)
         ASYNC({
             int i;
             awe_mapper_create_id(&id_1);
+            printf("ASYNC 1: warm up yield\n");
             THCYieldAndSaveNoDispatch(id_1);
+            printf("ASYNC 1: got control back\n");
                             
             for(i = 0; i < NUM_SWITCH_MEASUREMENTS / 2; i++)
             {
+                printf("ASYNC 1: ready to yield\n");
                 THCYieldToIdAndSaveNoDispatch(id_2,id_1);
+                printf("ASYNC 1: got control back\n");
             }
             awe_mapper_remove_id(id_1);
             awe_mapper_remove_id(id_2);
@@ -209,7 +214,9 @@ static int test_ctx_switch_no_dispatch(void)
                             
             for(i = 0; i < NUM_SWITCH_MEASUREMENTS / 2; i++)
             {
+                printf("ASYNC 2: ready to yield\n");
                 THCYieldToIdAndSaveNoDispatch(id_1,id_2);
+                printf("ASYNC 2: got control back\n");
             }
         });
         THCYieldToIdNoDispatch_TopLevel(id_1);
