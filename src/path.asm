@@ -1,3 +1,66 @@
+/* 28 memory instructions */
+/* 5 arithm */
+/* 5 jumps and 2 calls */
+
+Dump of assembler code for function THCYieldToIdAndSaveNoDispatch:
+   0x0000000000401070 <+0>:	mov    0x202029(%rip),%rax        # 0x6030a0 <global_pts>
+   0x0000000000401077 <+7>:	cmp    $0x3ff,%edi
+   0x000000000040107d <+13>:	mov    0xb8(%rax),%rcx
+   0x0000000000401084 <+20>:	mov    $0xffffffff,%eax
+   0x0000000000401089 <+25>:	ja     0x4010c5 <THCYieldToIdAndSaveNoDispatch+85>
+   0x000000000040108b <+27>:	mov    %edi,%edi
+   0x000000000040108d <+29>:	mov    (%rcx,%rdi,8),%rdx
+   0x0000000000401091 <+33>:	test   %rdx,%rdx
+   0x0000000000401094 <+36>:	je     0x4010c5 <THCYieldToIdAndSaveNoDispatch+85>
+   0x0000000000401096 <+38>:	push   %r15
+   0x0000000000401098 <+40>:	mov    %esi,%esi
+   0x000000000040109a <+42>:	push   %r14
+   0x000000000040109c <+44>:	push   %r13
+   0x000000000040109e <+46>:	push   %r12
+   0x00000000004010a0 <+48>:	push   %rbx
+   0x00000000004010a1 <+49>:	sub    $0x30,%rsp
+   0x00000000004010a5 <+53>:	mov    %rsp,(%rcx,%rsi,8)
+   0x00000000004010a9 <+57>:	mov    $0x400c20,%esi
+   0x00000000004010ae <+62>:	mov    %rsp,%rdi
+   0x00000000004010b1 <+65>:	callq  0x400aa0 <_thc_callcont>
+   0x00000000004010b6 <+70>:	add    $0x30,%rsp
+   0x00000000004010ba <+74>:	xor    %eax,%eax
+   0x00000000004010bc <+76>:	pop    %rbx
+   0x00000000004010bd <+77>:	pop    %r12
+   0x00000000004010bf <+79>:	pop    %r13
+   0x00000000004010c1 <+81>:	pop    %r14
+   0x00000000004010c3 <+83>:	pop    %r15
+   0x00000000004010c5 <+85>:	repz retq 
+
+Dump of assembler code for function _thc_callcont:
+   0x0000000000400aa0 <+0>:	mov    (%rsp),%rax
+   0x0000000000400aa4 <+4>:	mov    %rax,(%rdi)
+   0x0000000000400aa7 <+7>:	mov    %rbp,0x8(%rdi)
+   0x0000000000400aab <+11>:	mov    %rsp,0x10(%rdi)
+   0x0000000000400aaf <+15>:	addq   $0x8,0x10(%rdi)
+   0x0000000000400ab4 <+20>:	callq  0x400ea0 <_thc_callcont_c>
+   0x0000000000400ab9 <+25>:	int3   
+   0x0000000000400aba <+26>:	nopw   0x0(%rax,%rax,1)
+
+Dump of assembler code for function _thc_callcont_c:
+   0x0000000000400ea0 <+0>:	mov    %rsi,%rax
+   0x0000000000400ea3 <+3>:	mov    %rdx,%rsi
+   0x0000000000400ea6 <+6>:	jmpq   *%rax
+
+Dump of assembler code for function thc_yieldto_with_cont_no_dispatch:
+   0x0000000000400c20 <+0>:	mov    %rsi,%rdi
+   0x0000000000400c23 <+3>:	jmpq   0x400a60 <thc_awe_execute_0>
+
+Dump of assembler code for function thc_awe_execute_0:
+   0x0000000000400a60 <+0>:	mov    0x8(%rdi),%rbp
+   0x0000000000400a64 <+4>:	mov    0x10(%rdi),%rsp
+   0x0000000000400a68 <+8>:	jmpq   *(%rdi)
+   0x0000000000400a6a <+10>:	nopw   0x0(%rax,%rax,1)
+
+/************************************************************/
+/* The path before "one finish block, one PTS" optimization */
+/************************************************************/
+
 Dump of assembler code for function THCYieldToIdAndSaveNoDispatch:
    0x00000000004011e0 <+0>:	mov    0x201ec1(%rip),%rax        # 0x6030a8 <global_pts>  # move pts into rax
    0x00000000004011e7 <+7>:	cmp    $0x3ff,%edi                                         # edi is id_to, check it's less 1024 
