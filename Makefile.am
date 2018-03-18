@@ -1,4 +1,0 @@
-ACLOCAL_AMFLAGS = -I m4
-
-SUBDIRS = src
-DIST_DIRS = src
