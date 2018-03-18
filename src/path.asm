@@ -12,14 +12,14 @@ Dump of assembler code for function THCYieldToIdAndSaveNoDispatch:
    0x0000000000401205 <+37>:	push   %r13
    0x0000000000401207 <+39>:	push   %r12
    0x0000000000401209 <+41>:	push   %rbx
-   0x000000000040120a <+42>:	sub    $0x40,%rsp                                          #
-   0x000000000040120e <+46>:	cmp    $0x3ff,%esi                                         # again... check is id_from (esi) is in range (not needed)
-   0x0000000000401214 <+52>:	ja     0x401246 <THCYieldToIdAndSaveNoDispatch+102>
+   0x000000000040120a <+42>:	sub    $0x40,%rsp                                          # allocate space for the awe_from on the stack
+   0x000000000040120e <+46>:	cmp    $0x3ff,%esi                                         # again... check is id_from (esi) is in range (not needed), assert was enabled
+   0x0000000000401214 <+52>:	ja     0x401246 <THCYieldToIdAndSaveNoDispatch+102>      
    0x0000000000401216 <+54>:	mov    %esi,%esi
-   0x0000000000401218 <+56>:	mov    %rsp,(%rax,%rsi,8)
-   0x000000000040121c <+60>:	mov    $0x400d10,%esi
-   0x0000000000401221 <+65>:	mov    %rsp,%rdi
-   0x0000000000401224 <+68>:	callq  0x400b50 <_thc_callcont>
+   0x0000000000401218 <+56>:	mov    %rsp,(%rax,%rsi,8)                                  # move awe_from (rsp) into awe_map (rax), rsi contains id_from
+   0x000000000040121c <+60>:	mov    $0x400d10,%esi                                      # move &thc_yieldto_with_cont_no_dispatch into esi 
+   0x0000000000401221 <+65>:	mov    %rsp,%rdi                                           # save awe_from (rsp) into rdi 
+   0x0000000000401224 <+68>:	callq  0x400b50 <_thc_callcont>                            
    0x0000000000401229 <+73>:	add    $0x40,%rsp
    0x000000000040122d <+77>:	xor    %eax,%eax
    0x000000000040122f <+79>:	pop    %rbx
@@ -36,12 +36,12 @@ Dump of assembler code for function THCYieldToIdAndSaveNoDispatch:
 
 
 
-   0x400b50 <_thc_callcont>                mov    (%rsp),%rax                                                                                                                       
-   0x400b54 <_thc_callcont+4>              mov    %rax,(%rdi)                                                                                                                       
-   0x400b57 <_thc_callcont+7>              mov    %rbp,0x8(%rdi)                                                                                                                    
-   0x400b5b <_thc_callcont+11>             mov    %rsp,0x10(%rdi)                                                                                                                   
+   0x400b50 <_thc_callcont>                mov    (%rsp),%rax                  # save eip which is currently on the stack into rax   
+   0x400b54 <_thc_callcont+4>              mov    %rax,(%rdi)                  # save eip into awe_from  
+   0x400b57 <_thc_callcont+7>              mov    %rbp,0x8(%rdi)               # save ebp (hell do we need it?)
+   0x400b5b <_thc_callcont+11>             mov    %rsp,0x10(%rdi)              # ESP after return + 8 
    0x400b5f <_thc_callcont+15>             addq   $0x8,0x10(%rdi)                                                                                                                   
-   0x400b64 <_thc_callcont+20>             callq  0x400fb0 <_thc_callcont_c> 
+   0x400b64 <_thc_callcont+20>             callq  0x400fb0 <_thc_callcont_c>    
 
    0x400fb0 <_thc_callcont_c>              mov    0x2020f1(%rip),%rax        # 0x6030a8 <global_pts>                                                                                
    0x400fb7 <_thc_callcont_c+7>            mov    %rsi,%rcx                                                                                                                         
