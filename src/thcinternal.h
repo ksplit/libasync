@@ -16,10 +16,10 @@ struct awe_t {
 
   // Link from an AWE to the per-thread state for the thread it
   // runs in.
-  PTState_t *pts;
+  //PTState_t *pts;
 
   // Link from an AWE to the immediately-enclosing finish
-  finish_t *current_fb;
+  //finish_t *current_fb;
 
   // Fields used by the runtime system to link together AWEs, e.g.,
   // on a thread's run-queue, or on a list of waiters on a

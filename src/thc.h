@@ -94,7 +94,7 @@
     /* Define function to enter _nested on a new stack */               \
     auto void _swizzle(void) __asm__(SWIZZLE_FN_STRING(_C));            \
     SWIZZLE_DEF(_swizzle, _new_stack, NESTED_FN_STRING(_C));            \
-    _awe.current_fb = _fb_info;						\
+    /*_awe.current_fb = _fb_info;*/					\
                                                                         \
     /* Add AWE for our continuation, then run "_nested" on new stack */	\
     if (!SCHEDULE_CONT(&_awe)) {                                        \

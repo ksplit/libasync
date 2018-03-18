@@ -302,7 +302,7 @@ static void thc_dispatch_loop(void) {
 			     "(ip=%p, sp=%p, fp=%p)\n",
 			     awe, awe->eip, awe->esp, awe->ebp));
   pts->aweHead.next = awe->next;
-  pts->current_fb = awe->current_fb;
+  //pts->current_fb = awe->current_fb;
   awe->next->prev = &(pts->aweHead);
   thc_awe_execute_0(awe);
 }
@@ -350,7 +350,7 @@ static void thc_exit_dispatch_loop(void) {
 // (Hence the dispatch loop will run on its own stack, rather than
 // the caller's)
 
-static void thc_dispatch(PTState_t *pts) {
+static inline void thc_dispatch(PTState_t *pts) {
   assert(pts && pts->doneInit && "Not initialized RTS");
   thc_awe_execute_0(&pts->dispatch_awe);
 }
@@ -408,16 +408,16 @@ static void thc_end_rts(void) {
 // AWE management
 
 static inline void thc_awe_init(awe_t *awe, void *eip, void *ebp, void *esp) {
-  PTState_t *pts = PTS();
+  //PTState_t *pts = PTS();
   DEBUG_AWE(DEBUGPRINTF(DEBUG_AWE_PREFIX "> AWEInit(%p, %p, %p, %p)\n",
                         awe, eip, ebp, esp));
   
   awe->eip = eip;
   awe->ebp = ebp;
   awe->esp = esp;
-  awe->pts = pts;
+  //awe->pts = pts;
   
-  awe->current_fb = NULL;
+  //awe->current_fb = NULL;
   awe->next = NULL;
   awe->prev = NULL;
   DEBUG_AWE(DEBUGPRINTF(DEBUG_AWE_PREFIX "< AWEInit\n"));
@@ -429,8 +429,8 @@ static inline void thc_awe_init(awe_t *awe, void *eip, void *ebp, void *esp) {
 // with the C backend, so we cannot rely on that.
 extern void _thc_schedulecont_c(awe_t *awe);
 void _thc_schedulecont_c(awe_t *awe) {
-  PTState_t *pts = PTS();
-  awe->pts = pts;
+  //PTState_t *pts = PTS();
+  //awe->pts = pts;
   thc_schedule_local(awe);
 }
 
@@ -444,10 +444,10 @@ LIBASYNC_FUNC_ATTR
 _thc_callcont_c(awe_t *awe,
                      THCContFn_t fn,
                      void *args) {
-  PTState_t *pts = PTS();
+  //PTState_t *pts = PTS();
 
-  awe->pts = pts;
-  awe->current_fb = pts->current_fb;
+  //awe->pts = pts;
+  //awe->current_fb = pts->current_fb;
   fn(awe, args);
 }
 
@@ -479,13 +479,12 @@ EXPORT_SYMBOL(_thc_startfinishblock);
 __attribute__ ((unused))
 static inline void _thc_endfinishblock0(void *a, void *f) {
   finish_t *fb = (finish_t*)f;
-  awe_t *awe = (awe_t*)a;
 
   DEBUG_FINISH(DEBUGPRINTF(DEBUG_FINISH_PREFIX "  Waiting f=%p awe=%p\n",
                            fb, a));
   assert(fb->finish_awe == NULL);
   fb->finish_awe = a;
-  thc_dispatch(awe->pts);
+  thc_dispatch(PTS());
   NOT_REACHED;
 }
 
@@ -520,7 +519,7 @@ static inline void thc_yield_with_cont_should_dispatch(void *a, void *arg, int u
   {
     THCScheduleBack(awe);
   }
-  thc_dispatch(awe->pts);
+  thc_dispatch(PTS());
 }
 
 __attribute__ ((unused))
@@ -582,7 +581,7 @@ thc_yieldto_with_cont_no_dispatch_top_level(void* a, void* arg)
   THCScheduleBack(last_awe);
   awe = (awe_t *)arg;
 
-  awe->pts->current_fb = awe->current_fb;
+  //awe->pts->current_fb = awe->current_fb;
 
   thc_awe_execute_0(awe);
 }
@@ -613,7 +612,7 @@ thc_yieldto_with_cont_should_dispatch(void* a, void* arg , int use_dispatch)
       remove_awe_from_list(awe);
   }
 
-  awe->pts->current_fb = awe->current_fb;
+  //awe->pts->current_fb = awe->current_fb;
   thc_awe_execute_0(awe);
 }
 
@@ -634,20 +633,9 @@ THCYieldToIdAndSave(uint32_t id_to, uint32_t id_from) {
   if (!awe_ptr)
     return -1; // id_to not valid
 
-  if ( PTS() == awe_ptr->pts ) {
-    // Switch to awe_ptr
-    CALL_CONT_LAZY_AND_SAVE((void*)&thc_yieldto_with_cont, id_from, (void*)awe_ptr);
-    // We were woken up
-    return 0;
-  }
-  //NOTE: for multiple threads, the code in the 'else' 
-  //probably needs to be changed so that
-  // using IDs for AWEs is threadsafe. For LCDs, this should be fine
-  //as long as we are assuming our single threaded model. 
-  else {
-    THCSchedule(awe_ptr);
-    return 0;
-  }
+  // Switch to awe_ptr
+  CALL_CONT_LAZY_AND_SAVE((void*)&thc_yieldto_with_cont, id_from, (void*)awe_ptr);
+  return 0;
 }
 EXPORT_SYMBOL(THCYieldToIdAndSave);
 
@@ -694,16 +682,10 @@ THCYieldToId(uint32_t id_to)
     return -1;
   }
   
-  if ( PTS() == awe_ptr->pts ) {
-    // Switch to target awe
-    // We were woken up
-    CALL_CONT_LAZY((void*)&thc_yieldto_with_cont, (void*)awe_ptr);
-    return 0;
-  }
-  else {
-    THCSchedule(awe_ptr);
-    return 0;
-  }
+  // Switch to target awe
+  // We were woken up
+  CALL_CONT_LAZY((void*)&thc_yieldto_with_cont, (void*)awe_ptr);
+  return 0;
 }
 EXPORT_SYMBOL(THCYieldToId);
 
@@ -724,11 +706,7 @@ EXPORT_SYMBOL(THCYieldToIdNoDispatch);
 void 
 LIBASYNC_FUNC_ATTR 
 THCYieldTo(awe_t *awe_ptr) {
-  if ( PTS() == awe_ptr->pts) {
-    CALL_CONT_LAZY((void*)&thc_yieldto_with_cont, (void*)awe_ptr);
-  } else {
-    THCSchedule(awe_ptr);
-  }
+  CALL_CONT_LAZY((void*)&thc_yieldto_with_cont, (void*)awe_ptr);
 }
 EXPORT_SYMBOL(THCYieldTo);
 
@@ -740,14 +718,12 @@ EXPORT_SYMBOL(THCYieldTo);
 // queue.
 
 static inline void thc_schedule_local(awe_t *awe) {
-  PTState_t *awe_pts;
   DEBUG_AWE(DEBUGPRINTF(DEBUG_AWE_PREFIX "> THCSchedule(%p)\n",
                         awe));
-  awe_pts = awe->pts;
-  awe->prev = &(awe_pts->aweHead);
-  awe->next = awe_pts->aweHead.next;
-  awe_pts->aweHead.next->prev = awe;
-  awe_pts->aweHead.next = awe;
+  awe->prev = &(PTS()->aweHead);
+  awe->next = PTS()->aweHead.next;
+  PTS()->aweHead.next->prev = awe;
+  PTS()->aweHead.next = awe;
   DEBUG_AWE(DEBUGPRINTF(DEBUG_AWE_PREFIX "  added AWE between %p %p\n",
                         awe->prev, awe->next));
   DEBUG_AWE(DEBUGPRINTF(DEBUG_AWE_PREFIX "< THCSchedule\n"));
@@ -757,16 +733,14 @@ static inline void thc_schedule_local(awe_t *awe) {
 void 
 LIBASYNC_FUNC_ATTR 
 THCSchedule(awe_t *awe) {
-  PTState_t *awe_pts;
   DEBUG_AWE(DEBUGPRINTF(DEBUG_AWE_PREFIX "> THCSchedule(%p)\n",
                         awe));
-  awe_pts = awe->pts;
     
   // Work is for us
-  awe->prev = &(awe_pts->aweHead);
-  awe->next = awe_pts->aweHead.next;
-  awe_pts->aweHead.next->prev = awe;
-  awe_pts->aweHead.next = awe;
+  awe->prev = &(PTS()->aweHead);
+  awe->next = PTS()->aweHead.next;
+  PTS()->aweHead.next->prev = awe;
+  PTS()->aweHead.next = awe;
 
   DEBUG_AWE(DEBUGPRINTF(DEBUG_AWE_PREFIX "  added AWE between %p %p\n",
                         awe->prev, awe->next));
@@ -777,15 +751,12 @@ EXPORT_SYMBOL(THCSchedule);
 void 
 LIBASYNC_FUNC_ATTR 
 THCScheduleBack(awe_t *awe) {
-  PTState_t *awe_pts = awe->pts;
   DEBUG_AWE(DEBUGPRINTF(DEBUG_AWE_PREFIX "> THCSchedule(%p)\n",
                         awe));
-  assert(awe_pts == PTS());
-  awe_pts = awe->pts;
-  awe->prev = awe_pts->aweTail.prev;
-  awe->next = &(awe_pts->aweTail);
-  awe_pts->aweTail.prev->next = awe;
-  awe_pts->aweTail.prev = awe;
+  awe->prev = PTS()->aweTail.prev;
+  awe->next = &(PTS()->aweTail);
+  PTS()->aweTail.prev->next = awe;
+  PTS()->aweTail.prev = awe;
 
 }
 EXPORT_SYMBOL(THCScheduleBack);
