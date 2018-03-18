@@ -614,11 +614,11 @@ thc_yieldto_with_cont_should_dispatch(void* a, void* arg , int use_dispatch)
 }
 
 __attribute__ ((unused))
-static void thc_yieldto_with_cont(void *a, void *arg) {
+static inline void thc_yieldto_with_cont(void *a, void *arg) {
     thc_yieldto_with_cont_should_dispatch(a, arg, 1);
 }
 __attribute__ ((unused))
-static void thc_yieldto_with_cont_no_dispatch(void *a, void *arg) {
+static inline void thc_yieldto_with_cont_no_dispatch(void *a, void *arg) {
     thc_yieldto_with_cont_should_dispatch(a, arg, 0);
 }
 
@@ -925,7 +925,7 @@ thc_global_fini(void)
 EXPORT_SYMBOL(thc_global_fini);
 
 #if !defined(LINUX_KERNEL)
-volatile static PTState_t *global_pts = NULL;
+static PTState_t *global_pts = NULL;
 
 static PTState_t *thc_get_pts_0(void) {
    //return (PTState_t *) (pthread_getspecific(TlsKey));
