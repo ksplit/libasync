@@ -6,6 +6,7 @@ OBJDUMP = $(TOOLPREFIX)objdump
 
 CFLAGS := -Wall -g -D_GNU_SOURCE -pthread -lm -fno-pic -O2 
 #CFLAGS += -DVERBOSE_DEBUG -DVERBOSE_ASSERT
+CFLAGS += -DNDEBUG
 
 INCLUDES := -I. 
 
