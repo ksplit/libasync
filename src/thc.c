@@ -656,6 +656,20 @@ EXPORT_SYMBOL(THCYieldToIdAndSaveNoDispatch);
 
 int
 LIBASYNC_FUNC_ATTR 
+THCYieldToIdAndSaveNoDispatchDirect(uint32_t id_to, uint32_t id_from) {
+  awe_t *awe_to = (awe_t *)awe_mapper_get_awe_ptr(id_to);
+
+  if (!awe_to)
+    return -1; // id_to not valid
+
+  EXEC_AWE_AND_SAVE(id_from, (void*)awe_to);
+
+  return 0;
+}
+EXPORT_SYMBOL(THCYieldToIdAndSaveNoDispatchDirect);
+
+int
+LIBASYNC_FUNC_ATTR 
 THCYieldToIdNoDispatch_TopLevel(uint32_t id_to)
 {
   awe_t *awe_ptr = (awe_t *)awe_mapper_get_awe_ptr(id_to);
@@ -1073,6 +1087,25 @@ __asm__ ("      .text \n\t"
          // rdi : AWE , rsi : fn , rdx : args
          " call _thc_callcont_c      \n\t"
          " int3\n\t");
+
+__asm__ ("      .text \n\t"
+         "      .align  16           \n\t"
+         "      .globl  _thc_exec_awe_direct \n\t"
+         "      .type   _thc_exec_awe_direct, @function \n\t"
+         "_thc_exec_awe_direct:             \n\t"
+         " mov  0(%rsp), %rax        \n\t"
+         " mov  %rax,  0(%rdi)       \n\t" // EIP (our return address)
+         " mov  %rbp,  8(%rdi)       \n\t" // EBP
+         " mov  %rsp, 16(%rdi)       \n\t" // ESP+8 (after return)
+         " addq $8,   16(%rdi)       \n\t"
+         // AWE now initialized.  Call into C for the rest.
+         // rdi : AWE_from , rsi : AWE_to
+         // 
+         " mov   0x8(%rsi),%rbp      \n\t"
+         " mov   0x10(%rsi),%rsp     \n\t"
+         " jmp  *0(%rsi)             \n\t"
+         " int3\n\t");
+
 
 /*
             static void _thc_lazy_awe_marker()   

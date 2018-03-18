@@ -1,3 +1,58 @@
+/********************************************************************************/
+/* Direct path */
+/********************************************************************************/
+
+Dump of assembler code for function THCYieldToIdAndSaveNoDispatchDirect:
+   0x00000000004010f0 <+0>:	mov    0x201fa9(%rip),%rax        # 0x6030a0 <global_pts>
+   0x00000000004010f7 <+7>:	cmp    $0x3ff,%edi
+   0x00000000004010fd <+13>:	mov    0xb8(%rax),%rdx
+   0x0000000000401104 <+20>:	mov    $0xffffffff,%eax
+   0x0000000000401109 <+25>:	ja     0x401143 <THCYieldToIdAndSaveNoDispatchDirect+83>
+   0x000000000040110b <+27>:	mov    %edi,%edi
+   0x000000000040110d <+29>:	mov    (%rdx,%rdi,8),%rcx
+   0x0000000000401111 <+33>:	test   %rcx,%rcx
+   0x0000000000401114 <+36>:	je     0x401143 <THCYieldToIdAndSaveNoDispatchDirect+83>
+   0x0000000000401116 <+38>:	push   %r15
+   0x0000000000401118 <+40>:	mov    %esi,%esi
+   0x000000000040111a <+42>:	push   %r14
+   0x000000000040111c <+44>:	push   %r13
+   0x000000000040111e <+46>:	push   %r12
+   0x0000000000401120 <+48>:	push   %rbx
+   0x0000000000401121 <+49>:	sub    $0x30,%rsp
+   0x0000000000401125 <+53>:	mov    %rsp,(%rdx,%rsi,8)
+   0x0000000000401129 <+57>:	mov    %rcx,%rsi
+   0x000000000040112c <+60>:	mov    %rsp,%rdi
+   0x000000000040112f <+63>:	callq  0x400ac0 <_thc_exec_awe_fast>
+   0x0000000000401134 <+68>:	add    $0x30,%rsp
+   0x0000000000401138 <+72>:	xor    %eax,%eax
+   0x000000000040113a <+74>:	pop    %rbx
+   0x000000000040113b <+75>:	pop    %r12
+   0x000000000040113d <+77>:	pop    %r13
+   0x000000000040113f <+79>:	pop    %r14
+   0x0000000000401141 <+81>:	pop    %r15
+   0x0000000000401143 <+83>:	repz retq 
+End of assembler dump.
+(gdb) disas _thc_exec_awe_direct
+Dump of assembler code for function _thc_exec_awe_direct:
+   0x0000000000400ac0 <+0>:	mov    (%rsp),%rax
+   0x0000000000400ac4 <+4>:	mov    %rax,(%rdi)
+   0x0000000000400ac7 <+7>:	mov    %rbp,0x8(%rdi)
+   0x0000000000400acb <+11>:	mov    %rsp,0x10(%rdi)
+   0x0000000000400acf <+15>:	addq   $0x8,0x10(%rdi)
+   0x0000000000400ad4 <+20>:	mov    0x8(%rsi),%rbp
+   0x0000000000400ad8 <+24>:	mov    0x10(%rsi),%rsp
+   0x0000000000400adc <+28>:	jmpq   *(%rsi)
+   0x0000000000400ade <+30>:	int3   
+   0x0000000000400adf <+31>:	nop
+End of assembler dump.
+
+
+
+
+/********************************************************************************/
+/* Call continuation path */
+/********************************************************************************/
+
 /* 28 memory instructions */
 /* 5 arithm */
 /* 5 jumps and 2 calls */

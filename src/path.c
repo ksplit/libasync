@@ -54,10 +54,6 @@ LIBASYNC_FUNC_ATTR
 _thc_callcont_c(awe_t *awe_from,
                      THCContFn_t fn,
                      void *args) {
-  PTState_t *pts = PTS();
-
-  awe_from->pts = pts;
-  awe_from->current_fb = pts->current_fb;
   fn(awe_from, args);
 }
 

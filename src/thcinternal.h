@@ -122,6 +122,8 @@ void _thc_endfinishblock(finish_t *fb);
 
 void _thc_do_cancel_request(finish_t *fb);
 void _thc_callcont(struct awe_t *awe, THCContFn_t fn, void *args) __attribute__((returns_twice));
+void _thc_exec_awe_direct(struct awe_t *awe_from, struct awe_t *awe_to) __attribute__((returns_twice));
+
 int  _thc_schedulecont(struct awe_t *awe) __attribute__((returns_twice));
 void _thc_lazy_awe_marker(void);
 void _thc_pendingfree(void);
@@ -229,5 +231,14 @@ extern int _end_text_nx;
   } while (0)
 
 #define CALL_CONT_LAZY_AND_SAVE CALL_CONT_AND_SAVE
+
+#define EXEC_AWE_AND_SAVE(_IDNUM,_AWE_TO)                     \
+  do {                                                          \
+    awe_t _awe;                                                 \
+    awe_mapper_set_id((_IDNUM), &_awe);			      	\
+    KILL_CALLEE_SAVES();                                        \
+    _thc_exec_awe_direct(&_awe, (_AWE_TO));                     \
+  } while (0)
+
 
 #endif // _THC_INTERNAL_H_

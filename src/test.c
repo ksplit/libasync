@@ -225,6 +225,56 @@ static int test_ctx_switch_no_dispatch(void)
 }
 
 
+static int test_ctx_switch_no_dispatch_direct(void)
+{
+    unsigned long t1, t2;
+    unsigned int id_1, id_2;
+   
+    t1 = test_fipc_start_stopwatch();
+
+    DO_FINISH({
+
+        ASYNC({
+            int i;
+            awe_mapper_create_id(&id_1);
+            //printf("ASYNC 1: warm up yield\n");
+            THCYieldAndSaveNoDispatch(id_1);
+            //printf("ASYNC 1: got control back\n");
+                            
+            for(i = 0; i < NUM_SWITCH_MEASUREMENTS / 2; i++)
+            {
+                //printf("ASYNC 1: ready to yield\n");
+                THCYieldToIdAndSaveNoDispatchDirect(id_2,id_1);
+                //printf("ASYNC 1: got control back\n");
+            }
+            awe_mapper_remove_id(id_1);
+            awe_mapper_remove_id(id_2);
+        });
+        
+        ASYNC({
+            int i;
+            awe_mapper_create_id(&id_2);
+                            
+            for(i = 0; i < NUM_SWITCH_MEASUREMENTS / 2; i++)
+            {
+                //printf("ASYNC 2: ready to yield\n");
+                THCYieldToIdAndSaveNoDispatchDirect(id_1,id_2);
+                //printf("ASYNC 2: got control back\n");
+            }
+        });
+        THCYieldToIdNoDispatch_TopLevel(id_1);
+    });
+
+    t2 = test_fipc_stop_stopwatch();
+
+    printf("Average time per context switch (no dispatch, direct): %lu\n", 
+          (t2 - t1)/NUM_SWITCH_MEASUREMENTS);
+
+
+    return 0;
+}
+
+
 int main (void) {
     
     thc_init();
@@ -235,6 +285,8 @@ int main (void) {
 
     test_ctx_switch_no_dispatch();
     
+    test_ctx_switch_no_dispatch_direct();
+
     thc_done();
 
     return 0; 
