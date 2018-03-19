@@ -79,6 +79,7 @@
   do {									\
     awe_t _awe;                                                         \
     void *_new_stack = _thc_allocstack();		       		\
+    int volatile done_once = 0;                                                  \
     /* Define nested function containing the body */			\
     auto void __attribute__ ((noinline))                 \
      __attribute__((used)) _thc_nested_async(void) __asm__(NESTED_FN_STRING(_C));    \
@@ -97,9 +98,10 @@
     /*_awe.current_fb = _fb_info;*/					\
                                                                         \
     /* Add AWE for our continuation, then run "_nested" on new stack */	\
-    if (!SCHEDULE_CONT(&_awe)) {                                        \
-      _swizzle();							\
-      /*assert(0 && "_swizzle returned");*/					\
+    SCHEDULE_CONT(&_awe);                                               \
+    if(!done_once) {                                                    \
+       done_once = 1;                                                   \
+       _swizzle();                                                      \
     }                                                                   \
   } while (0)
 
