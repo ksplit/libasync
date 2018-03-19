@@ -182,7 +182,6 @@ static inline void InitPTS(void) {
 // There is currently no support for extending a stack, or allowing it
 // to be discontiguous
 void * 
-LIBASYNC_FUNC_ATTR 
 _thc_allocstack(void) {
   PTState_t *pts = PTS();
   void *result = NULL;
@@ -203,7 +202,7 @@ _thc_allocstack(void) {
 // De-allocate a stack back to THC's pool of free stacks
 
 void
-LIBASYNC_FUNC_ATTR 
+inline 
 _thc_freestack(void *s) {
   PTState_t *pts = PTS();
   struct thcstack_t *stack = (struct thcstack_t*)(s - sizeof(struct thcstack_t));
@@ -277,6 +276,7 @@ static void thc_dispatch_loop(void) {
 
   thc_pendingfree(pts);
 
+  
   if (pts->aweHead.next == &pts->aweTail) {
     awe_t idle_awe;
     void *idle_stack = _thc_allocstack();
@@ -295,6 +295,7 @@ static void thc_dispatch_loop(void) {
     thc_awe_execute_0(&idle_awe);
     NOT_REACHED;
   }
+  
   awe = pts->aweHead.next;
 
   DEBUG_DISPATCH(DEBUGPRINTF(DEBUG_DISPATCH_PREFIX "  got AWE %p "
@@ -826,7 +827,7 @@ _thc_startasync(void *f, void *stack) {
 EXPORT_SYMBOL(_thc_startasync);
 
 void 
-LIBASYNC_FUNC_ATTR 
+inline 
 _thc_endasync(void *f, void *s) {
   finish_t *fb = (finish_t*)f;
   PTState_t *pts = PTS();
