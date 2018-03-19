@@ -363,7 +363,7 @@ static void thc_start_rts(void) {
   DEBUG_INIT(DEBUGPRINTF(DEBUG_INIT_PREFIX "> Starting\n"));
   thc_init_dispatch_loop();
   PTS()->doneInit = 1;
-  printf("pts->doneInit:%d, pts:%p\n", PTS()->doneInit, PTS()); 
+  //printf("pts->doneInit:%d, pts:%p\n", PTS()->doneInit, PTS()); 
 
   DEBUG_INIT(DEBUGPRINTF(DEBUG_INIT_PREFIX "< Starting\n"));
 }
@@ -373,7 +373,7 @@ static void thc_end_rts(void) {
   PTState_t *pts = PTS();
  
 
-  printf("pts->doneInit:%d, pts:%p\n", pts->doneInit, pts); 
+  //printf("pts->doneInit:%d, pts:%p\n", pts->doneInit, pts); 
  
   assert(pts->doneInit);
   DEBUG_INIT(DEBUGPRINTF(DEBUG_INIT_PREFIX "> Ending\n"));
@@ -912,7 +912,7 @@ static void IdleFn(void *arg) {
 #endif /* LINUX_KERNEL */
 
 #ifndef LINUX_KERNEL
-__attribute__((constructor))
+//__attribute__((constructor))
 #endif
 void 
 LIBASYNC_FUNC_ATTR 
