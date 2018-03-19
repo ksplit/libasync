@@ -80,8 +80,8 @@ void test_basic_do_finish_create(){
 
     t2 = test_fipc_start_stopwatch(); 
 
-    printf("Average time per do{ i++ }finish(): %lu cycles (res:%lu)\n", 
-          (t2 - t1)/NUM_SWITCH_MEASUREMENTS, num);
+    printf("Average time per do{ i++ }finish(): %lu cycles (res:%lu ?= %d)\n", 
+          (t2 - t1)/NUM_SWITCH_MEASUREMENTS, num, NUM_SWITCH_MEASUREMENTS);
     return;   
 }
 
@@ -103,8 +103,8 @@ void test_basic_nonblocking_async_create(){
 
     t2 = test_fipc_start_stopwatch(); 
 
-    printf("Average time per non blocking do{async{i++}}finish(): %lu cycles (res:%lu)\n", 
-          (t2 - t1)/NUM_SWITCH_MEASUREMENTS, num);
+    printf("Average time per non blocking do{async{i++}}finish(): %lu cycles (res:%lu ?= %d)\n", 
+          (t2 - t1)/NUM_SWITCH_MEASUREMENTS, num, NUM_SWITCH_MEASUREMENTS);
     return;   
 }
 
@@ -128,17 +128,42 @@ void test_basic_N_nonblocking_asyncs_create(){
 
     t2 = test_fipc_start_stopwatch(); 
 
-    printf("Average time per %lu non blocking asyncs inside one do{ }finish(): %lu cycles (res:%lu)\n", 
-          num_async, (t2 - t1)/NUM_SWITCH_MEASUREMENTS, num);
+    printf("Average time per %lu non blocking asyncs inside one do{ }finish(): %lu cycles (res:%lu ?= %d)\n", 
+          num_async, (t2 - t1)/NUM_SWITCH_MEASUREMENTS, num, NUM_SWITCH_MEASUREMENTS);
     return;   
 }
 
-#if 0
+void test_basic_N_blocking_asyncs_create(){
+    unsigned long t1, t2;
+    unsigned long num = 0, num_async = 10;
+    int i, j;
+
+    t1 = test_fipc_start_stopwatch();
+   
+    for( i = 0; i < NUM_SWITCH_MEASUREMENTS; i++ )
+    {
+         DO_FINISH({
+             for (j = 0; j < num_async; j++) {
+                 ASYNC({
+                     THCYield();
+                     num++;
+                 });
+             };             
+         });
+    };
+
+    t2 = test_fipc_start_stopwatch(); 
+
+    printf("Average time per %lu blocking asyncs inside one do{ }finish(): %lu cycles (res:%lu ?= %d)\n", 
+          num_async, (t2 - t1)/NUM_SWITCH_MEASUREMENTS, num, NUM_SWITCH_MEASUREMENTS);
+    return;   
+}
+
 static int test_do_finish_yield(void)
 {
     unsigned long t1, t2;
     unsigned int id_1;
-    int i = 0;
+    int i = 0, num = 0;
 
 
     t1 = test_fipc_start_stopwatch();
@@ -150,27 +175,28 @@ static int test_do_finish_yield(void)
                         awe_mapper_create_id(&id_1);
                         THCYieldAndSave(id_1);
                         awe_mapper_remove_id(id_1);
+                        num ++; 
                     });             
                     ASYNC({
-                            THCYieldToId(id_1);
-                        });             
+                        THCYieldToId(id_1);
+                        num++;
+                    });             
             });
     }
     t2 = test_fipc_start_stopwatch(); 
-    printf("Average time per do...finish and two yields: %lu cycles\n", 
-          (t2 - t1)/NUM_SWITCH_MEASUREMENTS);
+    printf("Average time per do...finish and two blocking yields: %lu cycles (res:%d ?= %d)\n", 
+          (t2 - t1)/NUM_SWITCH_MEASUREMENTS, num, NUM_SWITCH_MEASUREMENTS*2);
  
 
     return 0;
 }
-#endif
 
-#if 0
+
 static int test_do_finish_yield_no_dispatch(void)
 {
     unsigned long t1, t2;
     unsigned int id_1, id_2;
-    int i = 0;
+    int i = 0, num = 0;
    
     t1 = test_fipc_start_stopwatch();
 
@@ -182,11 +208,13 @@ static int test_do_finish_yield_no_dispatch(void)
                         awe_mapper_create_id(&id_1);
                         THCYieldAndSaveNoDispatch(id_1);
                         awe_mapper_remove_id(id_1);
+                        num ++;
                     });             
                     ASYNC({
                         awe_mapper_create_id(&id_2);
                         THCYieldToIdAndSaveNoDispatch(id_1,id_2);
-                        });             
+                        num ++;
+                    });             
                     //The Yield below is important since earlier we were relying on the dispatch queue
                     //to clean up AWEs, but now, extra care needs to be taken to clean them up.
                     //This is a hack for now, the semantics of not using a dispatch loop
@@ -198,14 +226,13 @@ static int test_do_finish_yield_no_dispatch(void)
 
     t2 = test_fipc_stop_stopwatch();
 
-    printf("Average time per do_finish and two yields (no dispatch): %lu cycles\n", 
-          (t2 - t1)/NUM_SWITCH_MEASUREMENTS);
+    printf("Average time per do .. finish and two blocking yields (no dispatch): %lu cycles (res:%d ?= %d)\n", 
+          (t2 - t1)/NUM_SWITCH_MEASUREMENTS, num, NUM_SWITCH_MEASUREMENTS*2);
 
 
     return 0;
 }
 
-#endif
 
 #if 0
 static int test_ctx_switch(void)
@@ -352,6 +379,9 @@ static int test_ctx_switch_no_dispatch_direct(void)
     return 0;
 }
 
+
+/* The trusted test assumes that we don't have to check for 
+   whether awe_id is valid and in range */
 static int test_ctx_switch_no_dispatch_direct_trusted(void)
 {
     unsigned long t1, t2;
@@ -401,7 +431,6 @@ static int test_ctx_switch_no_dispatch_direct_trusted(void)
     return 0;
 }
 
-#if 0
 static int test_create_and_ctx_switch_to_awe(void)
 {
     unsigned long t1, t2;
@@ -439,13 +468,12 @@ static int test_create_and_ctx_switch_to_awe(void)
 
     t2 = test_fipc_stop_stopwatch();
 
-    printf("Average time per context switch (direct awe): %lu cycles\n", 
+    printf("Average time to do...finish and two yeilds (direct awe): %lu cycles\n", 
           (t2 - t1)/NUM_SWITCH_MEASUREMENTS);
 
 
     return 0;
 }
-#endif
 
 static int test_ctx_switch_to_awe(void)
 {
@@ -502,7 +530,13 @@ int main (void) {
 
     test_basic_do_finish_create();
     test_basic_nonblocking_async_create();  
-    test_basic_N_nonblocking_asyncs_create(); 
+    test_basic_N_nonblocking_asyncs_create();
+    test_basic_N_blocking_asyncs_create(); 
+
+    test_do_finish_yield();
+    test_do_finish_yield_no_dispatch();
+   // test_create_and_ctx_switch_to_awe();
+
     test_ctx_switch_no_dispatch();
     test_ctx_switch_no_dispatch_direct();
     test_ctx_switch_no_dispatch_direct_trusted();
