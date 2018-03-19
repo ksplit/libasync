@@ -104,6 +104,7 @@ struct ptstate_t {
   // async ipc code.
   struct awe_table *awe_map;
 
+  awe_t *direct_cont; 
 
 };
 

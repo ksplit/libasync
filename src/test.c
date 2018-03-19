@@ -508,7 +508,6 @@ int main (void) {
     test_ctx_switch_no_dispatch_direct_trusted();
     test_ctx_switch_to_awe();
     thc_done();
-
     return 0; 
 }
 

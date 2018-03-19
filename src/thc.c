@@ -352,6 +352,20 @@ static void thc_exit_dispatch_loop(void) {
 
 static inline void thc_dispatch(PTState_t *pts) {
   assert(pts && pts->doneInit && "Not initialized RTS");
+  
+  /* If there is a direct awe jump there directly without going to 
+     dispatch loop */
+  if(pts->direct_cont) {
+     awe_t *direct_awe = pts->direct_cont;
+
+     DEBUG_DISPATCH(DEBUGPRINTF(DEBUG_DISPATCH_PREFIX
+                               "  dispatch direct awe (direct_cont:%p), awe:%p\n",
+                               PTS()->direct_cont, direct_awe));
+
+     pts->direct_cont = NULL;
+     thc_awe_execute_0(direct_awe);
+  }
+
   thc_awe_execute_0(&pts->dispatch_awe);
 }
 
@@ -431,7 +445,12 @@ extern void _thc_schedulecont_c(awe_t *awe);
 void _thc_schedulecont_c(awe_t *awe) {
   //PTState_t *pts = PTS();
   //awe->pts = pts;
-  thc_schedule_local(awe);
+  //thc_schedule_local(awe);
+  DEBUG_DISPATCH(DEBUGPRINTF(DEBUG_DISPATCH_PREFIX
+                               "  add direct awe (direct_cont:%p), awe:%p\n",
+                               PTS()->direct_cont, awe));
+  assert(PTS()->direct_cont == NULL);
+  PTS()->direct_cont = awe;  
 }
 
 // This function is not meant to be used externally, but its only use
@@ -481,6 +500,9 @@ static inline void _thc_endfinishblock0(void *a, void *f) {
 
   DEBUG_FINISH(DEBUGPRINTF(DEBUG_FINISH_PREFIX "  Waiting f=%p awe=%p\n",
                            fb, a));
+
+  //_thc_pendingfree();
+
   assert(fb->finish_awe == NULL);
   fb->finish_awe = a;
   thc_dispatch(PTS());
@@ -499,6 +521,7 @@ _thc_endfinishblock(finish_t *fb) {
   if (fb->count == 0) {
     // Zero first time.  Check there's not an AWE waiting.
     assert(fb->finish_awe == NULL);
+    //_thc_pendingfree();
   } else {
     // Non-zero first time, add ourselves as the waiting AWE.
     CALL_CONT_LAZY((unsigned char*)&_thc_endfinishblock0, fb);
@@ -921,7 +944,8 @@ thc_init(void) {
   thc_start_rts();
   PTS()->idle_fn = IdleFn;
   PTS()->idle_args = NULL;
-  PTS()->idle_stack = NULL;	
+  PTS()->idle_stack = NULL;
+  PTS()->direct_cont = NULL;	
   awe_mapper_init();
 }
 EXPORT_SYMBOL(thc_init);
@@ -1104,7 +1128,8 @@ __asm__ ("      .text \n\t"
          // It will return normally to us.  The AWE will resume
          // directly in our caller.
          " call _thc_schedulecont_c  \n\t"  // AWE still in rdi
-         " movq $0, %rax             \n\t"
+         //" movq $0, %rax             \n\t"
+         //" call _swizzle             \n\t"
          " ret                       \n\t");
 
 /*
