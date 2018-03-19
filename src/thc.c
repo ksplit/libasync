@@ -233,8 +233,7 @@ static inline void thc_pendingfree(PTState_t * pts) {
   }
 }
 
-void 
-LIBASYNC_FUNC_ATTR 
+void inline 
 _thc_pendingfree(void) {
   thc_pendingfree(PTS());
 }
@@ -456,8 +455,7 @@ _thc_callcont_c(awe_t *awe,
 //
 // The implementation of finish blocks is straightforward:
 // _thc_endfinishblock yields back to the dispatch loop if it finds
-// the count non-zero, and stashes away a continuation in
-// fb->finish_awe which will be resumed when the final async
+// the count non-zero, and stashes away a continuation in// fb->finish_awe which will be resumed when the final async
 // call finsihes.  _thc_endasync picks this up.
 
 void
@@ -489,8 +487,7 @@ static inline void _thc_endfinishblock0(void *a, void *f) {
 }
 
 
-void
-LIBASYNC_FUNC_ATTR 
+void inline 
 _thc_endfinishblock(finish_t *fb) {
 
   DEBUG_FINISH(DEBUGPRINTF(DEBUG_FINISH_PREFIX "> EndFinishBlock(%p)\n",
@@ -504,6 +501,8 @@ _thc_endfinishblock(finish_t *fb) {
   } else {
     // Non-zero first time, add ourselves as the waiting AWE.
     CALL_CONT_LAZY((unsigned char*)&_thc_endfinishblock0, fb);
+    _thc_pendingfree();  
+ 
   }
 
 }
@@ -845,8 +844,9 @@ _thc_endasync(void *f, void *s) {
     if (fb->finish_awe) {
       DEBUG_FINISH(DEBUGPRINTF(DEBUG_FINISH_PREFIX "  waiting AWE %p\n",
                                fb->finish_awe));
-      thc_schedule_local(fb->finish_awe);
-      fb->finish_awe = NULL;
+       thc_awe_execute_0(fb->finish_awe);
+      //thc_schedule_local(fb->finish_awe);
+      //fb->finish_awe = NULL;
     }  
   }
 
