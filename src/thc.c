@@ -550,6 +550,8 @@ THCYieldAndSaveNoDispatch(uint32_t id_num)
 }
 EXPORT_SYMBOL(THCYieldAndSaveNoDispatch);
 
+
+
 void 
 LIBASYNC_FUNC_ATTR 
 THCYield(void) {
@@ -668,16 +670,32 @@ THCYieldToIdAndSaveNoDispatchDirect(uint32_t id_to, uint32_t id_from) {
 }
 EXPORT_SYMBOL(THCYieldToIdAndSaveNoDispatchDirect);
 
-int
-LIBASYNC_FUNC_ATTR 
+void inline  
 THCYieldToIdAndSaveNoDispatchDirectTrusted(uint32_t id_to, uint32_t id_from) {
   awe_t *awe_to = (awe_t *)awe_mapper_get_awe_ptr_trusted(id_to);
 
   EXEC_AWE_AND_SAVE(id_from, (void*)awe_to);
 
-  return 0;
+  return;
 }
-EXPORT_SYMBOL(THCYieldToIdAndSaveNoDispatchDirect);
+EXPORT_SYMBOL(THCYieldToIdAndSaveNoDispatchDirectTrusted);
+
+// Yields and saves awe
+void inline
+THCYieldWithAwe(awe_t *awe_from)
+{
+  CALL_CONT_AWE(awe_from, (void*)&thc_yield_with_cont_no_dispatch, NULL);
+}
+EXPORT_SYMBOL(THCYieldWithAwe);
+
+
+void inline  
+THCYieldToAwe(awe_t *awe_from, awe_t *awe_to) {
+  EXEC_AWE(awe_from, awe_to);
+  return;
+}
+EXPORT_SYMBOL(THCYieldToAwe);
+
 
 
 int
@@ -692,6 +710,15 @@ THCYieldToIdNoDispatch_TopLevel(uint32_t id_to)
 
   CALL_CONT_LAZY((void*)&thc_yieldto_with_cont_no_dispatch_top_level, (void*)awe_ptr);
   
+  return 0;
+}
+EXPORT_SYMBOL(THCYieldToIdNoDispatch_TopLevel);
+
+int
+LIBASYNC_FUNC_ATTR 
+THCYieldToAweNoDispatch_TopLevel(awe_t *awe_to)
+{
+  CALL_CONT_LAZY((void*)&thc_yieldto_with_cont_no_dispatch_top_level, (void*)awe_to);
   return 0;
 }
 EXPORT_SYMBOL(THCYieldToIdNoDispatch_TopLevel);

@@ -323,20 +323,60 @@ static int test_ctx_switch_no_dispatch_direct_trusted(void)
     return 0;
 }
 
+static int test_ctx_switch_to_awe(void)
+{
+    unsigned long t1, t2;
+    awe_t awe_1, awe_2;
+   
+    t1 = test_fipc_start_stopwatch();
+
+    DO_FINISH({
+
+        ASYNC({
+            int i;
+            //printf("ASYNC 1: warm up yield\n");
+            THCYieldWithAwe(&awe_1);
+            //printf("ASYNC 1: got control back\n");
+                            
+            for(i = 0; i < NUM_SWITCH_MEASUREMENTS / 2; i++)
+            {
+                //printf("ASYNC 1: ready to yield\n");
+                THCYieldToAwe(&awe_1, &awe_2);
+                //printf("ASYNC 1: got control back\n");
+            }
+        });
+        
+        ASYNC({
+            int i;
+            for(i = 0; i < NUM_SWITCH_MEASUREMENTS / 2; i++)
+            {
+                //printf("ASYNC 2: ready to yield\n");
+                THCYieldToAwe(&awe_2, &awe_1);
+                //printf("ASYNC 2: got control back\n");
+            }
+        });
+        THCYieldToAweNoDispatch_TopLevel(&awe_1);
+
+    });
+
+    t2 = test_fipc_stop_stopwatch();
+
+    printf("Average time per context switch (direct awe): %lu\n", 
+          (t2 - t1)/NUM_SWITCH_MEASUREMENTS);
+
+
+    return 0;
+}
 int main (void) {
     
     thc_init();
 
-    //test_async();
-   
-    //test_async_yield();
-
+    test_async();
+    test_async_yield();
     test_ctx_switch_no_dispatch();
-    
     test_ctx_switch_no_dispatch_direct();
-
     test_ctx_switch_no_dispatch_direct_trusted();
-
+    test_ctx_switch_to_awe();
     thc_done();
 
     return 0; 

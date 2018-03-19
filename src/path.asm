@@ -1,4 +1,42 @@
 /********************************************************************************/
+/* Direct path from AWE to AWE: 29-31 cycles
+/* 16 memory accesses with push/pop/mov x 2 = 31 cycles
+/* Specifically: 
+     5x2 = 10 -- save and restore callee registers (r15, r14, r13, r12, rbx)
+     save and restore eip, rbp, rsp (do we need rbp?)
+/* 1 jump, 1 call, 1 return, 1 add = 4 
+/* Total is in 31 range... 
+/********************************************************************************/
+
+Dump of assembler code for function THCYieldToAwe:
+   0x00000000004011d0 <+0>:	push   %r15
+   0x00000000004011d2 <+2>:	push   %r14
+   0x00000000004011d4 <+4>:	push   %r13
+   0x00000000004011d6 <+6>:	push   %r12
+   0x00000000004011d8 <+8>:	push   %rbx
+   0x00000000004011d9 <+9>:	callq  0x400ae0 <_thc_exec_awe_direct>
+   0x00000000004011de <+14>:	pop    %rbx
+   0x00000000004011df <+15>:	pop    %r12
+   0x00000000004011e1 <+17>:	pop    %r13
+   0x00000000004011e3 <+19>:	pop    %r14
+   0x00000000004011e5 <+21>:	pop    %r15
+   0x00000000004011e7 <+23>:	retq   
+End of assembler dump.
+(gdb) disas _thc_exec_awe_direct
+Dump of assembler code for function _thc_exec_awe_direct:
+   0x0000000000400ae0 <+0>:	mov    (%rsp),%rax            # save return eip of the awe_from (it's on the stack) into rax
+   0x0000000000400ae4 <+4>:	mov    %rax,(%rdi)            # save eip into awe (it's in rdi)
+   0x0000000000400ae7 <+7>:	mov    %rbp,0x8(%rdi)         # save rbp into awe->rbp
+   0x0000000000400aeb <+11>:	mov    %rsp,0x10(%rdi)        # save rsp into awe->rsp
+   0x0000000000400aef <+15>:	addq   $0x8,0x10(%rdi)
+   0x0000000000400af4 <+20>:	mov    0x8(%rsi),%rbp         # restore rbp from awe_to (it's in rsi)
+   0x0000000000400af8 <+24>:	mov    0x10(%rsi),%rsp        # restore rsp from awe_to
+   0x0000000000400afc <+28>:	jmpq   *(%rsi)
+   0x0000000000400afe <+30>:	int3   
+   0x0000000000400aff <+31>:	nop
+
+
+/********************************************************************************/
 /* Direct path without checks for awe id in range
 /* 21 memory accesses with push/pop/mov x 2 = 42
 /* 10 register moves, adds, and so on... x1 = 10 

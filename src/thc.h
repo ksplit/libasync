@@ -229,6 +229,16 @@ int THCYieldToIdAndSave(uint32_t id_to, uint32_t id_from);
 //Same as THCYieldToIdAndSave, but assumes AWEs don't use dispatch queue.
 int THCYieldToIdAndSaveNoDispatch(uint32_t id_to, uint32_t id_from);
 
+int THCYieldToIdAndSaveNoDispatchDirect(uint32_t id_to, uint32_t id_from);
+
+void inline THCYieldToIdAndSaveNoDispatchDirectTrusted(uint32_t id_to, uint32_t id_from);
+
+void inline THCYieldWithAwe(awe_t *awe_from);
+
+void inline THCYieldToAwe(awe_t *awe_to, awe_t *awe_from);
+
+int THCYieldToAweNoDispatch_TopLevel(awe_t *awe_to);
+
 // Yields to without saving curent awe id.
 // 
 // If there is no awe associated with id_to, returns non-zero.

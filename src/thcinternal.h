@@ -219,26 +219,40 @@ extern int _end_text_nx;
     _thc_callcont(&_awe, (THCContFn_t)(_FN), (_ARG));           \
   } while (0)
 
+#define CALL_CONT_AWE(_awe, _FN,_ARG)                           \
+  do {                                                          \
+    KILL_CALLEE_SAVES();                                        \
+    _thc_callcont(_awe, (THCContFn_t)(_FN), (_ARG));           \
+  } while (0)
+
+
 // no lazy CALL_CONT in the eager version
 #define CALL_CONT_LAZY CALL_CONT
 
 #define CALL_CONT_AND_SAVE(_FN,_IDNUM,_ARG)                     \
   do {                                                          \
     awe_t _awe;                                                 \
-    awe_mapper_set_id((_IDNUM), &_awe);			            	\
+    awe_mapper_set_id((_IDNUM), &_awe);	                        \
     KILL_CALLEE_SAVES();                                        \
     _thc_callcont(&_awe, (THCContFn_t)(_FN), (_ARG));           \
   } while (0)
 
 #define CALL_CONT_LAZY_AND_SAVE CALL_CONT_AND_SAVE
 
-#define EXEC_AWE_AND_SAVE(_IDNUM,_AWE_TO)                     \
+#define EXEC_AWE_AND_SAVE(_IDNUM,_AWE_TO)                       \
   do {                                                          \
     awe_t _awe;                                                 \
     awe_mapper_set_id((_IDNUM), &_awe);			      	\
     KILL_CALLEE_SAVES();                                        \
     _thc_exec_awe_direct(&_awe, (_AWE_TO));                     \
   } while (0)
+
+#define EXEC_AWE(_awe_from,_awe_to)                             \
+  do {                                                          \
+    KILL_CALLEE_SAVES();                                        \
+    _thc_exec_awe_direct(_awe_from, _awe_to);                   \
+  } while (0)
+
 
 
 #endif // _THC_INTERNAL_H_
