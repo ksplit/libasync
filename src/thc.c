@@ -121,9 +121,7 @@ static inline void thc_schedule_local(awe_t *awe);
 
 // Per-thread state
 
-PTState_t *
-LIBASYNC_FUNC_ATTR 
-PTS(void) {
+inline PTState_t * PTS(void) {
   return thc_get_pts_0();
 }
 EXPORT_SYMBOL(PTS);

@@ -103,8 +103,7 @@ static inline int is_slot_allocated(uint32_t id)
 /*
  * Returns new available id.
  */
-int
-LIBASYNC_FUNC_ATTR 
+int inline 
 awe_mapper_create_id(uint32_t *new_id)
 {
     awe_table_t *awe_map =  get_awe_map();

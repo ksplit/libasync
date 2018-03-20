@@ -81,7 +81,6 @@ awe_mapper_remove_id(uint32_t id)
  * Links awe_ptr with id.
  */
 static inline void
-LIBASYNC_FUNC_ATTR 
 awe_mapper_set_id(uint32_t id, void* awe_ptr)
 {
     awe_table_t *awe_map =  get_awe_map();

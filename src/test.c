@@ -81,8 +81,10 @@ void test_basic_do_finish_create(){
 
     t2 = test_fipc_start_stopwatch(); 
 
-    printf("Average time per do{ i++ }finish(): %lu cycles (res:%lu ?= %d)\n", 
-          (t2 - t1)/NUM_SWITCH_MEASUREMENTS, num, NUM_SWITCH_MEASUREMENTS);
+    printf("Average time per do{ i++ }finish(): %lu cycles (%s)\n", 
+          (t2 - t1)/NUM_SWITCH_MEASUREMENTS, 
+          num == NUM_SWITCH_MEASUREMENTS ? "Passed" : "Failed");
+    
     return;   
 }
 
@@ -104,14 +106,16 @@ void test_basic_nonblocking_async_create(){
 
     t2 = test_fipc_start_stopwatch(); 
 
-    printf("Average time per non blocking do{async{i++}}finish(): %lu cycles (res:%lu ?= %d)\n", 
-          (t2 - t1)/NUM_SWITCH_MEASUREMENTS, num, NUM_SWITCH_MEASUREMENTS);
+    printf("Average time per non blocking do{async{i++}}finish(): %lu cycles (%s)\n", 
+          (t2 - t1)/NUM_SWITCH_MEASUREMENTS, 
+          num == NUM_SWITCH_MEASUREMENTS ? "Passed" : "Failed");
+        
     return;   
 }
 
 void test_basic_N_nonblocking_asyncs_create(){
     unsigned long t1, t2;
-    unsigned long num = 0, num_async = 10;
+    unsigned long num = 0;
     int i, j;
 
     t1 = test_fipc_start_stopwatch();
@@ -119,7 +123,7 @@ void test_basic_N_nonblocking_asyncs_create(){
     for( i = 0; i < NUM_SWITCH_MEASUREMENTS; i++ )
     {
          DO_FINISH({
-             for (j = 0; j < num_async; j++) {
+             for (j = 0; j < NUM_INNER_ASYNCS; j++) {
                  ASYNC({
                      num++;
                  });
@@ -129,8 +133,9 @@ void test_basic_N_nonblocking_asyncs_create(){
 
     t2 = test_fipc_start_stopwatch(); 
 
-    printf("Average time per %lu non blocking asyncs inside one do{ }finish(): %lu cycles (res:%lu ?= %d)\n", 
-          num_async, (t2 - t1)/NUM_SWITCH_MEASUREMENTS, num, NUM_SWITCH_MEASUREMENTS);
+    printf("Average time per %d non blocking asyncs inside one do{ }finish(): %lu cycles (%s)\n", 
+          NUM_INNER_ASYNCS, (t2 - t1)/NUM_SWITCH_MEASUREMENTS, 
+          num == NUM_SWITCH_MEASUREMENTS*NUM_INNER_ASYNCS ? "Passed" : "Failed");
     return;   
 }
 
@@ -260,8 +265,9 @@ static int test_do_finish_yield(void)
             });
     }
     t2 = test_fipc_start_stopwatch(); 
-    printf("Average time per do...finish and two blocking yields: %lu cycles (res:%d ?= %d)\n", 
-          (t2 - t1)/NUM_SWITCH_MEASUREMENTS, num, NUM_SWITCH_MEASUREMENTS*2);
+    printf("Average time per do .. finish and two blocking yields: %lu cycles (%s)\n", 
+          (t2 - t1)/NUM_SWITCH_MEASUREMENTS, 
+          num == NUM_SWITCH_MEASUREMENTS*2 ? "Passed" : "Failed");
  
 
     return 0;
@@ -302,9 +308,9 @@ static int test_do_finish_yield_no_dispatch(void)
 
     t2 = test_fipc_stop_stopwatch();
 
-    printf("Average time per do .. finish and two blocking yields (no dispatch): %lu cycles (res:%d ?= %d)\n", 
-          (t2 - t1)/NUM_SWITCH_MEASUREMENTS, num, NUM_SWITCH_MEASUREMENTS*2);
-
+    printf("Average time per do .. finish and two blocking yields (no dispatch): %lu cycles (%s)\n", 
+          (t2 - t1)/NUM_SWITCH_MEASUREMENTS, 
+          num == NUM_SWITCH_MEASUREMENTS*2 ? "Passed" : "Failed");
 
     return 0;
 }
