@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <test_helpers.h>
 
+#define NUM_INNER_ASYNCS 10
 #define NUM_SWITCH_MEASUREMENTS 1000000
 //#define NUM_SWITCH_MEASUREMENTS 8
 
@@ -135,7 +136,7 @@ void test_basic_N_nonblocking_asyncs_create(){
 
 void test_basic_N_blocking_asyncs_create(){
     unsigned long t1, t2;
-    unsigned long num = 0, num_async = 10;
+    unsigned long num = 0;
     int i, j;
 
     t1 = test_fipc_start_stopwatch();
@@ -143,7 +144,7 @@ void test_basic_N_blocking_asyncs_create(){
     for( i = 0; i < NUM_SWITCH_MEASUREMENTS; i++ )
     {
          DO_FINISH({
-             for (j = 0; j < num_async; j++) {
+             for (j = 0; j < NUM_INNER_ASYNCS; j++) {
                  ASYNC({
                      THCYield();
                      num++;
@@ -154,8 +155,83 @@ void test_basic_N_blocking_asyncs_create(){
 
     t2 = test_fipc_start_stopwatch(); 
 
-    printf("Average time per %lu blocking asyncs inside one do{ }finish(): %lu cycles (res:%lu ?= %d)\n", 
-          num_async, (t2 - t1)/NUM_SWITCH_MEASUREMENTS, num, NUM_SWITCH_MEASUREMENTS);
+    printf("Average time per %d blocking asyncs inside one do{ }finish(): %lu cycles (%s)\n", 
+          NUM_INNER_ASYNCS, (t2 - t1)/NUM_SWITCH_MEASUREMENTS, 
+          num == NUM_SWITCH_MEASUREMENTS*NUM_INNER_ASYNCS ? "Passed" : "Failed");
+    return;   
+}
+
+void test_basic_N_blocking_id_asyncs(){
+    unsigned long t1, t2;
+    unsigned long num = 0;
+    unsigned int ids[NUM_INNER_ASYNCS];
+    int i, j;
+
+    t1 = test_fipc_start_stopwatch();
+   
+    for( i = 0; i < NUM_SWITCH_MEASUREMENTS; i++ )
+    {
+         DO_FINISH({
+             for (j = 0; j < NUM_INNER_ASYNCS; j++) {
+                 ASYNC({
+                     int local_j = j;
+                     awe_mapper_create_id(&(ids[local_j]));
+                     //printf("id (%d):%d\n", local_j, ids[local_j]);
+                     assert(ids[j] < AWE_TABLE_COUNT); 
+                     THCYieldAndSave(ids[local_j]);
+                     //printf("rel id (%d):%d\n", local_j, ids[local_j]);
+                     awe_mapper_remove_id(ids[local_j]);
+                     num++;
+                 });
+             };                    
+             //for (j = 0; j < NUM_INNER_ASYNCS; j++) {
+             //    ASYNC({
+             //        THCYieldToId(ids[j]);
+             //    });
+             //};     
+         });
+    };
+
+    t2 = test_fipc_start_stopwatch(); 
+
+    printf("Average time per %d blocking asyncs inside one do{ }finish() (yield via awe mapper): %lu cycles (%s)\n", 
+          NUM_INNER_ASYNCS, (t2 - t1)/NUM_SWITCH_MEASUREMENTS, 
+          num == NUM_SWITCH_MEASUREMENTS*NUM_INNER_ASYNCS ? "Passed" : "Failed");
+    return;   
+}
+
+void test_basic_N_blocking_id_asyncs_and_N_yields_back(){
+    unsigned long t1, t2;
+    unsigned long num = 0;
+    unsigned int ids[NUM_INNER_ASYNCS];
+    int i, j;
+
+    t1 = test_fipc_start_stopwatch();
+   
+    for( i = 0; i < NUM_SWITCH_MEASUREMENTS; i++ )
+    {
+         DO_FINISH({
+             for (j = 0; j < NUM_INNER_ASYNCS/2; j++) {
+                 ASYNC({
+                     awe_mapper_create_id(&ids[j]);
+                     THCYieldAndSave(ids[j]);
+                     awe_mapper_remove_id(ids[j]);
+                     num++;
+                 });
+             };                    
+             for (j = 0; j < NUM_INNER_ASYNCS/2; j++) {
+                 ASYNC({
+                     THCYieldToId(ids[j]);
+                 });
+             };     
+         });
+    };
+
+    t2 = test_fipc_start_stopwatch(); 
+
+    printf("Average time per %d blocking asyncs inside one do{ }finish() and %d yield backs (yield via awe mapper): %lu cycles (%s)\n", 
+          NUM_INNER_ASYNCS/2, NUM_INNER_ASYNCS/2, (t2 - t1)/NUM_SWITCH_MEASUREMENTS, 
+          num == NUM_SWITCH_MEASUREMENTS*NUM_INNER_ASYNCS/2 ? "Passed" : "Failed");
     return;   
 }
 
@@ -524,14 +600,16 @@ static int test_ctx_switch_to_awe(void)
 int main (void) {
     
     thc_init();
-
     test_async();
     test_async_yield();
 
     test_basic_do_finish_create();
     test_basic_nonblocking_async_create();  
     test_basic_N_nonblocking_asyncs_create();
+
     test_basic_N_blocking_asyncs_create(); 
+    test_basic_N_blocking_id_asyncs();
+    test_basic_N_blocking_id_asyncs_and_N_yields_back();
 
     test_do_finish_yield();
     test_do_finish_yield_no_dispatch();
@@ -541,6 +619,7 @@ int main (void) {
     test_ctx_switch_no_dispatch_direct();
     test_ctx_switch_no_dispatch_direct_trusted();
     test_ctx_switch_to_awe();
+    
     thc_done();
     return 0; 
 }

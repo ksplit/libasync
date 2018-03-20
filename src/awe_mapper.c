@@ -59,12 +59,12 @@ awe_mapper_init(void)
 #ifdef LINUX_KERNEL
     void* awe_map_ptr = kzalloc(sizeof(awe_table_t), GFP_KERNEL);
 #else
-    void* awe_map_ptr = malloc(sizeof(awe_table_t));
+    void* awe_map_ptr = calloc(sizeof(awe_table_t), 1);
 #endif
 
     if( !awe_map_ptr )
     {
-        printf("No space left for awe_map_ptr\n");
+        printf("No space left for awe_map_ptr\n");         
         return;
     }
 
