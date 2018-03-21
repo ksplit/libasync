@@ -167,6 +167,7 @@ void THCSuspendThen(awe_t **awe_ptr_ptr, THCThenFn_t then, void *arg);
 
 // Schedule execution of a given AWE at the head/tail of the queue.
 void THCSchedule(awe_t *awe_ptr);
+
 void THCScheduleBack(awe_t *awe_ptr);
 
 // Finish the current AWE, returning to the scheduler.

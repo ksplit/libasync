@@ -116,6 +116,7 @@ static void thc_set_pts_0(PTState_t *pts);
 
 static inline void thc_schedule_local(awe_t *awe);
 
+void _THCScheduleBack(PTState_t *pts, awe_t *awe_ptr);
 
 
 
@@ -468,6 +469,25 @@ _thc_callcont_c(awe_t *awe,
   fn(awe, args);
 }
 
+// This function is not meant to be used externally, but its only use
+// here is from within the inline assembly language functions.  The
+// C "used" attribute is not currently maintained through Clang & LLVM
+// with the C backend, so we cannot rely on that.
+extern void _thc_callcont_c(awe_t *awe, THCContFn_t fn, void *args);
+void 
+LIBASYNC_FUNC_ATTR 
+_thc_callcont_pts_c(awe_t *awe,
+                    THCContPTSFn_t fn,
+                    void *args,
+                    PTState_t *pts) 
+{
+  //PTState_t *pts = PTS();
+
+  //awe->pts = pts;
+  //awe->current_fb = pts->current_fb;
+  fn(awe, args, pts);
+}
+
 /* do...finish blocks */
 // Implementation of finish blocks
 //
@@ -639,6 +659,42 @@ thc_yieldto_with_cont_should_dispatch(void* a, void* arg , int use_dispatch)
   thc_awe_execute_0(awe);
 }
 
+//helper function for thc_yieldto_with_cont* functions
+//use_dispatch indicates whether to assume AWEs are in the dispatch loop
+static inline void 
+thc_yieldto_with_cont_should_dispatch_pts(void* a, void* arg , void *pts, int use_dispatch)
+{
+  awe_t *awe;
+  DEBUG_YIELD(DEBUGPRINTF(DEBUG_YIELD_PREFIX "! %p (%p,%p,%p) yield\n",
+                          a,
+                          ((awe_t*)a)->eip,
+                          ((awe_t*)a)->ebp,
+                          ((awe_t*)a)->esp));
+
+  awe_t *last_awe = (awe_t*)a; 
+
+  awe = (awe_t *)arg;
+
+  if( use_dispatch )
+  {
+      _THCScheduleBack(pts, last_awe);
+      // Bug in original Barrelfish version; awe wasn't removed from
+      // dispatch queue when we yielded to it here. (Note that in
+      // dispatch loop awe's are removed from the dispatch queue
+      // when we yield to them.)
+      remove_awe_from_list(awe);
+  }
+
+  //awe->pts->current_fb = awe->current_fb;
+  thc_awe_execute_0(awe);
+}
+
+
+__attribute__ ((unused))
+static inline void thc_yieldto_with_cont_pts(void *a, void *arg, void *pts) {
+    thc_yieldto_with_cont_should_dispatch_pts(a, arg, pts, 1);
+}
+
 __attribute__ ((unused))
 static inline void thc_yieldto_with_cont(void *a, void *arg) {
     thc_yieldto_with_cont_should_dispatch(a, arg, 1);
@@ -651,13 +707,18 @@ static inline void thc_yieldto_with_cont_no_dispatch(void *a, void *arg) {
 int
 LIBASYNC_FUNC_ATTR 
 THCYieldToIdAndSave(uint32_t id_to, uint32_t id_from) {
-  awe_t *awe_ptr = awe_mapper_get_awe(id_to);
+  PTState_t *pts = PTS();
+  awe_t *awe;
 
-  if (!awe_ptr)
-    return -1; // id_to not valid
+  // This check should be done at the application layer, i.e., 
+  // receive IPC with an awe id, check for whether id is valid
+  //if (!awe_mapper_awe_valid(id_to))
+  //  return -1; // id_to not valid
+
+  awe = _awe_mapper_get_awe(pts->awe_map, id_to);
 
   // Switch to awe_ptr
-  CALL_CONT_LAZY_AND_SAVE((void*)&thc_yieldto_with_cont, id_from, (void*)awe_ptr);
+  CALL_CONT_AND_SAVE_PTS((void*)&thc_yieldto_with_cont_pts, id_from, (void*)awe, pts);
   return 0;
 }
 EXPORT_SYMBOL(THCYieldToIdAndSave);
@@ -824,14 +885,20 @@ EXPORT_SYMBOL(THCSchedule);
 
 void 
 LIBASYNC_FUNC_ATTR 
-THCScheduleBack(awe_t *awe) {
+_THCScheduleBack(PTState_t *pts, awe_t *awe) {
   DEBUG_AWE(DEBUGPRINTF(DEBUG_AWE_PREFIX "> THCSchedule(%p)\n",
                         awe));
-  awe->prev = PTS()->aweTail.prev;
-  awe->next = &(PTS()->aweTail);
-  PTS()->aweTail.prev->next = awe;
-  PTS()->aweTail.prev = awe;
+  awe->prev = pts->aweTail.prev;
+  awe->next = &(pts->aweTail);
+  pts->aweTail.prev->next = awe;
+  pts->aweTail.prev = awe;
 
+}
+
+void 
+LIBASYNC_FUNC_ATTR 
+THCScheduleBack(awe_t *awe) {
+  return _THCScheduleBack(PTS(), awe); 
 }
 EXPORT_SYMBOL(THCScheduleBack);
 
@@ -1149,6 +1216,28 @@ __asm__ ("      .text \n\t"
          // AWE now initialized.  Call into C for the rest.
          // rdi : AWE , rsi : fn , rdx : args
          " call _thc_callcont_c      \n\t"
+         " int3\n\t");
+
+/*
+           void _thc_callcont_pts(awe_t *awe,   // rdi
+                   THCContFn_t fn,              // rsi
+                   void *args,                  // rdx
+                   PTState_t *pts);             // rcx
+*/
+
+__asm__ ("      .text \n\t"
+         "      .align  16           \n\t"
+         "      .globl  _thc_callcont_pts \n\t"
+         "      .type   _thc_callcont_pts, @function \n\t"
+         "_thc_callcont_pts:             \n\t"
+         " mov  0(%rsp), %rax        \n\t"
+         " mov  %rax,  0(%rdi)       \n\t" // EIP (our return address)
+         " mov  %rbp,  8(%rdi)       \n\t" // EBP
+         " mov  %rsp, 16(%rdi)       \n\t" // ESP+8 (after return)
+         " addq $8,   16(%rdi)       \n\t"
+         // AWE now initialized.  Call into C for the rest.
+         // rdi : AWE , rsi : fn , rdx : args, rcx: pts
+         " call _thc_callcont_pts_c      \n\t"
          " int3\n\t");
 
 __asm__ ("      .text \n\t"

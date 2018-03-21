@@ -115,6 +115,7 @@ struct ptstate_t {
 PTState_t *PTS(void);
 
 typedef void (*THCContFn_t)(void *cont, void *args);
+typedef void (*THCContPTSFn_t)(void *cont, void *args, void *pts);
 
 void *_thc_allocstack(void);
 void _thc_freestack(void *s);
@@ -127,6 +128,8 @@ void _thc_endfinishblock(finish_t *fb);
 
 void _thc_do_cancel_request(finish_t *fb);
 void _thc_callcont(struct awe_t *awe, THCContFn_t fn, void *args) __attribute__((returns_twice));
+void _thc_callcont_pts(struct awe_t *awe, THCContFn_t fn, void *args, PTState_t *pts) __attribute__((returns_twice));
+
 void _thc_exec_awe_direct(struct awe_t *awe_from, struct awe_t *awe_to) __attribute__((returns_twice));
 
 int  _thc_schedulecont(struct awe_t *awe) __attribute__((returns_twice));
@@ -243,6 +246,15 @@ extern int _end_text_nx;
   } while (0)
 
 #define CALL_CONT_LAZY_AND_SAVE CALL_CONT_AND_SAVE
+
+#define CALL_CONT_AND_SAVE_PTS(_FN,_IDNUM,_ARG, _pts)           \
+  do {                                                          \
+    awe_t* _awe;                                                \
+    _awe = _awe_mapper_get_awe(pts->awe_map, _IDNUM);	        \
+    KILL_CALLEE_SAVES();                                        \
+    _thc_callcont_pts(_awe, (THCContFn_t)(_FN), (_ARG), pts);   \
+  } while (0)
+
 
 #define EXEC_AWE_AND_SAVE(_IDNUM,_AWE_TO)                       \
   do {                                                          \
