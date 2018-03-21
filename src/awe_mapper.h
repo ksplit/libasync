@@ -21,7 +21,7 @@
 
 struct awe_table
 {
-    void* awe_list[AWE_TABLE_COUNT];
+    awe_t awe_list[AWE_TABLE_COUNT];
     unsigned long long awe_bitmap;
 
 //    uint32_t used_slots;
@@ -81,53 +81,51 @@ awe_mapper_remove_id(uint32_t id)
     _awe_mapper_remove_id(awe_map, id); 
 }
 
-static inline void
-_awe_mapper_set_id(awe_table_t *awe_map, uint32_t id, void* awe_ptr)
-{
-    assert(id < AWE_TABLE_COUNT);
-//    assert(awe_map->awe_bitmap & (1 << id))
-    (awe_map->awe_list)[id] = awe_ptr;
-}
+//static inline void
+//_awe_mapper_set_id(awe_table_t *awe_map, uint32_t id, void* awe_ptr)
+//{
+//    assert(id < AWE_TABLE_COUNT);
+//    (awe_map->awe_list)[id] = awe_ptr;
+//}
 
 /*
  * Links awe_ptr with id.
  */
-static inline void
-awe_mapper_set_id(uint32_t id, void* awe_ptr)
-{
-    awe_table_t *awe_map =  get_awe_map();
-    _awe_mapper_set_id(awe_map, id, awe_ptr);
-}
+//static inline void
+//awe_mapper_set_id(uint32_t id, void* awe_ptr)
+//{
+//    awe_table_t *awe_map =  get_awe_map();
+//    _awe_mapper_set_id(awe_map, id, awe_ptr);
+//}
 
-static inline void*
-LIBASYNC_FUNC_ATTR 
-_awe_mapper_get_awe_ptr(awe_table_t *awe_map, uint32_t id)
+static inline awe_t *
+_awe_mapper_get_awe(awe_table_t *awe_map, uint32_t id)
 {
     if (id >= AWE_TABLE_COUNT)
         return NULL;
-    return awe_map->awe_list[id];
+    return &(awe_map->awe_list[id]);
 }
 
 
 /*
  * Returns awe_ptr that corresponds to id.
  */
-static inline void*
+static inline awe_t*
 LIBASYNC_FUNC_ATTR 
-awe_mapper_get_awe_ptr(uint32_t id)
+awe_mapper_get_awe(uint32_t id)
 {
     awe_table_t *awe_map = get_awe_map();
-    return _awe_mapper_get_awe_ptr(awe_map, id);
+    return _awe_mapper_get_awe(awe_map, id);
 }
 
-static inline void*
+static inline awe_t *
 LIBASYNC_FUNC_ATTR 
 _awe_mapper_get_awe_ptr_trusted(awe_table_t *awe_map, uint32_t id)
 {
-    return awe_map->awe_list[id];
+    return &(awe_map->awe_list[id]);
 }
 
-static inline void*
+static inline awe_t*
 LIBASYNC_FUNC_ATTR 
 awe_mapper_get_awe_ptr_trusted(uint32_t id)
 {

@@ -651,7 +651,7 @@ static inline void thc_yieldto_with_cont_no_dispatch(void *a, void *arg) {
 int
 LIBASYNC_FUNC_ATTR 
 THCYieldToIdAndSave(uint32_t id_to, uint32_t id_from) {
-  awe_t *awe_ptr = (awe_t *)awe_mapper_get_awe_ptr(id_to);
+  awe_t *awe_ptr = awe_mapper_get_awe(id_to);
 
   if (!awe_ptr)
     return -1; // id_to not valid
@@ -666,7 +666,7 @@ EXPORT_SYMBOL(THCYieldToIdAndSave);
 int
 LIBASYNC_FUNC_ATTR 
 THCYieldToIdAndSaveNoDispatch(uint32_t id_to, uint32_t id_from) {
-  awe_t *awe_ptr = (awe_t *)awe_mapper_get_awe_ptr(id_to);
+  awe_t *awe_ptr = awe_mapper_get_awe(id_to);
 
   if (!awe_ptr)
     return -1; // id_to not valid
@@ -680,7 +680,7 @@ EXPORT_SYMBOL(THCYieldToIdAndSaveNoDispatch);
 int
 LIBASYNC_FUNC_ATTR 
 THCYieldToIdAndSaveNoDispatchDirect(uint32_t id_to, uint32_t id_from) {
-  awe_t *awe_to = (awe_t *)awe_mapper_get_awe_ptr(id_to);
+  awe_t *awe_to = awe_mapper_get_awe(id_to);
 
   if (!awe_to)
     return -1; // id_to not valid
@@ -693,7 +693,7 @@ EXPORT_SYMBOL(THCYieldToIdAndSaveNoDispatchDirect);
 
 void inline  
 THCYieldToIdAndSaveNoDispatchDirectTrusted(uint32_t id_to, uint32_t id_from) {
-  awe_t *awe_to = (awe_t *)awe_mapper_get_awe_ptr_trusted(id_to);
+  awe_t *awe_to = awe_mapper_get_awe_ptr_trusted(id_to);
 
   EXEC_AWE_AND_SAVE(id_from, (void*)awe_to);
 
@@ -701,7 +701,7 @@ THCYieldToIdAndSaveNoDispatchDirectTrusted(uint32_t id_to, uint32_t id_from) {
 }
 EXPORT_SYMBOL(THCYieldToIdAndSaveNoDispatchDirectTrusted);
 
-// Yields and saves awe
+// Yields and savees awe
 void inline
 THCYieldWithAwe(awe_t *awe_from)
 {
@@ -723,7 +723,7 @@ int
 LIBASYNC_FUNC_ATTR 
 THCYieldToIdNoDispatch_TopLevel(uint32_t id_to)
 {
-  awe_t *awe_ptr = (awe_t *)awe_mapper_get_awe_ptr(id_to);
+  awe_t *awe_ptr = awe_mapper_get_awe(id_to);
 
   if (!awe_ptr) {
     return -1;
@@ -750,7 +750,7 @@ int
 LIBASYNC_FUNC_ATTR 
 THCYieldToId(uint32_t id_to)
 {
-  awe_t *awe_ptr = (awe_t *)awe_mapper_get_awe_ptr(id_to);
+  awe_t *awe_ptr = awe_mapper_get_awe(id_to);
 
   if (!awe_ptr) {
     return -1;
@@ -765,7 +765,7 @@ EXPORT_SYMBOL(THCYieldToId);
 
 int THCYieldToIdNoDispatch(uint32_t id_to)
 {
-  awe_t *awe_ptr = (awe_t *)awe_mapper_get_awe_ptr(id_to);
+  awe_t *awe_ptr = awe_mapper_get_awe(id_to);
 
   if (!awe_ptr) {
     return -1;
