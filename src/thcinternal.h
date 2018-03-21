@@ -103,7 +103,11 @@ struct ptstate_t {
   // Map for resolving integer IDs to awe's. This is used in the
   // async ipc code.
   struct awe_table *awe_map;
+  
 
+  // Pointer to the direct continutation (i.e., when ASYNC is done or blocks 
+  // it's a pointer to the do...finish continuation -- it's nown directly and 
+  // does not require going into the dispatch loop
   awe_t *direct_cont; 
 
 };

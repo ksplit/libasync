@@ -29,7 +29,8 @@ void test_async_yield() {
 
   DO_FINISH({
         ASYNC({
-            awe_mapper_create_id(&id_1);
+            id_1 = awe_mapper_create_id();
+            assert(id_1);
             printf("ASYNC 1: Ready to yield\n");
             THCYieldAndSaveNoDispatch(id_1);
             printf("ASYNC 1: Got control back\n");
@@ -38,7 +39,8 @@ void test_async_yield() {
             awe_mapper_remove_id(id_1);
         });             
         ASYNC({
-            awe_mapper_create_id(&id_2);
+            id_2 = awe_mapper_create_id();
+            assert(id_2);
             //t3 = test_fipc_start_stopwatch(); 
             printf("ASYNC 2: Ready to yield\n");
             THCYieldToIdAndSaveNoDispatch(id_1,id_2);
@@ -180,7 +182,8 @@ void test_basic_N_blocking_id_asyncs(){
              for (j = 0; j < NUM_INNER_ASYNCS; j++) {
                  ASYNC({
                      int local_j = j;
-                     awe_mapper_create_id(&(ids[local_j]));
+                     ids[local_j] = awe_mapper_create_id();
+                     assert(ids[local_j]);
                      //printf("id (%d):%d\n", local_j, ids[local_j]);
                      assert(ids[j] < AWE_TABLE_COUNT); 
                      THCYieldAndSave(ids[local_j]);
@@ -218,7 +221,8 @@ void test_basic_N_blocking_id_asyncs_and_N_yields_back(){
          DO_FINISH({
              for (j = 0; j < NUM_INNER_ASYNCS/2; j++) {
                  ASYNC({
-                     awe_mapper_create_id(&ids[j]);
+                     ids[j] = awe_mapper_create_id();
+                     assert(ids[j]);
                      THCYieldAndSave(ids[j]);
                      awe_mapper_remove_id(ids[j]);
                      num++;
@@ -253,7 +257,8 @@ static int test_do_finish_yield(void)
     {
             DO_FINISH({
                     ASYNC({
-                        awe_mapper_create_id(&id_1);
+                        id_1 = awe_mapper_create_id();
+                        assert(id_1);
                         THCYieldAndSave(id_1);
                         awe_mapper_remove_id(id_1);
                         num ++; 
@@ -287,13 +292,15 @@ static int test_do_finish_yield_no_dispatch(void)
             DO_FINISH({
                     
                     ASYNC({
-                        awe_mapper_create_id(&id_1);
+                        id_1 = awe_mapper_create_id();
+                        assert(id_1);
                         THCYieldAndSaveNoDispatch(id_1);
                         awe_mapper_remove_id(id_1);
                         num ++;
                     });             
                     ASYNC({
-                        awe_mapper_create_id(&id_2);
+                        id_2 = awe_mapper_create_id();
+                        assert(id_2);
                         THCYieldToIdAndSaveNoDispatch(id_1,id_2);
                         num ++;
                     });             
@@ -373,7 +380,8 @@ static int test_ctx_switch_no_dispatch(void)
 
         ASYNC({
             int i;
-            awe_mapper_create_id(&id_1);
+            id_1 = awe_mapper_create_id();
+            assert(id_1);
             //printf("ASYNC 1: warm up yield\n");
             THCYieldAndSaveNoDispatch(id_1);
             //printf("ASYNC 1: got control back\n");
@@ -390,7 +398,8 @@ static int test_ctx_switch_no_dispatch(void)
         
         ASYNC({
             int i;
-            awe_mapper_create_id(&id_2);
+            id_2 = awe_mapper_create_id();
+            assert(id_2);
                             
             for(i = 0; i < NUM_SWITCH_MEASUREMENTS / 2; i++)
             {
@@ -423,7 +432,8 @@ static int test_ctx_switch_no_dispatch_direct(void)
 
         ASYNC({
             int i;
-            awe_mapper_create_id(&id_1);
+            id_1 = awe_mapper_create_id();
+            assert(id_1);
             //printf("ASYNC 1: warm up yield\n");
             THCYieldAndSaveNoDispatch(id_1);
             //printf("ASYNC 1: got control back\n");
@@ -440,7 +450,8 @@ static int test_ctx_switch_no_dispatch_direct(void)
         
         ASYNC({
             int i;
-            awe_mapper_create_id(&id_2);
+            id_2 = awe_mapper_create_id();
+            assert(id_2);
                             
             for(i = 0; i < NUM_SWITCH_MEASUREMENTS / 2; i++)
             {
@@ -475,7 +486,8 @@ static int test_ctx_switch_no_dispatch_direct_trusted(void)
 
         ASYNC({
             int i;
-            awe_mapper_create_id(&id_1);
+            id_1 = awe_mapper_create_id();
+            assert(id_1);
             //printf("ASYNC 1: warm up yield\n");
             THCYieldAndSaveNoDispatch(id_1);
             //printf("ASYNC 1: got control back\n");
@@ -492,7 +504,8 @@ static int test_ctx_switch_no_dispatch_direct_trusted(void)
         
         ASYNC({
             int i;
-            awe_mapper_create_id(&id_2);
+            id_2 = awe_mapper_create_id();
+            assert(id_2);
                             
             for(i = 0; i < NUM_SWITCH_MEASUREMENTS / 2; i++)
             {

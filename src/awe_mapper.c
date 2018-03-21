@@ -36,18 +36,6 @@
 #define EXPORT_SYMBOL(x)
 #endif
 
-/*
- * NOTE: This implementation right now is just a ring buffer.
- * In the future, we probably want to change this to something
- * like a red black tree or a B-tree to account for differing
- * storage size requirements.
- */
-
-/*
- * This value is used to determine if a slot is allocated but not yet set in the awe table.
- */
-static unsigned long initialized_marker = 0xDeadBeef;
-
 
 /*
  * Initilaizes awe mapper.
@@ -57,18 +45,19 @@ LIBASYNC_FUNC_ATTR
 awe_mapper_init(void)
 {
 #ifdef LINUX_KERNEL
-    void* awe_map_ptr = kzalloc(sizeof(awe_table_t), GFP_KERNEL);
+    awe_table_t* awe_map = kzalloc(sizeof(awe_table_t), GFP_KERNEL);
 #else
-    void* awe_map_ptr = calloc(sizeof(awe_table_t), 1);
+    awe_table_t* awe_map = calloc(sizeof(awe_table_t), 1);
 #endif
 
-    if( !awe_map_ptr )
+    if( !awe_map )
     {
         printf("No space left for awe_map_ptr\n");         
         return;
     }
 
-    set_awe_map((awe_table_t*) awe_map_ptr);
+    awe_map->awe_bitmap |= ~0;
+    set_awe_map((awe_table_t*) awe_map);
 }
 
 
@@ -92,41 +81,39 @@ awe_mapper_uninit(void)
     }
 }
 
+static inline int _is_slot_allocated(awe_table_t *awe_map, uint32_t id)
+{
+    return awe_map->awe_bitmap & (1 << (id - 1));
+}
+
 static inline int is_slot_allocated(uint32_t id)
 {
     awe_table_t *awe_map =  get_awe_map();
-    return ((awe_map->awe_list)[id] != NULL);
+    return _is_slot_allocated(awe_map, id);
 }
-
 
 
 /*
  * Returns new available id.
  */
 int inline 
-awe_mapper_create_id(uint32_t *new_id)
+_awe_mapper_create_id(awe_table_t *awe_map)
+{
+    int id = __builtin_ffsll(awe_map->awe_bitmap);
+    awe_map->awe_bitmap &= ~(1 << (id - 1));
+    return id; 
+}  
+EXPORT_SYMBOL(awe_mapper_create_id);
+
+
+/*
+ * Returns new available id.
+ */
+int inline 
+awe_mapper_create_id()
 {
     awe_table_t *awe_map =  get_awe_map();
-
-    if (awe_map->used_slots >= AWE_TABLE_COUNT)
-    {
-        printf("awe_mapper_create_id: too many slots requested\n");
-        return -1;
-    }
-    
-    do
-    {
-        awe_map->next_id = (awe_map->next_id + 1) % AWE_TABLE_COUNT;
-    } 
-    while( is_slot_allocated(awe_map->next_id) );
-
-    awe_map->awe_list[awe_map->next_id] = (void*)initialized_marker;
-
-    awe_map->used_slots++;
-
-    *new_id = awe_map->next_id;
-
-    return 0;
+    return _awe_mapper_create_id(awe_map); 
 }  
 EXPORT_SYMBOL(awe_mapper_create_id);
 
