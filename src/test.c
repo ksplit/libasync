@@ -5,7 +5,7 @@
 #include <test_helpers.h>
 
 #define NUM_INNER_ASYNCS 10
-#define NUM_SWITCH_MEASUREMENTS 1000000
+#define NUM_SWITCH_MEASUREMENTS 10000000
 //#define NUM_SWITCH_MEASUREMENTS 8
 
 void test_async(){

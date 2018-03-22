@@ -101,8 +101,7 @@ awe_mapper_remove_id(uint32_t id)
 static inline awe_t *
 _awe_mapper_get_awe(awe_table_t *awe_map, uint32_t id)
 {
-    if (id >= AWE_TABLE_COUNT)
-        return NULL;
+    assert(id >= AWE_TABLE_COUNT);
     return &(awe_map->awe_list[id]);
 }
 

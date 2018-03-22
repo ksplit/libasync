@@ -552,6 +552,18 @@ EXPORT_SYMBOL(_thc_endfinishblock);
 
 //helper function for thc_yield_with_cont* functions
 //use_dispatch indicates whether to assume AWEs are in the dispatch loop
+static inline void thc_yield_with_cont_should_dispatch_pts(awe_t *awe, void *arg, PTState_t *pts, int use_dispatch)
+{
+  if( use_dispatch )
+  {
+    _THCScheduleBack(pts, awe);
+  }
+  thc_dispatch(pts);
+}
+
+
+//helper function for thc_yield_with_cont* functions
+//use_dispatch indicates whether to assume AWEs are in the dispatch loop
 static inline void thc_yield_with_cont_should_dispatch(void *a, void *arg, int use_dispatch)
 {
   awe_t *awe = (awe_t*)a; 
@@ -569,6 +581,11 @@ static void thc_yield_with_cont(void *a, void *arg) {
 }
 
 __attribute__ ((unused))
+static void thc_yield_with_cont_pts(void *awe, void *arg, void *pts) {
+    thc_yield_with_cont_should_dispatch_pts((awe_t *)awe, arg, (PTState_t*)pts, 1);
+}
+
+__attribute__ ((unused))
 static void thc_yield_with_cont_no_dispatch(void *a, void *arg) {
     thc_yield_with_cont_should_dispatch(a, arg, 0);
 }
@@ -578,7 +595,7 @@ void
 LIBASYNC_FUNC_ATTR 
 THCYieldAndSave(uint32_t id_num)
 {
-  CALL_CONT_LAZY_AND_SAVE((void*)&thc_yield_with_cont, id_num, NULL);
+  CALL_CONT_AND_SAVE_PTS((void*)&thc_yield_with_cont_pts, id_num, NULL, PTS());
 }
 EXPORT_SYMBOL(THCYieldAndSave);
 
@@ -806,20 +823,26 @@ THCYieldToAweNoDispatch_TopLevel(awe_t *awe_to)
 EXPORT_SYMBOL(THCYieldToIdNoDispatch_TopLevel);
 
 
+int inline 
+_THCYieldToId(PTState_t *pts, uint32_t id_to)
+{
+  awe_t *awe = _awe_mapper_get_awe(pts->awe_map, id_to);
+
+  // Switch to target awe
+  // We were woken up
+  //CALL_CONT_PTS((void*)&thc_yieldto_with_cont_pts, (void*)awe, (void*)pts);
+  CALL_CONT((void*)&thc_yieldto_with_cont, (void*)awe);
+
+  return 0;
+}
+EXPORT_SYMBOL(THCYieldToId);
+
 
 int
 LIBASYNC_FUNC_ATTR 
 THCYieldToId(uint32_t id_to)
 {
-  awe_t *awe_ptr = awe_mapper_get_awe(id_to);
-
-  if (!awe_ptr) {
-    return -1;
-  }
-  
-  // Switch to target awe
-  // We were woken up
-  CALL_CONT_LAZY((void*)&thc_yieldto_with_cont, (void*)awe_ptr);
+  _THCYieldToId(PTS(), id_to);
   return 0;
 }
 EXPORT_SYMBOL(THCYieldToId);
@@ -902,8 +925,7 @@ THCScheduleBack(awe_t *awe) {
 }
 EXPORT_SYMBOL(THCScheduleBack);
 
-void
-LIBASYNC_FUNC_ATTR 
+void inline   
 _thc_startasync(void *f, void *stack) {
   finish_t *fb = (finish_t*)f;
   DEBUG_FINISH(DEBUGPRINTF(DEBUG_FINISH_PREFIX "> StartAsync(%p,%p)\n",
@@ -914,8 +936,7 @@ _thc_startasync(void *f, void *stack) {
 }
 EXPORT_SYMBOL(_thc_startasync);
 
-void 
-inline 
+void inline 
 _thc_endasync(void *f, void *s) {
   finish_t *fb = (finish_t*)f;
   PTState_t *pts = PTS();
@@ -1219,6 +1240,28 @@ __asm__ ("      .text \n\t"
          " int3\n\t");
 
 /*
+           void _thc_callcont_direct(awe_t *awe,   // rdi
+                   void *args,               //rsi
+                   THCContFn_t fn)          // rdx
+*/
+
+__asm__ ("      .text \n\t"
+         "      .align  16           \n\t"
+         "      .globl  _thc_callcont_direct \n\t"
+         "      .type   _thc_callcont_direct, @function \n\t"
+         "_thc_callcont_direct:             \n\t"
+         " mov  0(%rsp), %rax        \n\t"
+         " mov  %rax,  0(%rdi)       \n\t" // EIP (our return address)
+         " mov  %rbp,  8(%rdi)       \n\t" // EBP
+         " mov  %rsp, 16(%rdi)       \n\t" // ESP+8 (after return)
+         " addq $8,   16(%rdi)       \n\t"
+         // AWE now initialized.  Call the function
+         // rdi : AWE , rsi : args , rdx : fn
+         " jmpq  %rdx                \n\t"
+         " int3\n\t");
+
+
+/*
            void _thc_callcont_pts(awe_t *awe,   // rdi
                    THCContFn_t fn,              // rsi
                    void *args,                  // rdx
@@ -1239,6 +1282,29 @@ __asm__ ("      .text \n\t"
          // rdi : AWE , rsi : fn , rdx : args, rcx: pts
          " call _thc_callcont_pts_c      \n\t"
          " int3\n\t");
+
+/*
+           void _thc_callcont_pts_direct(awe_t *awe,   // rdi
+                    void *args,                        // rsi
+                    PTState_t *pts,                    // rdx
+                    THCContFn_t fn);                   // rcx
+*/
+
+__asm__ ("      .text \n\t"
+         "      .align  16           \n\t"
+         "      .globl  _thc_callcont_pts_direct \n\t"
+         "      .type   _thc_callcont_pts_direct, @function \n\t"
+         "_thc_callcont_pts_direct:             \n\t"
+         " mov  0(%rsp), %rax        \n\t"
+         " mov  %rax,  0(%rdi)       \n\t" // EIP (our return address)
+         " mov  %rbp,  8(%rdi)       \n\t" // EBP
+         " mov  %rsp, 16(%rdi)       \n\t" // ESP+8 (after return)
+         " addq $8,   16(%rdi)       \n\t"
+         // AWE now initialized.  Call the function.
+         // rdi : AWE , rsi : args , rdx : pts, rcx: fn
+         " jmpq  %rcx                \n\t"
+         " int3\n\t");
+
 
 __asm__ ("      .text \n\t"
          "      .align  16           \n\t"

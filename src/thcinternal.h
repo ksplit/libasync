@@ -128,7 +128,12 @@ void _thc_endfinishblock(finish_t *fb);
 
 void _thc_do_cancel_request(finish_t *fb);
 void _thc_callcont(struct awe_t *awe, THCContFn_t fn, void *args) __attribute__((returns_twice));
+void _thc_callcont_direct(struct awe_t *awe, void *args, THCContFn_t fn) __attribute__((returns_twice));
+
 void _thc_callcont_pts(struct awe_t *awe, THCContFn_t fn, void *args, PTState_t *pts) __attribute__((returns_twice));
+
+void _thc_callcont_pts_direct(struct awe_t *awe, void *args, PTState_t *pts, THCContFn_t fn) __attribute__((returns_twice));
+
 
 void _thc_exec_awe_direct(struct awe_t *awe_from, struct awe_t *awe_to) __attribute__((returns_twice));
 
@@ -224,25 +229,35 @@ extern int _end_text_nx;
   do {                                                          \
     awe_t _awe;                                                 \
     KILL_CALLEE_SAVES();                                        \
-    _thc_callcont(&_awe, (THCContFn_t)(_FN), (_ARG));           \
+    _thc_callcont_direct(&_awe, (_ARG), (THCContFn_t)(_FN));    \
+    /*  _thc_callcont(&_awe, (THCContFn_t)(_FN), (_ARG)); */    \
   } while (0)
+
+#define CALL_CONT_PTS(_FN,_ARG,_pts)                                     \
+  do {                                                          \
+    awe_t _awe;                                                 \
+    KILL_CALLEE_SAVES();                                        \
+    _thc_callcont_pts_direct(&_awe, (_ARG), _pts, (THCContFn_t)(_FN));           \
+  } while (0)
+
 
 #define CALL_CONT_AWE(_awe, _FN,_ARG)                           \
   do {                                                          \
     KILL_CALLEE_SAVES();                                        \
-    _thc_callcont(_awe, (THCContFn_t)(_FN), (_ARG));           \
+    _thc_callcont_direct(_awe, (_ARG), (THCContFn_t)(_FN));           \
   } while (0)
 
 
 // no lazy CALL_CONT in the eager version
 #define CALL_CONT_LAZY CALL_CONT
 
-#define CALL_CONT_AND_SAVE(_FN,_IDNUM,_ARG)                     \
-  do {                                                          \
+#define CALL_CONT_AND_SAVE(_FN,_IDNUM,_ARG)                      \
+  do {                                                           \
     awe_t* _awe;                                                 \
-    _awe = awe_mapper_get_awe(_IDNUM);	                        \
-    KILL_CALLEE_SAVES();                                        \
-    _thc_callcont(_awe, (THCContFn_t)(_FN), (_ARG));           \
+    _awe = awe_mapper_get_awe(_IDNUM);	                         \
+    KILL_CALLEE_SAVES();                                         \
+    _thc_callcont_direct(_awe, (_ARG), (THCContFn_t)(_FN));   \
+    /* _thc_callcont(_awe, (THCContFn_t)(_FN), (_ARG)); */       \
   } while (0)
 
 #define CALL_CONT_LAZY_AND_SAVE CALL_CONT_AND_SAVE
@@ -250,9 +265,9 @@ extern int _end_text_nx;
 #define CALL_CONT_AND_SAVE_PTS(_FN,_IDNUM,_ARG, _pts)           \
   do {                                                          \
     awe_t* _awe;                                                \
-    _awe = _awe_mapper_get_awe(pts->awe_map, _IDNUM);	        \
+    _awe = _awe_mapper_get_awe(_pts->awe_map, _IDNUM);	        \
     KILL_CALLEE_SAVES();                                        \
-    _thc_callcont_pts(_awe, (THCContFn_t)(_FN), (_ARG), pts);   \
+    _thc_callcont_pts_direct(_awe, (_ARG), _pts, (THCContFn_t)(_FN));   \
   } while (0)
 
 
