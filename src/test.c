@@ -244,6 +244,39 @@ void test_basic_N_blocking_id_asyncs_and_N_yields_back(){
     return;   
 }
 
+void test_basic_N_blocking_id_asyncs_and_N_yields_back_extrnl_ids(){
+    unsigned long t1, t2;
+    unsigned long num = 0;
+    awe_t awes[NUM_INNER_ASYNCS];
+    int i, j;
+
+    t1 = test_fipc_start_stopwatch();
+   
+    for( i = 0; i < NUM_SWITCH_MEASUREMENTS; i++ )
+    {
+         DO_FINISH({
+             for (j = 0; j < NUM_INNER_ASYNCS/2; j++) {
+                 ASYNC({
+                     THCYieldWithAwe(&(awes[j]));
+                     num++;
+                 });
+             };                    
+             for (j = 0; j < NUM_INNER_ASYNCS/2; j++) {
+                 ASYNC({
+                     THCYieldToAweNoDispatch_TopLevel(&(awes[j]));
+                 });
+             };     
+         });
+    };
+
+    t2 = test_fipc_start_stopwatch(); 
+
+    printf("Average time per %d blocking asyncs inside one do{ }finish() and %d yield backs (yield via awe mapper): %lu cycles (%s)\n", 
+          NUM_INNER_ASYNCS/2, NUM_INNER_ASYNCS/2, (t2 - t1)/NUM_SWITCH_MEASUREMENTS, 
+          num == NUM_SWITCH_MEASUREMENTS*NUM_INNER_ASYNCS/2 ? "Passed" : "Failed");
+    return;   
+}
+
 static int test_do_finish_yield(void)
 {
     unsigned long t1, t2;
@@ -619,6 +652,7 @@ static int test_ctx_switch_to_awe(void)
 int main (void) {
     
     thc_init();
+#if 1
     test_async();
     test_async_yield();
 
@@ -629,6 +663,8 @@ int main (void) {
     test_basic_N_blocking_asyncs_create(); 
     test_basic_N_blocking_id_asyncs();
     test_basic_N_blocking_id_asyncs_and_N_yields_back();
+#endif
+    test_basic_N_blocking_id_asyncs_and_N_yields_back_extrnl_ids();
 
     test_do_finish_yield();
     test_do_finish_yield_no_dispatch();

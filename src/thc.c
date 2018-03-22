@@ -542,7 +542,7 @@ _thc_endfinishblock(finish_t *fb) {
     //_thc_pendingfree();
   } else {
     // Non-zero first time, add ourselves as the waiting AWE.
-    CALL_CONT_LAZY((unsigned char*)&_thc_endfinishblock0, fb);
+    CALL_CONT((unsigned char*)&_thc_endfinishblock0, fb);
     _thc_pendingfree();  
  
   }
@@ -604,7 +604,7 @@ void
 LIBASYNC_FUNC_ATTR 
 THCYieldAndSaveNoDispatch(uint32_t id_num)
 {
-  CALL_CONT_LAZY_AND_SAVE((void*)&thc_yield_with_cont_no_dispatch, id_num, NULL);
+  CALL_CONT_AND_SAVE((void*)&thc_yield_with_cont_no_dispatch, id_num, NULL);
 }
 EXPORT_SYMBOL(THCYieldAndSaveNoDispatch);
 
@@ -613,7 +613,7 @@ EXPORT_SYMBOL(THCYieldAndSaveNoDispatch);
 void 
 LIBASYNC_FUNC_ATTR 
 THCYield(void) {
-  CALL_CONT_LAZY((void*)&thc_yield_with_cont, NULL);
+  CALL_CONT((void*)&thc_yield_with_cont, NULL);
 }
 EXPORT_SYMBOL(THCYield);
 
@@ -749,7 +749,7 @@ THCYieldToIdAndSaveNoDispatch(uint32_t id_to, uint32_t id_from) {
   if (!awe_ptr)
     return -1; // id_to not valid
 
-  CALL_CONT_LAZY_AND_SAVE((void*)&thc_yieldto_with_cont_no_dispatch, id_from, (void*)awe_ptr);
+  CALL_CONT_AND_SAVE((void*)&thc_yieldto_with_cont_no_dispatch, id_from, (void*)awe_ptr);
 
   return 0;
 }
@@ -807,17 +807,16 @@ THCYieldToIdNoDispatch_TopLevel(uint32_t id_to)
     return -1;
   }
 
-  CALL_CONT_LAZY((void*)&thc_yieldto_with_cont_no_dispatch_top_level, (void*)awe_ptr);
+  CALL_CONT((void*)&thc_yieldto_with_cont_no_dispatch_top_level, (void*)awe_ptr);
   
   return 0;
 }
 EXPORT_SYMBOL(THCYieldToIdNoDispatch_TopLevel);
 
-int
-LIBASYNC_FUNC_ATTR 
+int inline  
 THCYieldToAweNoDispatch_TopLevel(awe_t *awe_to)
 {
-  CALL_CONT_LAZY((void*)&thc_yieldto_with_cont_no_dispatch_top_level, (void*)awe_to);
+  CALL_CONT((void*)&thc_yieldto_with_cont_no_dispatch_top_level, (void*)awe_to);
   return 0;
 }
 EXPORT_SYMBOL(THCYieldToIdNoDispatch_TopLevel);
@@ -855,7 +854,7 @@ int THCYieldToIdNoDispatch(uint32_t id_to)
     return -1;
   }
 
-  CALL_CONT_LAZY((void*)&thc_yieldto_with_cont_no_dispatch, (void*)awe_ptr);
+  CALL_CONT((void*)&thc_yieldto_with_cont_no_dispatch, (void*)awe_ptr);
 
   return 0;
 }
@@ -864,7 +863,7 @@ EXPORT_SYMBOL(THCYieldToIdNoDispatch);
 void 
 LIBASYNC_FUNC_ATTR 
 THCYieldTo(awe_t *awe_ptr) {
-  CALL_CONT_LAZY((void*)&thc_yieldto_with_cont, (void*)awe_ptr);
+  CALL_CONT((void*)&thc_yieldto_with_cont, (void*)awe_ptr);
 }
 EXPORT_SYMBOL(THCYieldTo);
 
