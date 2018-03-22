@@ -102,7 +102,7 @@
     if(!done_once) {                                                    \
        done_once = 1;                                                   \
        _swizzle();                                                      \
-    } else                                                              \
+    }/* else */                                                             \
       _thc_pendingfree();                                               \
   } while (0)
 
