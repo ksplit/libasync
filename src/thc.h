@@ -102,8 +102,8 @@
     if(!done_once) {                                                    \
        done_once = 1;                                                   \
        _swizzle();                                                      \
-    }                                                                   \
-    _thc_pendingfree();                                                 \
+    } else                                                              \
+      _thc_pendingfree();                                               \
   } while (0)
 
 // Helper macros used in creating the assembly language name for the

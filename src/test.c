@@ -244,6 +244,18 @@ void test_basic_N_blocking_id_asyncs_and_N_yields_back(){
     return;   
 }
 
+/* This test I think simulates NUM_INNER_ASYNCS message sends. The first 
+   half of sends blocks and finds the queue empty, yielding to the main 
+   execution loop. The second half of asyncs simulates the case when one 
+   message send finds another receive message in the queue and yields to 
+   it. This last half is then finished by the do_finish block, i.e., the 
+   fihish function yields back to each of the pending NUM_INNER_ASYNCS/2 
+   second half asyncs.
+   
+   So my conclusion is that this test is the overhead do..finish/async 
+   introduces compared to normal synchronous execution. 
+*/
+
 void test_basic_N_blocking_id_asyncs_and_N_yields_back_extrnl_ids(){
     unsigned long t1, t2;
     unsigned long num = 0;
