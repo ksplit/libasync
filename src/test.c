@@ -271,7 +271,7 @@ void test_basic_N_blocking_id_asyncs_and_N_yields_back_extrnl_ids(){
 
     t2 = test_fipc_start_stopwatch(); 
 
-    printf("Average time per %d blocking asyncs inside one do{ }finish() and %d yield backs (yield via awe mapper): %lu cycles (%s)\n", 
+    printf("Average time per %d blocking asyncs inside one do{ }finish() and %d yield backs (yield via awe mapper, external): %lu cycles (%s)\n", 
           NUM_INNER_ASYNCS/2, NUM_INNER_ASYNCS/2, (t2 - t1)/NUM_SWITCH_MEASUREMENTS, 
           num == NUM_SWITCH_MEASUREMENTS*NUM_INNER_ASYNCS/2 ? "Passed" : "Failed");
     return;   
