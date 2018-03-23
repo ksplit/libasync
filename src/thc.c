@@ -118,6 +118,29 @@ static inline void thc_schedule_local(awe_t *awe);
 
 void _THCScheduleBack(PTState_t *pts, awe_t *awe_ptr);
 
+/* Note: we assume that there is space at the bottom of s */
+void inline thc_push_pending(PTState_t *pts, void* s) {
+   struct thcstack_t *stack = (struct thcstack_t*)(s - sizeof(struct thcstack_t));
+   stack->next = pts->pendingFree;
+   pts->pendingFree = stack;
+}
+
+static inline void thc_pendingfree(PTState_t * pts) {
+  if (!pts->pendingFree) 
+      return; 
+
+  struct thcstack_t *s = pts->pendingFree;
+  while(s != NULL) {
+      struct thcstack_t *next = s->next;
+      DEBUG_DISPATCH(DEBUGPRINTF(DEBUG_DISPATCH_PREFIX
+                               "  pending free of stack %p\n",
+                               s));
+    
+      _thc_freestack(pts, s); 
+      s = next;
+  }
+  pts->pendingFree = NULL;
+}
 
 
 // Per-thread state
@@ -200,15 +223,19 @@ _thc_allocstack(void) {
 
 // De-allocate a stack back to THC's pool of free stacks
 
-void
-inline 
-_thc_freestack(void *s) {
-  PTState_t *pts = PTS();
-  struct thcstack_t *stack = (struct thcstack_t*)(s - sizeof(struct thcstack_t));
+void inline 
+_thc_freestack(PTState_t *pts, struct thcstack_t *stack) {
+  //PTState_t *pts = PTS();
+  //struct thcstack_t *stack = (struct thcstack_t*)(s - sizeof(struct thcstack_t));
   DEBUG_STACK(DEBUGPRINTF(DEBUG_STACK_PREFIX "> FreeStack(%p)\n", stack));
   stack->next = pts->free_stacks;
   pts->free_stacks = stack;
   DEBUG_STACK(DEBUGPRINTF(DEBUG_STACK_PREFIX "< FreeStack\n"));
+}
+
+void inline 
+_thc_freestack_void(PTState_t *pts, void *s) {
+  _thc_freestack(pts, (struct thcstack_t*)(s - sizeof(struct thcstack_t)));
 }
 
 __attribute__ ((unused))
@@ -221,15 +248,6 @@ static void re_init_dispatch_awe(void *a, void *arg) {
   thc_dispatch(pts);
 }
 
-static inline void thc_pendingfree(PTState_t * pts) {
-  if (pts->pendingFree) {
-    DEBUG_DISPATCH(DEBUGPRINTF(DEBUG_DISPATCH_PREFIX
-                               "  pending free of stack %p\n",
-                               PTS()->pendingFree));
-    _thc_freestack(pts->pendingFree);
-    pts->pendingFree = NULL;
-  }
-}
 
 void inline 
 _thc_pendingfree(void) {
@@ -247,11 +265,28 @@ static void thc_run_idle_fn(void) {
   pts->idle_fn(pts->idle_args);
   DEBUG_DISPATCH(DEBUGPRINTF(DEBUG_DISPATCH_PREFIX "  returned from idle fn\n"));
   
-  pts->pendingFree = s;
+  //pts->pendingFree = s;
+  thc_push_pending(pts, s);
+
   thc_dispatch(pts);
   NOT_REACHED;
 }
 
+void inline dispatch_next_awe(PTState_t *pts) {
+  awe_t *awe;
+
+  awe = pts->aweHead.next;
+
+  DEBUG_DISPATCH(DEBUGPRINTF(DEBUG_DISPATCH_PREFIX "  got AWE %p "
+			     "(ip=%p, sp=%p, fp=%p)\n",
+			     awe, awe->eip, awe->esp, awe->ebp));
+  pts->aweHead.next = awe->next;
+  //pts->current_fb = awe->current_fb;
+  awe->next->prev = &(pts->aweHead);
+  thc_awe_execute_0(awe);
+
+
+}
 
 // Dispatch loop
 //
@@ -264,7 +299,7 @@ static void thc_run_idle_fn(void) {
 
 static void thc_dispatch_loop(void) {
   PTState_t *pts = PTS();
-  awe_t *awe;
+  //awe_t *awe;
 
   // Re-initialize pts->dispatch_awe to this point, just after we have
   // read PTS.  This will save the per-thread-state access on future
@@ -294,16 +329,9 @@ static void thc_dispatch_loop(void) {
     thc_awe_execute_0(&idle_awe);
     NOT_REACHED;
   }
-  
-  awe = pts->aweHead.next;
 
-  DEBUG_DISPATCH(DEBUGPRINTF(DEBUG_DISPATCH_PREFIX "  got AWE %p "
-			     "(ip=%p, sp=%p, fp=%p)\n",
-			     awe, awe->eip, awe->esp, awe->ebp));
-  pts->aweHead.next = awe->next;
-  //pts->current_fb = awe->current_fb;
-  awe->next->prev = &(pts->aweHead);
-  thc_awe_execute_0(awe);
+  dispatch_next_awe(pts);
+  
 }
 
 static void thc_init_dispatch_loop(void) {
@@ -341,7 +369,7 @@ static void thc_exit_dispatch_loop(void) {
   DEBUG_INIT(DEBUGPRINTF(DEBUG_INIT_PREFIX
                          "  NULLing out dispatch AWE\n"));
   thc_awe_init(&pts->dispatch_awe, NULL, NULL, NULL);
-  _thc_freestack(pts->dispatchStack);
+  _thc_freestack_void(pts, pts->dispatchStack);
 }
 
 // Enter the dispatch function via dispatch_awe.
@@ -363,6 +391,11 @@ static inline void thc_dispatch(PTState_t *pts) {
 
      pts->direct_cont = NULL;
      thc_awe_execute_0(direct_awe);
+  }
+
+  if (pts->aweHead.next != &pts->aweTail) {
+     dispatch_next_awe(pts);
+     NOT_REACHED;
   }
 
   thc_awe_execute_0(&pts->dispatch_awe);
@@ -952,6 +985,7 @@ _thc_startasync(void *f, void *stack) {
 }
 EXPORT_SYMBOL(_thc_startasync);
 
+
 void inline 
 _thc_endasync(void *f, void *s) {
   finish_t *fb = (finish_t*)f;
@@ -964,7 +998,8 @@ _thc_endasync(void *f, void *s) {
                            (int)fb->count));
   assert(pts->pendingFree == NULL);
 
-  pts->pendingFree = s;
+  //pts->pendingFree = s;
+  thc_push_pending(pts, s);
 
   if (fb->count == 0) {
     if (fb->finish_awe) {

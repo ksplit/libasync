@@ -56,7 +56,8 @@ struct finish_t {
 /***********************************************************************/
 
 // Per-thread runtime system state
-
+// A thread stack can be either on the free list of available stacks, or 
+// on a pending list --- stacks that are pending to be deallocated
 struct thcstack_t {
   struct thcstack_t *next;
 };
@@ -92,7 +93,7 @@ struct ptstate_t {
   // (an async call terminates by re-entering the dispatch loop with
   // pendingFree set to the stack it was using.  It cannot dealloacte
   // its own stack while it is in use).
-  void *pendingFree;
+  struct thcstack_t *pendingFree;
 
   // AWE to enter for the dispatch loop on this thread
   struct awe_t dispatch_awe;
@@ -118,7 +119,9 @@ typedef void (*THCContFn_t)(void *cont, void *args);
 typedef void (*THCContPTSFn_t)(void *cont, void *args, void *pts);
 
 void *_thc_allocstack(void);
-void _thc_freestack(void *s);
+void _thc_freestack_void(PTState_t *pts, void *s);
+void _thc_freestack(PTState_t *pts, struct thcstack_t *s);
+
 void _thc_onaltstack(void *s, void *fn, void *args);
 void _thc_startasync(void *f, void *stack);
 
