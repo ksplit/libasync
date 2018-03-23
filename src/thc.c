@@ -381,7 +381,7 @@ static inline void thc_dispatch(PTState_t *pts) {
   assert(pts && pts->doneInit && "Not initialized RTS");
   
   /* If there is a direct awe jump there directly without going to 
-     dispatch loop */
+     the dispatch loop */
   if(pts->direct_cont) {
      awe_t *direct_awe = pts->direct_cont;
 
