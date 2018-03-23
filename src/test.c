@@ -168,6 +168,48 @@ void test_basic_N_blocking_asyncs_create(){
     return;   
 }
 
+void test_basic_N_blocking_asyncs_create_pts(){
+    unsigned long t1, t2;
+    unsigned long num = 0;
+    int i, j;
+
+    t1 = test_fipc_start_stopwatch();
+   
+    for( i = 0; i < NUM_SWITCH_MEASUREMENTS; i++ )
+    {
+         DO_FINISH({
+             for (j = 0; j < NUM_INNER_ASYNCS; j++) {
+                 ASYNC({
+                     THCYieldPTS();
+                     num++;
+                 });
+             };             
+         });
+    };
+
+    t2 = test_fipc_start_stopwatch(); 
+
+    printf("Average time per %d blocking asyncs inside one do{ }finish() (thread pts): %lu cycles (%s)\n", 
+          NUM_INNER_ASYNCS, (t2 - t1)/NUM_SWITCH_MEASUREMENTS, 
+          num == NUM_SWITCH_MEASUREMENTS*NUM_INNER_ASYNCS ? "Passed" : "Failed");
+    return;   
+}
+
+/* This test emulates NUM_INNER_ASYNCS message sends (same as below,
+   but completes them via the dispatch loop vs waking up through another ASYNC 
+   like above).
+
+   It's tempting to get rid of awe id's here, but then there will be no 
+   way for the dispatch loop to finish them when it reaches the end of 
+   the do...finish block inside of the endfinish(). 
+
+   My conclusion is that this test faithfully estimates the overhead
+   do..finish/async when all messages block and then are completed as part
+   of the endfinish function.
+
+   Ironically it is slower than the test above... 
+*/
+
 void test_basic_N_blocking_id_asyncs(){
     unsigned long t1, t2;
     unsigned long num = 0;
@@ -203,6 +245,48 @@ void test_basic_N_blocking_id_asyncs(){
     t2 = test_fipc_start_stopwatch(); 
 
     printf("Average time per %d blocking asyncs inside one do{ }finish() (yield via awe mapper): %lu cycles (%s)\n", 
+          NUM_INNER_ASYNCS, (t2 - t1)/NUM_SWITCH_MEASUREMENTS, 
+          num == NUM_SWITCH_MEASUREMENTS*NUM_INNER_ASYNCS ? "Passed" : "Failed");
+    return;   
+}
+
+/* Same as above but thread PTS through yields */
+
+void test_basic_N_blocking_id_asyncs_pts(){
+    unsigned long t1, t2;
+    unsigned long num = 0;
+    unsigned int ids[NUM_INNER_ASYNCS];
+    int i, j;
+
+    t1 = test_fipc_start_stopwatch();
+   
+    for( i = 0; i < NUM_SWITCH_MEASUREMENTS; i++ )
+    {
+         DO_FINISH({
+             for (j = 0; j < NUM_INNER_ASYNCS; j++) {
+                 ASYNC({
+                     int local_j = j;
+                     ids[local_j] = awe_mapper_create_id();
+                     assert(ids[local_j]);
+                     //printf("id (%d):%d\n", local_j, ids[local_j]);
+                     assert(ids[j] < AWE_TABLE_COUNT); 
+                     THCYieldAndSavePTS(ids[local_j]);
+                     //printf("rel id (%d):%d\n", local_j, ids[local_j]);
+                     awe_mapper_remove_id(ids[local_j]);
+                     num++;
+                 });
+             };                    
+             //for (j = 0; j < NUM_INNER_ASYNCS; j++) {
+             //    ASYNC({
+             //        THCYieldToId(ids[j]);
+             //    });
+             //};     
+         });
+    };
+
+    t2 = test_fipc_start_stopwatch(); 
+
+    printf("Average time per %d blocking asyncs inside one do{ }finish() (yield via awe mapper, thread pts): %lu cycles (%s)\n", 
           NUM_INNER_ASYNCS, (t2 - t1)/NUM_SWITCH_MEASUREMENTS, 
           num == NUM_SWITCH_MEASUREMENTS*NUM_INNER_ASYNCS ? "Passed" : "Failed");
     return;   
@@ -673,7 +757,9 @@ int main (void) {
     test_basic_N_nonblocking_asyncs_create();
 
     test_basic_N_blocking_asyncs_create(); 
+    test_basic_N_blocking_asyncs_create_pts();
     test_basic_N_blocking_id_asyncs();
+    test_basic_N_blocking_id_asyncs_pts();
     test_basic_N_blocking_id_asyncs_and_N_yields_back();
 #endif
     test_basic_N_blocking_id_asyncs_and_N_yields_back_extrnl_ids();

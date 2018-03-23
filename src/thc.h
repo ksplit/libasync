@@ -203,6 +203,8 @@ void THCAbort(void);
 //Yields and saves AWE for continuation (associates it with an id using 
 //the awe_mapper).
 void THCYieldAndSave(uint32_t id_num);
+void THCYieldAndSavePTS(uint32_t id_num);
+
 
 //Yields and saves AWE for continuation (associates it with an id using 
 //the awe_mapper),but will not put AWE for the continuation in the dispatch 
@@ -212,6 +214,7 @@ void THCYieldAndSaveNoDispatch(uint32_t id_num);
 // Finish the current AWE, creating a new AWE from its continuation, and
 // passing this immediately to the scheduler.
 void THCYield(void);
+void THCYieldPTS(void);
 
 // Hint that the runtime system should switch from the current AWE to the
 // indicated awe_ptr.  (Currently, the implementation does this immediately

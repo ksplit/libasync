@@ -593,9 +593,20 @@ static void thc_yield_with_cont_no_dispatch(void *a, void *arg) {
 // Yields and saves awe_ptr to correspond to the provided id number
 void 
 LIBASYNC_FUNC_ATTR 
-THCYieldAndSave(uint32_t id_num)
+THCYieldAndSavePTS(uint32_t id_num)
 {
   CALL_CONT_AND_SAVE_PTS((void*)&thc_yield_with_cont_pts, id_num, NULL, PTS());
+   
+}
+
+// Yields and saves awe_ptr to correspond to the provided id number
+void 
+LIBASYNC_FUNC_ATTR 
+THCYieldAndSave(uint32_t id_num)
+{
+  //CALL_CONT_AND_SAVE_PTS((void*)&thc_yield_with_cont_pts, id_num, NULL, PTS());
+  CALL_CONT_AND_SAVE((void*)&thc_yield_with_cont, id_num, NULL);
+   
 }
 EXPORT_SYMBOL(THCYieldAndSave);
 
@@ -608,14 +619,20 @@ THCYieldAndSaveNoDispatch(uint32_t id_num)
 }
 EXPORT_SYMBOL(THCYieldAndSaveNoDispatch);
 
-
-
 void 
 LIBASYNC_FUNC_ATTR 
 THCYield(void) {
   CALL_CONT((void*)&thc_yield_with_cont, NULL);
 }
 EXPORT_SYMBOL(THCYield);
+
+void 
+LIBASYNC_FUNC_ATTR 
+THCYieldPTS(void) {
+  CALL_CONT_PTS((void*)&thc_yield_with_cont_pts, NULL, PTS());
+}
+EXPORT_SYMBOL(THCYieldPTS);
+
 
 static inline void remove_awe_from_list(awe_t* awe)
 {
