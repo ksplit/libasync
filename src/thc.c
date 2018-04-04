@@ -783,6 +783,8 @@ THCYieldToIdAndSave(uint32_t id_to, uint32_t id_from) {
   //  return -1; // id_to not valid
 
   awe = _awe_mapper_get_awe(pts->awe_map, id_to);
+  if (!awe)
+    return -1;
 
   // Switch to awe_ptr
   CALL_CONT_AND_SAVE_PTS((void*)&thc_yieldto_with_cont_pts, id_from, (void*)awe, pts);
@@ -876,6 +878,9 @@ int inline
 _THCYieldToId(PTState_t *pts, uint32_t id_to)
 {
   awe_t *awe = _awe_mapper_get_awe(pts->awe_map, id_to);
+ 
+  if(!awe)
+    return -1;
 
   // Switch to target awe
   // We were woken up
@@ -891,8 +896,7 @@ int
 LIBASYNC_FUNC_ATTR 
 THCYieldToId(uint32_t id_to)
 {
-  _THCYieldToId(PTS(), id_to);
-  return 0;
+  return _THCYieldToId(PTS(), id_to);
 }
 EXPORT_SYMBOL(THCYieldToId);
 

@@ -81,16 +81,7 @@ awe_mapper_uninit(void)
     }
 }
 
-static inline int _is_slot_allocated(awe_table_t *awe_map, uint32_t id)
-{
-    return awe_map->awe_bitmap & (1 << (id - 1));
-}
 
-static inline int is_slot_allocated(uint32_t id)
-{
-    awe_table_t *awe_map =  get_awe_map();
-    return _is_slot_allocated(awe_map, id);
-}
 
 
 /*
