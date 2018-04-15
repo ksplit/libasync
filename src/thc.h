@@ -24,6 +24,12 @@
 #include <assert.h>
 #endif /* LINUX_KERNEL */
 
+#define thc_printf(_f, _a...)   do {                          \
+       printf("%s():"                                         \
+              _f, __FUNCTION__, ## _a);                       \
+    } while (0)
+
+
 // The implementation of do..finish relies on shadowing so that 
 // _fb_info always refers to the closest enclosing do..finish block.
 #pragma GCC diagnostic ignored "-Wshadow"

@@ -10,30 +10,30 @@
 
 void test_async(){
 
-    printf("Basic do...finish/async test\n");
+    thc_printf("Basic do...finish/async test\n");
 
     DO_FINISH({
         ASYNC({
-            printf("ASYNC 1: inside\n");
+            thc_printf("ASYNC 1: inside\n");
         });             
     });
 
-    printf("Done with do...finish\n");
+    thc_printf("Done with do...finish\n");
     return;   
 }
 
 void test_async_yield() {
   unsigned int id_1, id_2;
 
-  printf("Basic do...finish/async yield test\n");
+  thc_printf("Basic do...finish/async yield test\n");
 
   DO_FINISH({
         ASYNC({
             id_1 = awe_mapper_create_id();
             assert(id_1);
-            printf("ASYNC 1: Ready to yield\n");
+            thc_printf("ASYNC 1: Ready to yield\n");
             THCYieldAndSaveNoDispatch(id_1);
-            printf("ASYNC 1: Got control back\n");
+            thc_printf("ASYNC 1: Got control back\n");
 
             //t4 = test_fipc_stop_stopwatch();
             awe_mapper_remove_id(id_1);
@@ -42,9 +42,9 @@ void test_async_yield() {
             id_2 = awe_mapper_create_id();
             assert(id_2);
             //t3 = test_fipc_start_stopwatch(); 
-            printf("ASYNC 2: Ready to yield\n");
+            thc_printf("ASYNC 2: Ready to yield\n");
             THCYieldToIdAndSaveNoDispatch(id_1,id_2);
-            printf("ASYNC 2: Got control back\n");
+            thc_printf("ASYNC 2: Got control back\n");
 
         });             
                     
@@ -62,7 +62,7 @@ void test_async_yield() {
 
     });
 
-    printf("Done with do...finish\n");
+    thc_printf("Done with do...finish\n");
 
 
 }
@@ -83,7 +83,7 @@ void test_basic_do_finish_create(){
 
     t2 = test_fipc_start_stopwatch(); 
 
-    printf("Average time per do{ i++ }finish(): %lu cycles (%s)\n", 
+    thc_printf("Average time per do{ i++ }finish(): %lu cycles (%s)\n", 
           (t2 - t1)/NUM_SWITCH_MEASUREMENTS, 
           num == NUM_SWITCH_MEASUREMENTS ? "Passed" : "Failed");
     
@@ -108,7 +108,7 @@ void test_basic_nonblocking_async_create(){
 
     t2 = test_fipc_start_stopwatch(); 
 
-    printf("Average time per non blocking do{async{i++}}finish(): %lu cycles (%s)\n", 
+    thc_printf("Average time per non blocking do{async{i++}}finish(): %lu cycles (%s)\n", 
           (t2 - t1)/NUM_SWITCH_MEASUREMENTS, 
           num == NUM_SWITCH_MEASUREMENTS ? "Passed" : "Failed");
         
@@ -135,7 +135,7 @@ void test_basic_N_nonblocking_asyncs_create(){
 
     t2 = test_fipc_start_stopwatch(); 
 
-    printf("Average time per %d non blocking asyncs inside one do{ }finish(): %lu cycles (%s)\n", 
+    thc_printf("Average time per %d non blocking asyncs inside one do{ }finish(): %lu cycles (%s)\n", 
           NUM_INNER_ASYNCS, (t2 - t1)/NUM_SWITCH_MEASUREMENTS, 
           num == NUM_SWITCH_MEASUREMENTS*NUM_INNER_ASYNCS ? "Passed" : "Failed");
     return;   
@@ -162,7 +162,7 @@ void test_basic_N_blocking_asyncs_create(){
 
     t2 = test_fipc_start_stopwatch(); 
 
-    printf("Average time per %d blocking asyncs inside one do{ }finish(): %lu cycles (%s)\n", 
+    thc_printf("Average time per %d blocking asyncs inside one do{ }finish(): %lu cycles (%s)\n", 
           NUM_INNER_ASYNCS, (t2 - t1)/NUM_SWITCH_MEASUREMENTS, 
           num == NUM_SWITCH_MEASUREMENTS*NUM_INNER_ASYNCS ? "Passed" : "Failed");
     return;   
@@ -189,7 +189,7 @@ void test_basic_N_blocking_asyncs_create_pts(){
 
     t2 = test_fipc_start_stopwatch(); 
 
-    printf("Average time per %d blocking asyncs inside one do{ }finish() (thread pts): %lu cycles (%s)\n", 
+    thc_printf("Average time per %d blocking asyncs inside one do{ }finish() (thread pts): %lu cycles (%s)\n", 
           NUM_INNER_ASYNCS, (t2 - t1)/NUM_SWITCH_MEASUREMENTS, 
           num == NUM_SWITCH_MEASUREMENTS*NUM_INNER_ASYNCS ? "Passed" : "Failed");
     return;   
@@ -226,10 +226,10 @@ void test_basic_N_blocking_id_asyncs(){
                      int local_j = j;
                      ids[local_j] = awe_mapper_create_id();
                      assert(ids[local_j]);
-                     //printf("id (%d):%d\n", local_j, ids[local_j]);
+                     //thc_printf("id (%d):%d\n", local_j, ids[local_j]);
                      assert(ids[j] < AWE_TABLE_COUNT); 
                      THCYieldAndSave(ids[local_j]);
-                     //printf("rel id (%d):%d\n", local_j, ids[local_j]);
+                     //thc_printf("rel id (%d):%d\n", local_j, ids[local_j]);
                      awe_mapper_remove_id(ids[local_j]);
                      num++;
                  });
@@ -244,7 +244,7 @@ void test_basic_N_blocking_id_asyncs(){
 
     t2 = test_fipc_start_stopwatch(); 
 
-    printf("Average time per %d blocking asyncs inside one do{ }finish() (yield via awe mapper): %lu cycles (%s)\n", 
+    thc_printf("Average time per %d blocking asyncs inside one do{ }finish() (yield via awe mapper): %lu cycles (%s)\n", 
           NUM_INNER_ASYNCS, (t2 - t1)/NUM_SWITCH_MEASUREMENTS, 
           num == NUM_SWITCH_MEASUREMENTS*NUM_INNER_ASYNCS ? "Passed" : "Failed");
     return;   
@@ -268,10 +268,10 @@ void test_basic_N_blocking_id_asyncs_pts(){
                      int local_j = j;
                      ids[local_j] = awe_mapper_create_id();
                      assert(ids[local_j]);
-                     //printf("id (%d):%d\n", local_j, ids[local_j]);
+                     //thc_printf("id (%d):%d\n", local_j, ids[local_j]);
                      assert(ids[j] < AWE_TABLE_COUNT); 
                      THCYieldAndSavePTS(ids[local_j]);
-                     //printf("rel id (%d):%d\n", local_j, ids[local_j]);
+                     //thc_printf("rel id (%d):%d\n", local_j, ids[local_j]);
                      awe_mapper_remove_id(ids[local_j]);
                      num++;
                  });
@@ -286,7 +286,7 @@ void test_basic_N_blocking_id_asyncs_pts(){
 
     t2 = test_fipc_start_stopwatch(); 
 
-    printf("Average time per %d blocking asyncs inside one do{ }finish() (yield via awe mapper, thread pts): %lu cycles (%s)\n", 
+    thc_printf("Average time per %d blocking asyncs inside one do{ }finish() (yield via awe mapper, thread pts): %lu cycles (%s)\n", 
           NUM_INNER_ASYNCS, (t2 - t1)/NUM_SWITCH_MEASUREMENTS, 
           num == NUM_SWITCH_MEASUREMENTS*NUM_INNER_ASYNCS ? "Passed" : "Failed");
     return;   
@@ -322,7 +322,7 @@ void test_basic_N_blocking_id_asyncs_and_N_yields_back(){
 
     t2 = test_fipc_start_stopwatch(); 
 
-    printf("Average time per %d blocking asyncs inside one do{ }finish() and %d yield backs (yield via awe mapper): %lu cycles (%s)\n", 
+    thc_printf("Average time per %d blocking asyncs inside one do{ }finish() and %d yield backs (yield via awe mapper): %lu cycles (%s)\n", 
           NUM_INNER_ASYNCS/2, NUM_INNER_ASYNCS/2, (t2 - t1)/NUM_SWITCH_MEASUREMENTS, 
           num == NUM_SWITCH_MEASUREMENTS*NUM_INNER_ASYNCS/2 ? "Passed" : "Failed");
     return;   
@@ -367,7 +367,7 @@ void test_basic_N_blocking_id_asyncs_and_N_yields_back_extrnl_ids(){
 
     t2 = test_fipc_start_stopwatch(); 
 
-    printf("Average time per %d blocking asyncs inside one do{ }finish() and %d yield backs (yield via awe mapper, external): %lu cycles (%s)\n", 
+    thc_printf("Average time per %d blocking asyncs inside one do{ }finish() and %d yield backs (yield via awe mapper, external): %lu cycles (%s)\n", 
           NUM_INNER_ASYNCS/2, NUM_INNER_ASYNCS/2, (t2 - t1)/NUM_SWITCH_MEASUREMENTS, 
           num == NUM_SWITCH_MEASUREMENTS*NUM_INNER_ASYNCS/2 ? "Passed" : "Failed");
     return;   
@@ -399,7 +399,7 @@ static int test_do_finish_yield(void)
             });
     }
     t2 = test_fipc_start_stopwatch(); 
-    printf("Average time per do .. finish and two blocking yields: %lu cycles (%s)\n", 
+    thc_printf("Average time per do .. finish and two blocking yields: %lu cycles (%s)\n", 
           (t2 - t1)/NUM_SWITCH_MEASUREMENTS, 
           num == NUM_SWITCH_MEASUREMENTS*2 ? "Passed" : "Failed");
  
@@ -444,7 +444,7 @@ static int test_do_finish_yield_no_dispatch(void)
 
     t2 = test_fipc_stop_stopwatch();
 
-    printf("Average time per do .. finish and two blocking yields (no dispatch): %lu cycles (%s)\n", 
+    thc_printf("Average time per do .. finish and two blocking yields (no dispatch): %lu cycles (%s)\n", 
           (t2 - t1)/NUM_SWITCH_MEASUREMENTS, 
           num == NUM_SWITCH_MEASUREMENTS*2 ? "Passed" : "Failed");
 
@@ -489,7 +489,7 @@ static int test_ctx_switch(void)
         });
     });
     
-    printf("Average time per context switch: %lu cycles\n", 
+    thc_printf("Average time per context switch: %lu cycles\n", 
           (t2 - t1)/NUM_SWITCH_MEASUREMENTS);
                                         
 
@@ -511,15 +511,15 @@ static int test_ctx_switch_no_dispatch(void)
             int i;
             id_1 = awe_mapper_create_id();
             assert(id_1);
-            //printf("ASYNC 1: warm up yield\n");
+            //thc_printf("ASYNC 1: warm up yield\n");
             THCYieldAndSaveNoDispatch(id_1);
-            //printf("ASYNC 1: got control back\n");
+            //thc_printf("ASYNC 1: got control back\n");
                             
             for(i = 0; i < NUM_SWITCH_MEASUREMENTS / 2; i++)
             {
-                //printf("ASYNC 1: ready to yield\n");
+                //thc_printf("ASYNC 1: ready to yield\n");
                 THCYieldToIdAndSaveNoDispatch(id_2,id_1);
-                //printf("ASYNC 1: got control back\n");
+                //thc_printf("ASYNC 1: got control back\n");
             }
             awe_mapper_remove_id(id_1);
             awe_mapper_remove_id(id_2);
@@ -532,9 +532,9 @@ static int test_ctx_switch_no_dispatch(void)
                             
             for(i = 0; i < NUM_SWITCH_MEASUREMENTS / 2; i++)
             {
-                //printf("ASYNC 2: ready to yield\n");
+                //thc_printf("ASYNC 2: ready to yield\n");
                 THCYieldToIdAndSaveNoDispatch(id_1,id_2);
-                //printf("ASYNC 2: got control back\n");
+                //thc_printf("ASYNC 2: got control back\n");
             }
         });
         THCYieldToIdNoDispatch_TopLevel(id_1);
@@ -542,7 +542,7 @@ static int test_ctx_switch_no_dispatch(void)
 
     t2 = test_fipc_stop_stopwatch();
 
-    printf("Average time per context switch (no dispatch): %lu cycles\n", 
+    thc_printf("Average time per context switch (no dispatch): %lu cycles\n", 
           (t2 - t1)/NUM_SWITCH_MEASUREMENTS);
 
 
@@ -563,15 +563,15 @@ static int test_ctx_switch_no_dispatch_direct(void)
             int i;
             id_1 = awe_mapper_create_id();
             assert(id_1);
-            //printf("ASYNC 1: warm up yield\n");
+            //thc_printf("ASYNC 1: warm up yield\n");
             THCYieldAndSaveNoDispatch(id_1);
-            //printf("ASYNC 1: got control back\n");
+            //thc_printf("ASYNC 1: got control back\n");
                             
             for(i = 0; i < NUM_SWITCH_MEASUREMENTS / 2; i++)
             {
-                //printf("ASYNC 1: ready to yield\n");
+                //thc_printf("ASYNC 1: ready to yield\n");
                 THCYieldToIdAndSaveNoDispatchDirect(id_2,id_1);
-                //printf("ASYNC 1: got control back\n");
+                //thc_printf("ASYNC 1: got control back\n");
             }
             awe_mapper_remove_id(id_1);
             awe_mapper_remove_id(id_2);
@@ -584,9 +584,9 @@ static int test_ctx_switch_no_dispatch_direct(void)
                             
             for(i = 0; i < NUM_SWITCH_MEASUREMENTS / 2; i++)
             {
-                //printf("ASYNC 2: ready to yield\n");
+                //thc_printf("ASYNC 2: ready to yield\n");
                 THCYieldToIdAndSaveNoDispatchDirect(id_1,id_2);
-                //printf("ASYNC 2: got control back\n");
+                //thc_printf("ASYNC 2: got control back\n");
             }
         });
         THCYieldToIdNoDispatch_TopLevel(id_1);
@@ -594,7 +594,7 @@ static int test_ctx_switch_no_dispatch_direct(void)
 
     t2 = test_fipc_stop_stopwatch();
 
-    printf("Average time per context switch (no dispatch, direct): %lu cycles\n", 
+    thc_printf("Average time per context switch (no dispatch, direct): %lu cycles\n", 
           (t2 - t1)/NUM_SWITCH_MEASUREMENTS);
 
 
@@ -617,15 +617,15 @@ static int test_ctx_switch_no_dispatch_direct_trusted(void)
             int i;
             id_1 = awe_mapper_create_id();
             assert(id_1);
-            //printf("ASYNC 1: warm up yield\n");
+            //thc_printf("ASYNC 1: warm up yield\n");
             THCYieldAndSaveNoDispatch(id_1);
-            //printf("ASYNC 1: got control back\n");
+            //thc_printf("ASYNC 1: got control back\n");
                             
             for(i = 0; i < NUM_SWITCH_MEASUREMENTS / 2; i++)
             {
-                //printf("ASYNC 1: ready to yield\n");
+                //thc_printf("ASYNC 1: ready to yield\n");
                 THCYieldToIdAndSaveNoDispatchDirectTrusted(id_2,id_1);
-                //printf("ASYNC 1: got control back\n");
+                //thc_printf("ASYNC 1: got control back\n");
             }
             awe_mapper_remove_id(id_1);
             awe_mapper_remove_id(id_2);
@@ -638,9 +638,9 @@ static int test_ctx_switch_no_dispatch_direct_trusted(void)
                             
             for(i = 0; i < NUM_SWITCH_MEASUREMENTS / 2; i++)
             {
-                //printf("ASYNC 2: ready to yield\n");
+                //thc_printf("ASYNC 2: ready to yield\n");
                 THCYieldToIdAndSaveNoDispatchDirectTrusted(id_1,id_2);
-                //printf("ASYNC 2: got control back\n");
+                //thc_printf("ASYNC 2: got control back\n");
             }
         });
         THCYieldToIdNoDispatch_TopLevel(id_1);
@@ -648,7 +648,7 @@ static int test_ctx_switch_no_dispatch_direct_trusted(void)
 
     t2 = test_fipc_stop_stopwatch();
 
-    printf("Average time per context switch (no dispatch, direct, trusted): %lu cycles\n", 
+    thc_printf("Average time per context switch (no dispatch, direct, trusted): %lu cycles\n", 
           (t2 - t1)/NUM_SWITCH_MEASUREMENTS);
 
 
@@ -669,20 +669,20 @@ static int test_create_and_ctx_switch_to_awe(void)
         DO_FINISH({
 
             ASYNC({
-                //printf("ASYNC 1: warm up yield\n");
+                //thc_printf("ASYNC 1: warm up yield\n");
                 THCYieldWithAwe(&awe_1);
-                //printf("ASYNC 1: got control back\n");
+                //thc_printf("ASYNC 1: got control back\n");
                             
-                //printf("ASYNC 1: ready to yield\n");
+                //thc_printf("ASYNC 1: ready to yield\n");
                 //THCYieldToAwe(&awe_1, &awe_2);
-                //printf("ASYNC 1: got control back\n");
+                //thc_printf("ASYNC 1: got control back\n");
                
             });
         
             ASYNC({
-                //printf("ASYNC 2: ready to yield\n");
+                //thc_printf("ASYNC 2: ready to yield\n");
                 THCYieldToAwe(&awe_2, &awe_1);
-                //printf("ASYNC 2: got control back\n");
+                //thc_printf("ASYNC 2: got control back\n");
             });
 
             THCYieldToAweNoDispatch_TopLevel(&awe_1);
@@ -692,7 +692,7 @@ static int test_create_and_ctx_switch_to_awe(void)
 
     t2 = test_fipc_stop_stopwatch();
 
-    printf("Average time to do...finish and two yeilds (direct awe): %lu cycles\n", 
+    thc_printf("Average time to do...finish and two yeilds (direct awe): %lu cycles\n", 
           (t2 - t1)/NUM_SWITCH_MEASUREMENTS);
 
 
@@ -710,15 +710,15 @@ static int test_ctx_switch_to_awe(void)
 
         ASYNC({
             int i;
-            //printf("ASYNC 1: warm up yield\n");
+            //thc_printf("ASYNC 1: warm up yield\n");
             THCYieldWithAwe(&awe_1);
-            //printf("ASYNC 1: got control back\n");
+            //thc_printf("ASYNC 1: got control back\n");
                             
             for(i = 0; i < NUM_SWITCH_MEASUREMENTS / 2; i++)
             {
-                //printf("ASYNC 1: ready to yield\n");
+                //thc_printf("ASYNC 1: ready to yield\n");
                 THCYieldToAwe(&awe_1, &awe_2);
-                //printf("ASYNC 1: got control back\n");
+                //thc_printf("ASYNC 1: got control back\n");
             }
         });
         
@@ -726,9 +726,9 @@ static int test_ctx_switch_to_awe(void)
             int i;
             for(i = 0; i < NUM_SWITCH_MEASUREMENTS / 2; i++)
             {
-                //printf("ASYNC 2: ready to yield\n");
+                //thc_printf("ASYNC 2: ready to yield\n");
                 THCYieldToAwe(&awe_2, &awe_1);
-                //printf("ASYNC 2: got control back\n");
+                //thc_printf("ASYNC 2: got control back\n");
             }
         });
         THCYieldToAweNoDispatch_TopLevel(&awe_1);
@@ -737,7 +737,7 @@ static int test_ctx_switch_to_awe(void)
 
     t2 = test_fipc_stop_stopwatch();
 
-    printf("Average time per context switch (direct awe): %lu cycles\n", 
+    thc_printf("Average time per context switch (direct awe): %lu cycles\n", 
           (t2 - t1)/NUM_SWITCH_MEASUREMENTS);
 
 
