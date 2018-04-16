@@ -141,6 +141,31 @@ void test_basic_N_nonblocking_asyncs_create(){
     return;   
 }
 
+void test_basic_1_blocking_asyncs_create(){
+    unsigned long t1, t2;
+    unsigned long num = 0;
+    int i;
+
+    t1 = test_fipc_start_stopwatch();
+   
+    for( i = 0; i < NUM_SWITCH_MEASUREMENTS; i++ )
+    {
+         DO_FINISH({
+                 ASYNC({
+                     THCYield();
+                     num++;
+                 });
+         });
+    };
+
+    t2 = test_fipc_start_stopwatch(); 
+
+    thc_printf("Average time per 1 blocking asyncs inside one do{ }finish(): %lu cycles (%s)\n", 
+          (t2 - t1)/NUM_SWITCH_MEASUREMENTS, 
+          num == NUM_SWITCH_MEASUREMENTS ? "Passed" : "Failed");
+    return;   
+}
+
 void test_basic_N_blocking_asyncs_create(){
     unsigned long t1, t2;
     unsigned long num = 0;
@@ -756,6 +781,7 @@ int main (void) {
     test_basic_nonblocking_async_create();  
     test_basic_N_nonblocking_asyncs_create();
 
+    test_basic_1_blocking_asyncs_create();
     test_basic_N_blocking_asyncs_create(); 
     test_basic_N_blocking_asyncs_create_pts();
     test_basic_N_blocking_id_asyncs();
