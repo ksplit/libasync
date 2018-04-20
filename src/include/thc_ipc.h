@@ -216,6 +216,9 @@ int thc_ipc_recv_response(struct thc_channel *chnl,
 			uint32_t request_cookie, 
 			struct fipc_message **response);
 
+int thc_ipc_recv_response_ts(struct thc_channel *chnl, 
+			uint32_t request_cookie, 
+			struct fipc_message **response, uint64_t *ts);
 /* thc_poll_recv
  *
  * Looks at the fipc channel, and does the following:
@@ -237,6 +240,8 @@ int thc_ipc_recv_response(struct thc_channel *chnl,
 int thc_ipc_poll_recv(struct thc_channel *chnl,
 		struct fipc_message **out_msg);
 
+int thc_ipc_poll_recv_2(struct thc_channel *chnl,
+		struct fipc_message **out_msg);
 /*
  * thc_ipc_call
  * 
@@ -364,4 +369,9 @@ thc_channel_group_item_to_fipc(struct thc_channel_group_item *item)
 int thc_poll_recv_group(struct thc_channel_group* chan_group, 
                         struct thc_channel_group_item** chan_group_item, 
                         struct fipc_message** out_msg);
+
+int thc_poll_recv_group_2(struct thc_channel_group* chan_group, 
+                        struct thc_channel_group_item** chan_group_item, 
+                        struct fipc_message** out_msg);
+
 #endif

@@ -137,6 +137,104 @@ static void try_yield(struct thc_channel *chnl, uint32_t our_request_cookie,
 	return;
 }
 
+inline int 
+LIBASYNC_FUNC_ATTR 
+thc_ipc_recv_response_ts(struct thc_channel *chnl, 
+		uint32_t request_cookie, 
+		struct fipc_message **response, uint64_t *ts)
+{
+	struct predicate_payload payload = {
+		.expected_msg_id = request_cookie
+	};
+	int ret;
+	uint64_t a;
+retry:
+	a = rdtsc();
+        ret = fipc_recv_msg_if(thc_channel_to_fipc(chnl), thc_recv_predicate, 
+			&payload, response);
+	if (ret == 0) {
+#if 0
+               printk("%s, message for us!\n", __func__);
+#endif
+		/*
+		 * Message for us; remove request_cookie from awe mapper
+		 */
+                awe_mapper_remove_id(request_cookie);
+		//printk("%s, got msg for cookie %d\n", __func__, request_cookie);
+	*ts = rdtsc() - a;
+		return 0;
+	} else if (ret == -ENOMSG && payload.msg_type == msg_type_request) {
+#if 0
+               printk("%s, request message?\n", __func__);
+#endif
+		/*
+		 * Ignore requests; yield so someone else can receive it (msgs
+		 * are received in fifo order).
+		 */
+		goto yield;
+	} else if (ret == -ENOMSG && payload.msg_type == msg_type_response) {
+#if 0
+               printk("%s, for someone else?\n", __func__);
+#endif
+		/*
+		 * Response for someone else. Try to yield to them.
+		 */
+		try_yield(chnl, request_cookie, payload.actual_msg_id);
+		/*
+		 * We either yielded to the pending awe the response
+		 * belonged to, or the switch failed.
+		 *
+		 * Make sure the channel didn't die in case we did go to
+		 * sleep.
+		 */
+		if (unlikely(thc_channel_is_dead(chnl)))
+			return -EPIPE; /* someone killed the channel */
+		goto retry;
+	} else if (ret == -ENOMSG) {
+#if 0
+               printk("%s, unspecified message?\n", __func__);
+#endif
+
+		/*
+		 * Unknown or unspecified message type; yield and let someone
+		 * else handle it.
+		 */
+		goto yield;
+	} else if (ret == -EWOULDBLOCK) {
+#if 0
+               printk("%s, no message in rx buffer, sleep?\n", __func__);
+#endif
+		/*
+		 * No messages in rx buffer; go to sleep.
+		 */
+		goto yield;
+	} else {
+		/*
+		 * Error
+		 */
+		printk(KERN_ERR "thc_ipc_recv_response: fipc returned %d\n", 
+			ret);
+		return ret;
+	}
+
+yield:
+	//printk("%s, yielding to %d\n", __func__, request_cookie);
+	/*
+	 * Go to sleep, we will be woken up at some later time
+	 * by the dispatch loop or some other awe.
+	 */
+	THCYieldAndSave(request_cookie);
+	/*
+	 * We were woken up; make sure the channel didn't die while
+	 * we were asleep.
+	 */
+	if (unlikely(thc_channel_is_dead(chnl)))
+                return -EPIPE; /* someone killed the channel */
+	else
+		goto retry;
+}
+EXPORT_SYMBOL(thc_ipc_recv_response_ts);
+
 int 
 LIBASYNC_FUNC_ATTR 
 thc_ipc_recv_response(struct thc_channel *chnl, 
@@ -152,22 +250,31 @@ retry:
         ret = fipc_recv_msg_if(thc_channel_to_fipc(chnl), thc_recv_predicate, 
 			&payload, response);
 	if (ret == 0) {
+#if 0
+               printk("%s, message for us!\n", __func__);
+#endif
 		/*
 		 * Message for us; remove request_cookie from awe mapper
 		 */
                 awe_mapper_remove_id(request_cookie);
+		//printk("%s, got msg for cookie %d\n", __func__, request_cookie);
 		return 0;
 	} else if (ret == -ENOMSG && payload.msg_type == msg_type_request) {
+#if 0
+               printk("%s, request message?\n", __func__);
+#endif
 		/*
 		 * Ignore requests; yield so someone else can receive it (msgs
 		 * are received in fifo order).
 		 */
 		goto yield;
 	} else if (ret == -ENOMSG && payload.msg_type == msg_type_response) {
+#if 0
+               printk("%s, for someone else?\n", __func__);
+#endif
 		/*
 		 * Response for someone else. Try to yield to them.
 		 */
-
 		try_yield(chnl, request_cookie, payload.actual_msg_id);
 		/*
 		 * We either yielded to the pending awe the response
@@ -180,12 +287,19 @@ retry:
 			return -EPIPE; /* someone killed the channel */
 		goto retry;
 	} else if (ret == -ENOMSG) {
+#if 0
+               printk("%s, unspecified message?\n", __func__);
+#endif
+
 		/*
 		 * Unknown or unspecified message type; yield and let someone
 		 * else handle it.
 		 */
 		goto yield;
 	} else if (ret == -EWOULDBLOCK) {
+#if 0
+               printk("%s, no message in rx buffer, sleep?\n", __func__);
+#endif
 		/*
 		 * No messages in rx buffer; go to sleep.
 		 */
@@ -200,6 +314,7 @@ retry:
 	}
 
 yield:
+	//printk("%s, yielding to %d\n", __func__, request_cookie);
 	/*
 	 * Go to sleep, we will be woken up at some later time
 	 * by the dispatch loop or some other awe.
@@ -245,6 +360,76 @@ EXPORT_SYMBOL(thc_poll_recv_group);
 
 int 
 LIBASYNC_FUNC_ATTR 
+thc_poll_recv_group_2(struct thc_channel_group* chan_group,
+		struct thc_channel_group_item** chan_group_item,
+		struct fipc_message** out_msg)
+{
+    struct thc_channel_group_item *curr_item;
+    struct fipc_message* recv_msg;
+    int ret;
+
+    list_for_each_entry(curr_item, &(chan_group->head), list)
+    {
+	if (curr_item->xmit_channel) {
+		ret = fipc_nonblocking_recv_start_if(
+			thc_channel_to_fipc(
+			thc_channel_group_item_channel(curr_item)),
+                        &recv_msg);
+	} else {
+	        ret = thc_ipc_poll_recv(thc_channel_group_item_channel(curr_item),
+                        &recv_msg);
+	}
+
+        if( !ret )
+        {
+            *chan_group_item = curr_item;
+            *out_msg         = recv_msg;
+            return 0;
+        }
+    }
+
+    return -EWOULDBLOCK;
+}
+EXPORT_SYMBOL(thc_poll_recv_group_2);
+
+int
+LIBASYNC_FUNC_ATTR
+thc_ipc_poll_recv_2(struct thc_channel* chnl,
+	struct fipc_message** out_msg)
+{
+    int ret;
+    uint32_t received_cookie;
+
+    while (true)
+    {
+        ret = fipc_recv_msg_poll(
+			thc_channel_to_fipc(chnl),
+			out_msg, &received_cookie);
+        if( !ret ) //message for us
+        {
+            return 0; 
+        }
+        else if( ret == -ENOMSG ) //message not for us
+        {
+            THCYieldToId((uint32_t)received_cookie);
+            if (unlikely(thc_channel_is_dead(chnl)))
+                return -EPIPE; // channel died
+        }
+        else if( ret == -EWOULDBLOCK ) //no message, return
+        {
+            return ret;
+        }
+        else
+        {
+            printk(KERN_ERR "error in thc_poll_recv: %d\n", ret);
+            return ret;
+        }
+    }
+}
+EXPORT_SYMBOL(thc_ipc_poll_recv_2);
+
+int
+LIBASYNC_FUNC_ATTR
 thc_ipc_poll_recv(struct thc_channel* chnl,
 	struct fipc_message** out_msg)
 {
@@ -265,6 +450,8 @@ thc_ipc_poll_recv(struct thc_channel* chnl,
         }
         else if( ret == -ENOMSG ) //message not for us
         {
+         //printk("%s: Yield to %d\n", __func__, (uint32_t)payload.actual_msg_id);
+
             THCYieldToId((uint32_t)payload.actual_msg_id);
             if (unlikely(thc_channel_is_dead(chnl)))
                 return -EPIPE; // channel died
@@ -298,6 +485,9 @@ thc_ipc_call(struct thc_channel *chnl,
         printk(KERN_ERR "thc_ipc_call: error sending request\n");
         goto fail1;
     }
+//#ifdef IPC_DEBUG
+    //printk("%s, request_cookie %d\n", __func__, request_cookie);
+//#endif
     /*
      * Receive response
      */
@@ -386,6 +576,7 @@ thc_channel_group_item_init(struct thc_channel_group_item *item,
 {
     INIT_LIST_HEAD(&item->list);
     item->channel = chnl;
+    item->xmit_channel = false;
     item->dispatch_fn = dispatch_fn;
 
     return 0;
