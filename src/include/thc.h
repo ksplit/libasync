@@ -1,10 +1,8 @@
-/* Barrelfish THC language extensions */
-
 #ifndef _THC_H_
 #define _THC_H_
 
 #ifndef LIBASYNC_FUNC_ATTR
-#define LIBASYNC_FUNC_ATTR
+#define LIBASYNC_FUNC_ATTR 
 #endif
 
 #ifdef LINUX_KERNEL
@@ -23,46 +21,15 @@
 #else
 #include <stdint.h>
 #include <stdlib.h>
-#endif
+#include <assert.h>
+#endif /* LINUX_KERNEL */
 
-#ifndef BARRELFISH
 typedef int errval_t;
 #define SYS_ERR_OK   0
 #define THC_CANCELED 1
-#endif
-
-#if (defined(linux) || defined(BARRELFISH))
-//  #ifndef noinline
-//      #define noinline __attribute__((noinline))
-//  #endif
-#endif
-
 // The implementation of do..finish relies on shadowing so that 
 // _fb_info always refers to the closest enclosing do..finish block.
 #pragma GCC diagnostic ignored "-Wshadow"
-
-/*......................................................................*/
-
-// Macros for use from user code
-//
-// Cancel.  _TAG is the name of an enclosig DO_FINISH block.
-
-#define CANCEL(_TAG)                                                    \
-  do {                                                                  \
-    _thc_do_cancel_request(_fb_info_ ## _TAG);                          \
-  }  while (0)
-
-// DO_FINISH block. Non-cancellable:
-
-#define DO_FINISH_NX(_CODE) DO_FINISH__(__,_CODE,1)
-
-// Cancellable do-finish, with tag:
-
-#define DO_FINISH_(_TAG,_CODE) DO_FINISH__(_TAG,_CODE,0)
-
-// Cancellable do-finish, no tag:
-
-#define DO_FINISH(_CODE) DO_FINISH__(__,_CODE,0)
 
 // ASYNC implementation.  __COUNTER__ is a GCC extension that will 
 // allocate a unique integer ID on each expansion.  Hence use it once 
@@ -70,109 +37,23 @@ typedef int errval_t;
 
 #define ASYNC(_BODY) ASYNC_(_BODY, __COUNTER__)
 
-#ifdef CONFIG_LAZY_THC
+
 
 // DO_FINISH implementation:
+#define DO_FINISH_(_TAG,_CODE) DO_FINISH__(_TAG,_CODE)
 
-#define DO_FINISH__(_TAG,_CODE,_IS_NX)					\
+// Cancellable do-finish, no tag:
+
+#define DO_FINISH(_CODE) DO_FINISH__(__,_CODE)
+
+#define DO_FINISH__(_TAG, _CODE)					\
   do {                                                                  \
     finish_t _fb;                                                       \
     finish_t *_fb_info __attribute__((unused)) = &_fb;                  \
     finish_t *_fb_info_ ## _TAG __attribute__((unused)) = _fb_info;     \
-    void *_fb_curr_stack __attribute__((unused));			\
-    FORCE_FRAME_POINTER_USE;						\
-    GET_STACK_POINTER(_fb_info->old_sp);				\
-    _thc_startfinishblock(_fb_info, _IS_NX);				\
+    _thc_startfinishblock(_fb_info);				\
     do { _CODE } while (0);                                             \
-    GET_STACK_POINTER(_fb_curr_stack);					\
-    _thc_endfinishblock(_fb_info, _fb_curr_stack);			\
-    if (_fb_info->old_sp != _fb_curr_stack) {				\
-      RESTORE_OLD_STACK_POINTER(_fb_info->old_sp);			\
-      _thc_pendingfree();						\
-    }									\
-} while (0)
-
-// The basic idea for ASYNC_ is that the contents of the block becomes
-// a nested function.  For the lazy implementation, we create an AWE for
-// the continuation of the block and store a reference to it on the nested
-// function's stackframe.  We then mark this as an async by replacing the
-// return address of the nested function with a special marker.  If we block,
-// the runtime system looks through the stack for this marker, allocating 
-// a lazy stack for any AWE continuations it finds.
-//
-// We are careful to avoid taking the address of the nested function.
-// This prevents GCC trying to generate stack-allocated trampoline functions
-// (this is not implemented on Beehive where the I and D caches are not
-// coherent).
-//
-// There are several hacks:
-//
-// 1. The nested function is given an explicit name in the generated 
-//    assembly language code (NESTED_FN_STRING(_C)).  This means that 
-//    inline asm can refer to it without needing to take the address
-//    of the nested function.
-//
-// 2. The nested function specifically jumps to the point after the async
-//    continuation rather than returning normally, since (i) we have fiddled
-//    with the return address to make it a marker and (ii), changing it back 
-//    then returning normally confuses the branch prediction hardware leading
-//    to an increase in async cost by about 40 cycles (25 cycles -> 65 cycles) 
-//
-#define ASYNC_(_BODY, _C)						\
-  do {									\
-    awe_t _awe;                                                         \
-    extern void * CONT_RET_FN_NAME(_C) (void);	         		\
-									\
-    /* Define nested function containing the body */			\
-                                                                        \
-    /* XXX: With these attributes, we're no longer portable with other  \
-     * compilers ... */                                                 \
-    auto void                                                           \
-    noinline				                                \
-    __attribute__((optimize("no-ipa-sra","no-ipa-cp")))                 \
-    _thc_nested_async(FORCE_ARGS_STACK awe_t *awe)                      \
-    __asm__(NESTED_FN_STRING(_C));                                      \
-									\
-    void								\
-    noinline				                                \
-    _thc_nested_async(FORCE_ARGS_STACK awe_t *awe) {			\
-      void *_my_fb = _fb_info;						\
-      _awe.current_fb = _my_fb;						\
-      INIT_LAZY_AWE(awe, &_thc_lazy_awe_marker);			\
-      do { _BODY; } while (0);						\
-      /* If return address is NULLed then we blocked */			\
-      if (__builtin_return_address(0) == NULL) {			\
-	/* thc_startasync is performed lazily, we should run */		\
-	/* _thc_endasync if we blocked*/				\
-	_thc_endasync(_my_fb, __builtin_frame_address(0)+(2*__WORD_SIZE));\
-      }									\
-      /* Otherwise, return */						\
-      RETURN_CONT(CONT_RET_FN_STRING(_C));				\
-    }									\
-									\
-    _awe.status     = LAZY_AWE;						\
-    _awe.lazy_stack = NULL;						\
-    _awe.pts        = NULL;						\
-									\
-    SCHEDULE_CONT(&_awe, _thc_nested_async);                            \
-    __asm__ volatile (							\
-      "      .globl  " CONT_RET_FN_STRING(_C) "\n\t"			\
-      " " CONT_RET_FN_STRING(_C) ":            \n\t"			\
-    );                                                                  \
-  } while (0)
-
-#else // EAGER_THC
-
-// DO_FINISH implementation:
-
-#define DO_FINISH__(_TAG,_CODE,_IS_NX)					\
-  do {                                                                  \
-    finish_t _fb;                                                       \
-    finish_t *_fb_info __attribute__((unused)) = &_fb;                  \
-    finish_t *_fb_info_ ## _TAG __attribute__((unused)) = _fb_info;     \
-    _thc_startfinishblock(_fb_info, _IS_NX);				\
-    do { _CODE } while (0);                                             \
-    _thc_endfinishblock(_fb_info, NULL);				\
+    _thc_endfinishblock(_fb_info);				\
 } while (0)
 
 // The basic idea for ASYNC_ is that the contents of the block becomes
@@ -206,8 +87,9 @@ typedef int errval_t;
   do {									\
     awe_t _awe;                                                         \
     void *_new_stack = _thc_allocstack();		       		\
+    int volatile done_once = 0;                                                  \
     /* Define nested function containing the body */			\
-    auto void noinline                  \
+    auto void noinline                 \
      __attribute__((used)) _thc_nested_async(void) __asm__(NESTED_FN_STRING(_C));    \
     __attribute__((used)) void noinline _thc_nested_async(void) {       \
       void *_my_fb = _fb_info;						\
@@ -221,16 +103,16 @@ typedef int errval_t;
     /* Define function to enter _nested on a new stack */               \
     auto void _swizzle(void) __asm__(SWIZZLE_FN_STRING(_C));            \
     SWIZZLE_DEF(_swizzle, _new_stack, NESTED_FN_STRING(_C));            \
-    _awe.current_fb = _fb_info;						\
+    /*_awe.current_fb = _fb_info;*/					\
                                                                         \
     /* Add AWE for our continuation, then run "_nested" on new stack */	\
-    if (!SCHEDULE_CONT(&_awe)) {                                        \
-      _swizzle();							\
-      /*assert(0 && "_swizzle returned");*/					\
-    }                                                                   \
+    SCHEDULE_CONT(&_awe);                                               \
+    if(!done_once) {                                                    \
+       done_once = 1;                                                   \
+       _swizzle();                                                      \
+    }/* else */                                                             \
+      _thc_pendingfree();                                               \
   } while (0)
-
-#endif // CONFIG_LAZY_THC
 
 // Helper macros used in creating the assembly language name for the
 // nested function
@@ -244,7 +126,6 @@ typedef int errval_t;
 #define CONT_RET_FN_NAME(C) _thc_cont_return_ ## C
 #define CONT_RET_FN_STRING(C) THC_STR(CONT_RET_FN_NAME(C))
 
-/*......................................................................*/
 
 // Prototypes for functions to be called by user code (as opposed to
 // by the implementations of compiler intrinsics)
@@ -294,6 +175,7 @@ void THCSuspendThen(awe_t **awe_ptr_ptr, THCThenFn_t then, void *arg);
 
 // Schedule execution of a given AWE at the head/tail of the queue.
 void THCSchedule(awe_t *awe_ptr);
+
 void THCScheduleBack(awe_t *awe_ptr);
 
 // Finish the current AWE, returning to the scheduler.
@@ -329,6 +211,8 @@ void THCAbort(void);
 //Yields and saves AWE for continuation (associates it with an id using 
 //the awe_mapper).
 void THCYieldAndSave(uint32_t id_num);
+void THCYieldAndSavePTS(uint32_t id_num);
+
 
 //Yields and saves AWE for continuation (associates it with an id using 
 //the awe_mapper),but will not put AWE for the continuation in the dispatch 
@@ -338,6 +222,7 @@ void THCYieldAndSaveNoDispatch(uint32_t id_num);
 // Finish the current AWE, creating a new AWE from its continuation, and
 // passing this immediately to the scheduler.
 void THCYield(void);
+void THCYieldPTS(void);
 
 // Hint that the runtime system should switch from the current AWE to the
 // indicated awe_ptr.  (Currently, the implementation does this immediately
@@ -358,6 +243,16 @@ int THCYieldToIdAndSave(uint32_t id_to, uint32_t id_from);
 
 //Same as THCYieldToIdAndSave, but assumes AWEs don't use dispatch queue.
 int THCYieldToIdAndSaveNoDispatch(uint32_t id_to, uint32_t id_from);
+
+int THCYieldToIdAndSaveNoDispatchDirect(uint32_t id_to, uint32_t id_from);
+
+void inline THCYieldToIdAndSaveNoDispatchDirectTrusted(uint32_t id_to, uint32_t id_from);
+
+void inline THCYieldWithAwe(awe_t *awe_from);
+
+void inline THCYieldToAwe(awe_t *awe_to, awe_t *awe_from);
+
+int THCYieldToAweNoDispatch_TopLevel(awe_t *awe_to);
 
 // Yields to without saving curent awe id.
 // 
@@ -422,4 +317,5 @@ void THCDumpAllStacks(void);
 #include "thcsync.h"
 #include "thcinternal.h"
 
-#endif // _THC_H_
+#endif
+

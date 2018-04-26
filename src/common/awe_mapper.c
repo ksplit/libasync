@@ -14,9 +14,18 @@
 #include <lcd_config/pre_hook.h>
 #endif
 
+#ifdef LINUX_KERNEL
 #include <linux/bug.h>
 #include <linux/string.h>
 #include <linux/slab.h>
+#define printf printk
+#else
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <assert.h>
+#endif
+
 #include <awe_mapper.h>
 
 #ifdef LCD_DOMAINS
@@ -28,18 +37,6 @@
 #define EXPORT_SYMBOL(x)
 #endif
 
-/*
- * NOTE: This implementation right now is just a ring buffer.
- * In the future, we probably want to change this to something
- * like a red black tree or a B-tree to account for differing
- * storage size requirements.
- */
-
-/*
- * This value is used to determine if a slot is allocated but not yet set in the awe table.
- */
-static unsigned long initialized_marker = 0xDeadBeef;
-
 
 /*
  * Initilaizes awe mapper.
@@ -48,14 +45,20 @@ void
 LIBASYNC_FUNC_ATTR 
 awe_mapper_init(void)
 {
-    void* awe_map_ptr = kzalloc(sizeof(awe_table_t), GFP_KERNEL);
-    if( !awe_map_ptr )
+#ifdef LINUX_KERNEL
+    awe_table_t* awe_map = kzalloc(sizeof(awe_table_t), GFP_KERNEL);
+#else
+    awe_table_t* awe_map = calloc(sizeof(awe_table_t), 1);
+#endif
+
+    if( !awe_map )
     {
-        pr_err("No space left for awe_map_ptr\n");
+        printf("No space left for awe_map_ptr\n");         
         return;
     }
 
-    set_awe_map((awe_table_t*) awe_map_ptr);
+    awe_map->awe_bitmap |= ~0;
+    set_awe_map((awe_table_t*) awe_map);
 }
 
 
@@ -68,47 +71,54 @@ LIBASYNC_FUNC_ATTR
 awe_mapper_uninit(void)
 {
     awe_table_t *awe_map =  get_awe_map();
-    kfree(awe_map);
+    if (awe_map) {
+#ifdef LINUX_KERNEL
+        kfree(awe_map);
+#else
+        free(awe_map);
+#endif
+        set_awe_map(NULL);
+
+    }
 }
 
+static inline int _is_slot_allocated(awe_table_t *awe_map, uint32_t id)
+{
+    return awe_map->awe_bitmap & (1 << (id - 1));
+}
 
-
-static inline bool is_slot_allocated(uint32_t id)
+static inline int is_slot_allocated(uint32_t id)
 {
     awe_table_t *awe_map =  get_awe_map();
-    return ((awe_map->awe_list)[id] != NULL);
+    return _is_slot_allocated(awe_map, id);
 }
-
 
 
 /*
  * Returns new available id.
  */
-int
-LIBASYNC_FUNC_ATTR 
-awe_mapper_create_id(uint32_t *new_id)
+int inline 
+_awe_mapper_create_id(awe_table_t *awe_map)
+{
+    int id;
+#ifdef LINUX_KERNEL
+    id = ffs(awe_map->awe_bitmap);
+#elif defined(linux)
+    id = __builtin_ffsll(awe_map->awe_bitmap);
+#endif
+    awe_map->awe_bitmap &= ~(1 << (id - 1));
+    return id; 
+}
+
+/*
+ * Returns new available id.
+ */
+int inline 
+awe_mapper_create_id(int *id)
 {
     awe_table_t *awe_map =  get_awe_map();
-
-    if (unlikely(awe_map->used_slots >= AWE_TABLE_COUNT))
-    {
-        printk(KERN_ERR "awe_mapper_create_id: too many slots requested\n");
-        return -ENOMEM;
-    }
-    
-    do
-    {
-        awe_map->next_id = (awe_map->next_id + 1) % AWE_TABLE_COUNT;
-    } 
-    while( is_slot_allocated(awe_map->next_id) );
-
-    awe_map->awe_list[awe_map->next_id] = (void*)initialized_marker;
-
-    awe_map->used_slots++;
-
-    *new_id = awe_map->next_id;
-
-    return 0;
+    *id = _awe_mapper_create_id(awe_map);
+    return *id;
 }  
-EXPORT_SYMBOL(awe_mapper_create_id);
+//EXPORT_SYMBOL(awe_mapper_create_id);
 

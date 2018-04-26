@@ -67,6 +67,8 @@ static inline void thc_kill_request_cookie(uint32_t request_cookie)
 int thc_channel_init(struct thc_channel *chnl, 
 		struct fipc_ring_channel *async_chnl);
 
+int thc_channel_init_0(struct thc_channel *chnl,
+		struct fipc_ring_channel *async_chnl);
 /*
  * thc_channel_inc_ref
  *
