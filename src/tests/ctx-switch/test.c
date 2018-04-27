@@ -799,39 +799,3 @@ static int test_create_awe(void)
 
     return 0;
 }
-
-
-#if 0
-int main (void) {
-    
-    thc_init();
-#if 1
-    test_async();
-    test_async_yield();
-
-    test_basic_do_finish_create();
-    test_basic_nonblocking_async_create();  
-    test_basic_N_nonblocking_asyncs_create();
-
-    test_basic_1_blocking_asyncs_create();
-    test_basic_N_blocking_asyncs_create(); 
-    test_basic_N_blocking_asyncs_create_pts();
-    test_basic_N_blocking_id_asyncs();
-    test_basic_N_blocking_id_asyncs_pts();
-    test_basic_N_blocking_id_asyncs_and_N_yields_back();
-#endif
-    test_basic_N_blocking_id_asyncs_and_N_yields_back_extrnl_ids();
-
-    test_do_finish_yield();
-    test_do_finish_yield_no_dispatch();
-   // test_create_and_ctx_switch_to_awe();
-
-    test_ctx_switch_no_dispatch();
-    test_ctx_switch_no_dispatch_direct();
-    test_ctx_switch_no_dispatch_direct_trusted();
-    test_ctx_switch_to_awe();
-    
-    thc_done();
-    return 0; 
-}
-#endif
