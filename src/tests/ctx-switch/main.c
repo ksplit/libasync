@@ -60,7 +60,8 @@ static int test_ctx_switch_and_thd_creation(void)
     test_ctx_switch_no_dispatch_direct();
     test_ctx_switch_no_dispatch_direct_trusted();
     test_ctx_switch_to_awe();
-       
+
+    test_create_awe();
 #if 0
         for( i = 0; i < NUM_SWITCH_MEASUREMENTS; i++ )
         {
