@@ -1312,7 +1312,7 @@ __asm__ ("      .text \n\t"
          " addq $8,   16(%rdi)       \n\t"
          // AWE now initialized.  Call the function
          // rdi : AWE , rsi : args , rdx : fn
-         " jmpq  %rdx                \n\t"
+         " jmpq  *%rdx                \n\t"
          " int3\n\t");
 
 
@@ -1357,7 +1357,7 @@ __asm__ ("      .text \n\t"
          " addq $8,   16(%rdi)       \n\t"
          // AWE now initialized.  Call the function.
          // rdi : AWE , rsi : args , rdx : pts, rcx: fn
-         " jmpq  %rcx                \n\t"
+         " jmpq  *%rcx                \n\t"
          " int3\n\t");
 
 
