@@ -41,6 +41,7 @@
  * Initilaizes awe mapper.
  */
 void
+inline
 LIBASYNC_FUNC_ATTR
 awe_mapper_init(void)
 {
@@ -68,6 +69,7 @@ awe_mapper_init(void)
  * Uninitilaizes awe mapper.
  */
 void
+inline
 LIBASYNC_FUNC_ATTR
 awe_mapper_uninit(void)
 {

@@ -110,8 +110,8 @@ extern void thc_awe_execute_0(awe_t *awe);
 static void *thc_alloc_new_stack_0(void);
 extern void thc_link_to_frame_0(void *frame, void *fn, void *args);
 
-static PTState_t *thc_get_pts_0(void);
-static void thc_set_pts_0(PTState_t *pts);
+//static PTState_t *thc_get_pts_0(void);
+//static void thc_set_pts_0(PTState_t *pts);
 
 static inline void thc_schedule_local(awe_t *awe);
 
@@ -150,7 +150,8 @@ static inline void thc_pendingfree(PTState_t * pts) {
 inline PTState_t *
 LIBASYNC_FUNC_ATTR
 PTS(void) {
-  return thc_get_pts_0();
+  return current->ptstate;
+//  return thc_get_pts_0();
 }
 EXPORT_SYMBOL(PTS);
 
@@ -179,7 +180,8 @@ static inline void InitPTS(void) {
 
 #endif
 
-  thc_set_pts_0(pts);
+  //thc_set_pts_0(pts);
+  current->ptstate = pts;
 }
 
 // Stack management
@@ -1150,10 +1152,10 @@ static inline void thc_set_pts_0(PTState_t *st) {
 
 #elif defined(LINUX_KERNEL)
 */
+#if 0
 static PTState_t *thc_get_pts_0(void) {
   return current->ptstate;
 }
-
 static void thc_set_pts_0(PTState_t *st) {
   current->ptstate = st;
 #ifdef LCD_DOMAINS
@@ -1161,6 +1163,7 @@ static void thc_set_pts_0(PTState_t *st) {
 //		__func__, current, current->ptstate, PTS());
 #endif
 }
+#endif
 //#endif
 
 // 2. Execution on an alternative stack

@@ -148,7 +148,7 @@ struct ptstate_t {
   // does not require going into the dispatch loop
   awe_t *direct_cont; 
 
-};
+} ____cacheline_aligned;
 
 PTState_t *PTS(void);
 
