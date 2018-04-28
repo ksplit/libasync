@@ -118,7 +118,7 @@ PTState_t *PTS(void);
 typedef void (*THCContFn_t)(void *cont, void *args);
 typedef void (*THCContPTSFn_t)(void *cont, void *args, void *pts);
 
-void *_thc_allocstack(void);
+void inline  *_thc_allocstack(void);
 void _thc_freestack_void(PTState_t *pts, void *s);
 void _thc_freestack(PTState_t *pts, struct thcstack_t *s);
 

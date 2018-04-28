@@ -203,7 +203,7 @@ static inline void InitPTS(void) {
 //
 // There is currently no support for extending a stack, or allowing it
 // to be discontiguous
-void * 
+void inline * 
 _thc_allocstack(void) {
   PTState_t *pts = PTS();
   void *result = NULL;
@@ -529,7 +529,7 @@ _thc_callcont_pts_c(awe_t *awe,
 // the count non-zero, and stashes away a continuation in// fb->finish_awe which will be resumed when the final async
 // call finsihes.  _thc_endasync picks this up.
 
-void
+void inline 
 LIBASYNC_FUNC_ATTR 
 _thc_startfinishblock(finish_t *fb) {
   PTState_t *pts = PTS();
@@ -597,7 +597,7 @@ static inline void thc_yield_with_cont_should_dispatch_pts(awe_t *awe, void *arg
 
 //helper function for thc_yield_with_cont* functions
 //use_dispatch indicates whether to assume AWEs are in the dispatch loop
-static inline void thc_yield_with_cont_should_dispatch(void *a, void *arg, int use_dispatch)
+static inline void inline thc_yield_with_cont_should_dispatch(void *a, void *arg, int use_dispatch)
 {
   awe_t *awe = (awe_t*)a; 
 
@@ -609,22 +609,22 @@ static inline void thc_yield_with_cont_should_dispatch(void *a, void *arg, int u
 }
 
 __attribute__ ((unused))
-static void thc_yield_with_cont(void *a, void *arg) {
+static void inline thc_yield_with_cont(void *a, void *arg) {
     thc_yield_with_cont_should_dispatch(a, arg, 1);
 }
 
 __attribute__ ((unused))
-static void thc_yield_with_cont_pts(void *awe, void *arg, void *pts) {
+static void inline thc_yield_with_cont_pts(void *awe, void *arg, void *pts) {
     thc_yield_with_cont_should_dispatch_pts((awe_t *)awe, arg, (PTState_t*)pts, 1);
 }
 
 __attribute__ ((unused))
-static void thc_yield_with_cont_no_dispatch(void *a, void *arg) {
+static void inline thc_yield_with_cont_no_dispatch(void *a, void *arg) {
     thc_yield_with_cont_should_dispatch(a, arg, 0);
 }
 
 // Yields and saves awe_ptr to correspond to the provided id number
-void 
+void inline 
 LIBASYNC_FUNC_ATTR 
 THCYieldAndSavePTS(uint32_t id_num)
 {
@@ -633,7 +633,7 @@ THCYieldAndSavePTS(uint32_t id_num)
 }
 
 // Yields and saves awe_ptr to correspond to the provided id number
-void 
+void inline 
 LIBASYNC_FUNC_ATTR 
 THCYieldAndSave(uint32_t id_num)
 {
@@ -644,7 +644,7 @@ THCYieldAndSave(uint32_t id_num)
 EXPORT_SYMBOL(THCYieldAndSave);
 
 // Yields and saves awe_ptr to correspond to the provided id number
-void 
+void inline  
 LIBASYNC_FUNC_ATTR 
 THCYieldAndSaveNoDispatch(uint32_t id_num)
 {
@@ -652,14 +652,14 @@ THCYieldAndSaveNoDispatch(uint32_t id_num)
 }
 EXPORT_SYMBOL(THCYieldAndSaveNoDispatch);
 
-void 
+void inline 
 LIBASYNC_FUNC_ATTR 
 THCYield(void) {
   CALL_CONT((void*)&thc_yield_with_cont, NULL);
 }
 EXPORT_SYMBOL(THCYield);
 
-void 
+void inline 
 LIBASYNC_FUNC_ATTR 
 THCYieldPTS(void) {
   CALL_CONT_PTS((void*)&thc_yield_with_cont_pts, NULL, PTS());
