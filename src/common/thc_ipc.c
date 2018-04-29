@@ -357,6 +357,137 @@ static inline int check_rx_slot_msg_waiting(struct fipc_message *slot)
 }
 
 #define fipc_test_pause()    asm volatile ( "pause\n": : :"memory" );
+//#define DEBUG_REQ_RESP
+int
+LIBASYNC_FUNC_ATTR
+thc_ipc_recv_req_resp(struct thc_channel* channel,
+		struct fipc_message ** out, int id,
+		int (*sender_dispatch)(struct thc_channel*,
+			struct fipc_message *, void *),
+		void *ptr)
+
+{
+	int received_cookie;
+	int got_resp = 0;
+retry:
+	while (1) {
+		// Poll until we get a message or error
+		*out = get_current_rx_slot(thc_channel_to_fipc(channel));
+
+		if (!check_rx_slot_msg_waiting(*out)) {
+			THCYieldAndSave(id);
+			continue;
+		}
+		break;
+	}
+
+	if (likely(thc_get_msg_type(*out) == (uint32_t)msg_type_request)) {
+		received_cookie = thc_get_msg_id(*out);
+		if (received_cookie == id) {
+#ifdef DEBUG_REQ_RESP
+			printk("%s:%d got req for id %d (ctx = %d)\n",
+				__func__, __LINE__, received_cookie, id);
+#endif
+			inc_rx_slot(thc_channel_to_fipc(channel));
+			sender_dispatch(channel, *out, ptr);
+			if (got_resp)
+				return 0;
+			else
+				goto retry;
+		} else {
+#ifdef DEBUG_REQ_RESP
+			printk("%s:%d yielding to id %d (ctx = %d)\n",
+				__func__, __LINE__, received_cookie, id);
+#endif
+			THCYieldToIdAndSave(received_cookie, id);
+		}
+	} else if (likely(thc_get_msg_type(*out)
+				== (uint32_t)msg_type_response)) {
+		received_cookie = thc_get_msg_id(*out);
+		if (received_cookie == id) {
+#ifdef DEBUG_REQ_RESP
+			printk("%s:%d got response for id %d (ctx = %d)\n",
+				__func__, __LINE__, received_cookie, id);
+#endif
+			got_resp = 1;
+			inc_rx_slot(thc_channel_to_fipc(channel));
+			awe_mapper_remove_id(id);
+			return 0;
+		} else {
+#ifdef DEBUG_REQ_RESP
+			printk("%s:%d yielding to id %d (ctx = %d)\n",
+				__func__, __LINE__, received_cookie, id);
+#endif
+			THCYieldToIdAndSave(received_cookie, id);
+		}
+	} else {
+		printk("%s:%d msg not for us!\n", __func__, __LINE__);
+		return 1; //message not for this awe
+	}
+
+	// We came back here but maybe we're the last AWE and 
+        // we're re-started by do finish
+	goto retry; 
+	return 0;
+}
+EXPORT_SYMBOL(thc_ipc_recv_req_resp);
+
+int
+LIBASYNC_FUNC_ATTR
+thc_ipc_recv_dispatch(struct thc_channel* channel, struct fipc_message ** out, int id,
+		int (*sender_dispatch)(struct thc_channel*, struct fipc_message *, void *), void *ptr)
+{
+	int got_resp = 0;
+	int received_cookie;
+retry:
+	while ( 1 )
+	{
+		// Poll until we get a message or error
+		*out = get_current_rx_slot(thc_channel_to_fipc(channel));
+
+		if (!check_rx_slot_msg_waiting(*out)) {
+			//printf("No messages to recv, yield and save into id:%llu\n", id);
+			THCYieldAndSave(id);
+			continue;
+		}
+
+		break;
+	}
+
+	if (likely(thc_get_msg_type(*out) == (uint32_t)msg_type_request)) {
+//		printf("%s:%d got request (ctx = %d)\n", __func__, __LINE__, id);
+		inc_rx_slot(thc_channel_to_fipc(channel));
+		sender_dispatch(channel, *out, ptr);
+		if (got_resp)
+			return 0;
+		else
+			goto retry;
+	} else if (likely(thc_get_msg_type(*out) == (uint32_t)msg_type_response)) {
+
+//		printf("%s:%d got response (ctx = %d)\n", __func__, __LINE__, id);
+
+		received_cookie = thc_get_msg_id(*out);
+		if (received_cookie == id) {
+			got_resp = 1;
+			inc_rx_slot(thc_channel_to_fipc(channel));
+			awe_mapper_remove_id(id);
+			return 0;
+		} else {
+//			printf("%s:%d yielding to id %d (ctx = %d)\n", __func__, __LINE__, received_cookie, id);
+			THCYieldToIdAndSave(received_cookie, id);
+		}
+	} else {
+		printk("%s:%d msg not for us!\n", __func__, __LINE__);
+		return 1; //message not for this awe
+	}
+
+	// We came back here but maybe we're the last AWE and 
+        // we're re-started by do finish
+	goto retry; 
+	return 0;
+}
+EXPORT_SYMBOL(thc_ipc_recv_dispatch);
+
 int inline
 LIBASYNC_FUNC_ATTR 
 thc_ipc_recv_response_new(struct thc_channel* channel, uint32_t id,

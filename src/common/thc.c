@@ -549,6 +549,7 @@ _thc_startfinishblock(finish_t *fb) {
   fb->count = 0;
   fb->finish_awe = NULL;
   pts->current_fb = fb;
+  pts->reached_dofin = 0;
 
   DEBUG_FINISH(DEBUGPRINTF(DEBUG_FINISH_PREFIX "> StartFinishBlock (%p)\n",
                            fb));
@@ -587,6 +588,7 @@ _thc_endfinishblock(finish_t *fb) {
     assert(fb->finish_awe == NULL);
     //_thc_pendingfree();
   } else {
+    PTS()->reached_dofin = 1;
     // Non-zero first time, add ourselves as the waiting AWE.
     CALL_CONT((unsigned char*)&_thc_endfinishblock0, fb);
     _thc_pendingfree();  

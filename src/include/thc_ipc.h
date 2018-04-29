@@ -224,6 +224,17 @@ int thc_ipc_recv_response_new(struct thc_channel *chnl,
 			uint32_t request_cookie, 
 			struct fipc_message **response);
 
+int thc_ipc_recv_dispatch(struct thc_channel* channel,
+			struct fipc_message ** out,
+			int id,
+			int (*sender_dispatch)(struct thc_channel*, struct fipc_message *, void *),
+			void *);
+int thc_ipc_recv_req_resp(struct thc_channel* channel,
+		struct fipc_message ** out, int id,
+		int (*sender_dispatch)(struct thc_channel*,
+			struct fipc_message *, void *),
+		void *ptr);
+
 /* thc_poll_recv
  *
  * Looks at the fipc channel, and does the following:

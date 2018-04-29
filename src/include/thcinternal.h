@@ -101,6 +101,8 @@ struct ptstate_t {
   uint64_t pid;
 
   bool inited;
+
+  int reached_dofin;
 //  uint64_t times_ndo_xmit[100000];
   uint64_t *times_ndo_xmit;
 
