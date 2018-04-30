@@ -17,6 +17,7 @@ struct predicate_payload
     uint32_t expected_msg_id;
     uint32_t actual_msg_id;
     msg_type_t msg_type;
+    int fn_type;
 };
 
 

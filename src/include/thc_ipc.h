@@ -215,9 +215,20 @@ int thc_ipc_send_request(struct thc_channel *chnl,
  *
  * Returns 0 on success, non-zero otherwise.
  */
+int thc_ipc_recv_response_lcd(struct thc_channel *chnl, 
+			uint32_t request_cookie, 
+			struct fipc_message **response);
+
 int thc_ipc_recv_response(struct thc_channel *chnl, 
 			uint32_t request_cookie, 
 			struct fipc_message **response);
+
+int thc_ipc_recv_resp_noyield(struct thc_channel *chnl, 
+			struct fipc_message **response);
+
+int thc_ipc_recv_response_noyield_mwait(struct thc_channel *chnl, 
+			struct fipc_message **response);
+void thc_ipc_dump_stat(void);
 
 /* thc_poll_recv
  *
@@ -239,6 +250,11 @@ int thc_ipc_recv_response(struct thc_channel *chnl,
  */
 int thc_ipc_poll_recv(struct thc_channel *chnl,
 		struct fipc_message **out_msg);
+int thc_ipc_poll_recv_klcd(struct thc_channel *chnl,
+		struct fipc_message **out_msg);
+int thc_ipc_poll_recv_lcd(struct thc_channel *chnl,
+		struct fipc_message **out_msg);
+
 
 /*
  * thc_ipc_call
@@ -252,6 +268,14 @@ int thc_ipc_poll_recv(struct thc_channel *chnl,
  * Returns 0 on success, non-zero otherwise.
  */
 int thc_ipc_call(struct thc_channel *chnl, 
+		struct fipc_message *request, 
+		struct fipc_message **response);
+int thc_ipc_call_lcd(struct thc_channel *chnl, 
+		struct fipc_message *request, 
+		struct fipc_message **response);
+
+
+int thc_ipc_call_noyield_single_chnl(struct thc_channel *chnl, 
 		struct fipc_message *request, 
 		struct fipc_message **response);
 
@@ -364,7 +388,17 @@ thc_channel_group_item_to_fipc(struct thc_channel_group_item *item)
  *
  * Returns 0 on success, non-zero otherwise.
  */
+int thc_poll_recv_group_lcd(struct thc_channel_group* chan_group, 
+                        struct thc_channel_group_item** chan_group_item, 
+                        struct fipc_message** out_msg);
+
+
 int thc_poll_recv_group(struct thc_channel_group* chan_group, 
                         struct thc_channel_group_item** chan_group_item, 
                         struct fipc_message** out_msg);
+
+int thc_poll_recv_group_klcd(struct thc_channel_group* chan_group, 
+                        struct thc_channel_group_item** chan_group_item, 
+                        struct fipc_message** out_msg);
+
 #endif
