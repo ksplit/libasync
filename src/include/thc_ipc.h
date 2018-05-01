@@ -52,6 +52,11 @@ static inline void thc_kill_request_cookie(uint32_t request_cookie)
     awe_mapper_remove_id(request_cookie);
 }
 
+void thc_pts_set_chnl(struct thc_channel *ch);
+struct thc_channel* thc_pts_get_chnl(void);
+void thc_pts_set_state(bool state);
+bool thc_pts_get_state(void);
+
 /* THC CHANNELS ------------------------------------------------------------ */
 
 /*
@@ -215,6 +220,45 @@ int thc_ipc_send_request(struct thc_channel *chnl,
 int thc_ipc_recv_response(struct thc_channel *chnl, 
 			uint32_t request_cookie, 
 			struct fipc_message **response);
+
+int thc_ipc_recv_response_klcd(struct thc_channel *chnl, 
+			uint32_t request_cookie, 
+			struct fipc_message **response);
+
+int thc_ipc_recv_response_lcd(struct thc_channel *chnl, 
+			uint32_t request_cookie, 
+			struct fipc_message **response);
+
+int thc_ipc_recv_resp_noyield(struct thc_channel *chnl, 
+			struct fipc_message **response);
+
+int thc_ipc_recv_response_noyield_mwait(struct thc_channel *chnl, 
+			struct fipc_message **response);
+void thc_ipc_dump_stat(void);
+
+int thc_ipc_poll_recv_klcd(struct thc_channel *chnl,
+		struct fipc_message **out_msg);
+int thc_ipc_poll_recv_lcd(struct thc_channel *chnl,
+		struct fipc_message **out_msg);
+
+int thc_ipc_call_lcd(struct thc_channel *chnl, 
+		struct fipc_message *request, 
+		struct fipc_message **response);
+
+
+int thc_ipc_call_noyield_single_chnl(struct thc_channel *chnl, 
+		struct fipc_message *request, 
+		struct fipc_message **response);
+int thc_poll_recv_group_lcd(struct thc_channel_group* chan_group, 
+                        struct thc_channel_group_item** chan_group_item, 
+                        struct fipc_message** out_msg);
+
+
+
+int thc_poll_recv_group_klcd(struct thc_channel_group* chan_group, 
+                        struct thc_channel_group_item** chan_group_item, 
+                        struct fipc_message** out_msg);
+
 
 int thc_ipc_recv_response_ts(struct thc_channel *chnl, 
 			uint32_t request_cookie, 

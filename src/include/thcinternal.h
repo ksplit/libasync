@@ -118,6 +118,11 @@ struct ptstate_t {
   // datastructure
   void *thc_chnl;
 
+  //Two fields for creating new channels on the fly
+  struct thc_channel *chnl;
+  bool thread_ctx;
+
+
   // Stack that the thread's dispatch loop will run on
   void *dispatchStack;
 

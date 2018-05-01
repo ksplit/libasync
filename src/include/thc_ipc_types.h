@@ -17,6 +17,7 @@ struct predicate_payload
     uint32_t expected_msg_id;
     uint32_t actual_msg_id;
     msg_type_t msg_type;
+    int fn_type;
 };
 
 
@@ -51,6 +52,7 @@ struct thc_channel_group_item
 {
     struct list_head list;
     bool xmit_channel;
+    int channel_id;
     struct thc_channel *channel;
     int (*dispatch_fn)(struct thc_channel_group_item*, struct fipc_message*);
 };

@@ -113,3 +113,13 @@ awe_mapper_create_id(int *id)
     return 0;
 }
 EXPORT_SYMBOL(awe_mapper_create_id);
+
+
+void 
+LIBASYNC_FUNC_ATTR 
+awe_mapper_uninit_with_pts(void *pts)
+{
+    PTState_t *ptstate = (PTState_t *)pts;
+    awe_table_t *awe_map =  ptstate->awe_map;
+    kfree(awe_map);
+}

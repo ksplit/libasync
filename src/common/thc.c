@@ -102,6 +102,7 @@
 // but the entire function (including label, prolog, epilogue, etc) is
 // in inline-asm, and so the definition is not visible to the compiler.
 
+static void thc_awe_init_with_pts(PTState_t *pts, awe_t *awe, void *eip, void *ebp, void *esp);
 static void thc_awe_init(awe_t *awe, void *eip, void *ebp, void *esp);
 static void thc_dispatch(PTState_t *pts);
 
@@ -246,6 +247,20 @@ _thc_freestack_void(PTState_t *pts, void *s) {
   _thc_freestack(pts, (struct thcstack_t*)(s - sizeof(struct thcstack_t)));
 }
 
+void 
+LIBASYNC_FUNC_ATTR 
+_thc_freestack_with_pts(PTState_t *pts, void *s) {
+  //PTState_t *pts = PTS();
+  struct thcstack_t *stack = (struct thcstack_t*)(s - sizeof(struct thcstack_t));
+  DEBUG_STACK(DEBUGPRINTF(DEBUG_STACK_PREFIX "> FreeStack(%p)\n", stack));
+  stack->next = pts->free_stacks;
+  pts->free_stacks = stack;
+  DEBUG_STACK(DEBUGPRINTF(DEBUG_STACK_PREFIX "< FreeStack\n"));
+#ifndef NDEBUG
+  pts->stacksDeallocated ++;
+#endif
+}
+
 __attribute__ ((unused))
 static void re_init_dispatch_awe(void *a, void *arg) {
   
@@ -381,6 +396,24 @@ static void thc_exit_dispatch_loop(void) {
   _thc_freestack_void(pts, pts->dispatchStack);
 }
 
+static void thc_exit_dispatch_loop_with_pts(PTState_t *pts) {
+  
+  assert(!pts->shouldExit);
+  pts->shouldExit = 1;
+  // Wait for idle loop to finish
+  while (pts->aweHead.next != &(pts->aweTail)) {
+    THCYield();
+  }
+  // Exit
+  assert((pts->aweHead.next == &(pts->aweTail)) && 
+         "Dispatch queue not empty at exit");
+  DEBUG_INIT(DEBUGPRINTF(DEBUG_INIT_PREFIX
+                         "  NULLing out dispatch AWE\n"));
+  thc_awe_init_with_pts(pts, &pts->dispatch_awe, NULL, NULL, NULL);
+  _thc_freestack_with_pts(pts, pts->dispatchStack);
+}
+
+
 // Enter the dispatch function via dispatch_awe.
 //
 // (Hence the dispatch loop will run on its own stack, rather than
@@ -459,6 +492,37 @@ static void thc_end_rts(void) {
   DEBUG_INIT(DEBUGPRINTF(DEBUG_INIT_PREFIX "< Ending\n"));
 }
 
+static void thc_end_rts_with_pts(struct ptstate_t *pts) {
+  void *stack, *next_stack;
+  assert(pts->doneInit && "Not initialized RTS");
+  DEBUG_INIT(DEBUGPRINTF(DEBUG_INIT_PREFIX "> Ending\n"));
+  thc_exit_dispatch_loop_with_pts(pts);
+
+  // Count up the stacks that we have left.  This is merely for
+  // book-keeping: once the dispatch loop is done, then the
+  // number of stacks on our free list should equal the number
+  // allocated from the OS.
+  while (pts->free_stacks != NULL) {
+    next_stack = pts->free_stacks->next;
+#ifdef LINUX_KERNEL
+    // Get top of stack
+    stack = ((void *)pts->free_stacks) + sizeof(struct thcstack_t);
+    // Subtract off stack size to get to the bottom. This is the
+    // address we need to kfree.
+    stack -= (STACK_GUARD_BYTES + STACK_COMMIT_BYTES);
+    kfree(stack);
+#endif
+    pts->free_stacks = next_stack;
+#ifndef NDEBUG
+    pts->stackMemoriesDeallocated ++;
+#endif
+  }
+  // Done
+  //thc_print_pts_stats(pts, 0);
+  pts->doneInit = 0;
+  DEBUG_INIT(DEBUGPRINTF(DEBUG_INIT_PREFIX "< Ending\n"));
+}
+
 
 
 /***********************************************************************/
@@ -481,6 +545,22 @@ static inline void thc_awe_init(awe_t *awe, void *eip, void *ebp, void *esp) {
   DEBUG_AWE(DEBUGPRINTF(DEBUG_AWE_PREFIX "< AWEInit\n"));
 }
 
+static void thc_awe_init_with_pts(PTState_t *pts, awe_t *awe, void *eip, void *ebp, void *esp) {
+  DEBUG_AWE(DEBUGPRINTF(DEBUG_AWE_PREFIX "> AWEInit(%p, %p, %p, %p)\n",
+                        awe, eip, ebp, esp));
+  
+  awe->eip = eip;
+  awe->ebp = ebp;
+  awe->esp = esp;
+  //awe->pts = pts;
+  //awe->status = EAGER_AWE;
+  //awe->lazy_stack = NULL;
+  //awe->current_fb = NULL;
+  awe->next = NULL;
+  awe->prev = NULL;
+  DEBUG_AWE(DEBUGPRINTF(DEBUG_AWE_PREFIX "< AWEInit\n"));
+}
+ 
 // This function is not meant to be used externally, but its only use
 // here is from within the inline assembly language functions.  The
 // C "used" attribute is not currently maintained through Clang & LLVM
@@ -1121,6 +1201,19 @@ thc_done(void) {
   thc_end_rts();
 }
 EXPORT_SYMBOL(thc_done);
+
+#ifndef LINUX_KERNEL
+__attribute__((destructor))
+#endif
+void 
+LIBASYNC_FUNC_ATTR 
+thc_done_with_pts(void *pts) {
+#ifdef LINUX_KERNEL
+ awe_mapper_uninit_with_pts(pts);
+#endif
+  thc_end_rts_with_pts((struct ptstate_t *)pts);
+}
+EXPORT_SYMBOL(thc_done_with_pts);
 
 int 
 LIBASYNC_FUNC_ATTR 

@@ -38,6 +38,7 @@ void awe_mapper_init(void);
  * Uninitilaizes awe mapper.
  */
 void awe_mapper_uninit(void);
+void awe_mapper_uninit_with_pts(void *pts);
 
 /*
  * Returns new available id as out param.
