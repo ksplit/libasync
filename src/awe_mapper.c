@@ -81,9 +81,6 @@ awe_mapper_uninit(void)
     }
 }
 
-
-
-
 /*
  * Returns new available id.
  */
@@ -91,7 +88,14 @@ int inline
 _awe_mapper_create_id(awe_table_t *awe_map)
 {
     int id = __builtin_ffsll(awe_map->awe_bitmap);
-    awe_map->awe_bitmap &= ~(1 << (id - 1));
+
+#ifndef NDEBUG
+    if (!id)
+        printf("%s,id %d bmap: %llx\n",
+		__func__, id, awe_map->awe_bitmap);
+#endif
+    assert(id != 0);
+    awe_map->awe_bitmap &= ~(1ULL << (id - 1));
     return id; 
 }  
 EXPORT_SYMBOL(awe_mapper_create_id);

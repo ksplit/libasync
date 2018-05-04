@@ -680,7 +680,7 @@ static int test_ctx_switch_no_dispatch_direct_trusted(void)
     return 0;
 }
 
-static int __attribute__ ((unused)) test_create_and_ctx_switch_to_awe(void)
+static __attribute__((unused)) int test_create_and_ctx_switch_to_awe(void)
 {
     unsigned long t1, t2;
     awe_t awe_1, awe_2;
@@ -772,7 +772,7 @@ static int test_ctx_switch_to_awe(void)
 static int test_create_awe(void)
 {
     unsigned long t1, t2;
-    unsigned int id[NUM_INNER_ASYNCS];
+    uint32_t id[NUM_INNER_ASYNCS];
     int i;
     awe_t *a;
 
@@ -792,8 +792,8 @@ static int test_create_awe(void)
 
     t2 = test_fipc_stop_stopwatch();
 
-    thc_printf("Average time to create and remove and awe_ids: %lu cycles (awe:%p)\n",
-          (t2 - t1)/NUM_SWITCH_MEASUREMENTS, a);
+    thc_printf("Average time to create and remove %d awe_ids: %lu cycles (awe:%p)\n",
+          NUM_INNER_ASYNCS, (t2 - t1)/NUM_SWITCH_MEASUREMENTS, a);
     return 0;
 }
 

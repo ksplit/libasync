@@ -22,7 +22,7 @@
 struct awe_table
 {
     awe_t awe_list[AWE_TABLE_COUNT];
-    unsigned long long awe_bitmap;
+    long long awe_bitmap;
 
 //    uint32_t used_slots;
 //    uint32_t next_id;
