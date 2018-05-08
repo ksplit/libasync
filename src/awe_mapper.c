@@ -55,7 +55,7 @@ awe_mapper_init(void)
         return;
     }
 
-    awe_map->awe_bitmap |= ~0;
+    awe_map->awe_bitmap = ~0LL;
     set_awe_map((awe_table_t*) awe_map);
 }
 
