@@ -36,7 +36,6 @@
 #define EXPORT_SYMBOL(x)
 #endif
 
-
 /*
  * Initilaizes awe mapper.
  */
@@ -95,7 +94,7 @@ _awe_mapper_create_id(awe_table_t *awe_map)
 		__func__, id, awe_map->awe_bitmap);
 #endif
     assert(id != 0);
-    awe_map->awe_bitmap &= ~(1ULL << (id - 1));
+    awe_map->awe_bitmap &= ~(1LL << (id - 1));
     return id; 
 }  
 EXPORT_SYMBOL(awe_mapper_create_id);
@@ -104,8 +103,8 @@ EXPORT_SYMBOL(awe_mapper_create_id);
 /*
  * Returns new available id.
  */
-int inline 
-awe_mapper_create_id()
+int inline
+awe_mapper_create_id(void)
 {
     awe_table_t *awe_map =  get_awe_map();
     return _awe_mapper_create_id(awe_map); 

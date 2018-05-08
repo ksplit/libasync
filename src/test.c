@@ -5,6 +5,7 @@
 #include <test_helpers.h>
 
 #define NUM_INNER_ASYNCS 10
+#define NUM_AWES	64
 #define NUM_SWITCH_MEASUREMENTS 10000000
 //#define NUM_SWITCH_MEASUREMENTS 8
 
@@ -772,7 +773,7 @@ static int test_ctx_switch_to_awe(void)
 static int test_create_awe(void)
 {
     unsigned long t1, t2;
-    uint32_t id[NUM_INNER_ASYNCS];
+    uint32_t id[NUM_AWES];
     int i;
     awe_t *a;
 
@@ -781,11 +782,11 @@ static int test_create_awe(void)
     for(i = 0; i < NUM_SWITCH_MEASUREMENTS; i++)
     {
 	int j;
-        for(j = 0; j < NUM_INNER_ASYNCS; j++) {
-		awe_mapper_create_id(&id[j]);
+        for(j = 0; j < NUM_AWES; j++) {
+		id[j] = awe_mapper_create_id();
 		a = awe_mapper_get_awe(id[j]);
 	}
-        for(j = 0; j < NUM_INNER_ASYNCS; j++) {
+        for(j = 0; j < NUM_AWES; j++) {
 		awe_mapper_remove_id(id[j]);
 	}
     }
@@ -793,14 +794,13 @@ static int test_create_awe(void)
     t2 = test_fipc_stop_stopwatch();
 
     thc_printf("Average time to create and remove %d awe_ids: %lu cycles (awe:%p)\n",
-          NUM_INNER_ASYNCS, (t2 - t1)/NUM_SWITCH_MEASUREMENTS, a);
+          NUM_AWES, (t2 - t1)/NUM_SWITCH_MEASUREMENTS, a);
     return 0;
 }
 
 int main (void) {
     
     thc_init();
-#if 1
     test_async();
     test_async_yield();
 
@@ -814,7 +814,6 @@ int main (void) {
     test_basic_N_blocking_id_asyncs();
     test_basic_N_blocking_id_asyncs_pts();
     test_basic_N_blocking_id_asyncs_and_N_yields_back();
-#endif
     test_basic_N_blocking_id_asyncs_and_N_yields_back_extrnl_ids();
 
     test_do_finish_yield();

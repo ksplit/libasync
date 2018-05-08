@@ -45,7 +45,7 @@ void awe_mapper_uninit(void);
  *
  * Returns non-zero on failure.
  */
-int awe_mapper_create_id();
+int awe_mapper_create_id(void);
 
 static inline awe_table_t* get_awe_map(void)
 {
@@ -76,9 +76,9 @@ static inline void set_awe_map(awe_table_t * map_ptr)
 static inline void
 _awe_mapper_remove_id(awe_table_t *awe_map, uint32_t id)
 {
-    assert(id < AWE_TABLE_COUNT);
-    assert(!(awe_map->awe_bitmap & (1 << (id - 1))));
-    awe_map->awe_bitmap |= (1 << (id - 1)); 
+    assert(id <= AWE_TABLE_COUNT);
+    assert(!(awe_map->awe_bitmap & (1LL << (id - 1))));
+    awe_map->awe_bitmap |= (1LL << (id - 1));
 }
 
 /*
@@ -89,7 +89,7 @@ LIBASYNC_FUNC_ATTR
 awe_mapper_remove_id(uint32_t id)
 {
     awe_table_t *awe_map =  get_awe_map();
-    _awe_mapper_remove_id(awe_map, id); 
+    _awe_mapper_remove_id(awe_map, id);
 }
 
 //static inline void
@@ -112,7 +112,7 @@ awe_mapper_remove_id(uint32_t id)
 static inline awe_t *
 _awe_mapper_get_awe(awe_table_t *awe_map, uint32_t id)
 {
-    assert(id >= AWE_TABLE_COUNT);
+    assert(id <= AWE_TABLE_COUNT);
 
     if(!_is_slot_allocated(awe_map, id))
       return NULL;
