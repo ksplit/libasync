@@ -21,7 +21,7 @@
 struct awe_table
 {
     awe_t awe_list[AWE_TABLE_COUNT];
-    unsigned long long awe_bitmap;
+    long long awe_bitmap;
 
 //    uint32_t used_slots;
 //    uint32_t next_id;
@@ -64,7 +64,7 @@ static inline void set_awe_map(awe_table_t * map_ptr)
 static inline void
 _awe_mapper_remove_id(awe_table_t *awe_map, uint32_t id)
 {
-    assert(id < AWE_TABLE_COUNT);
+    assert(id <= AWE_TABLE_COUNT);
     assert(!(awe_map->awe_bitmap & (1 << (id - 1))));
     awe_map->awe_bitmap |= (1 << (id - 1)); 
 }
@@ -110,8 +110,9 @@ static inline int is_slot_allocated(uint32_t id)
 static inline awe_t *
 _awe_mapper_get_awe(awe_table_t *awe_map, uint32_t id)
 {
+
     //assert(id >= AWE_TABLE_COUNT);
-    if (id >= AWE_TABLE_COUNT) {
+    if (id > AWE_TABLE_COUNT) {
 	printk("%s, id(%u) > table count(%u)\n", __func__, id, AWE_TABLE_COUNT);
     }
     if (!awe_map) {
@@ -123,6 +124,7 @@ _awe_mapper_get_awe(awe_table_t *awe_map, uint32_t id)
     }
     if (!_is_slot_allocated(awe_map, id))
 	return NULL;   
+    assert(id <= AWE_TABLE_COUNT);
     return &(awe_map->awe_list[id]);
 }
 

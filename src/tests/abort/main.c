@@ -23,7 +23,7 @@ static void abort_example_init(void)
 			}
 
 			printk(KERN_ERR "ASYNC 0 signaling all awe's\n");
-			THCStopAllAwes();
+//			THCStopAllAwes();
 			printk(KERN_ERR "ASYNC 0 aborting\n");
 			THCAbort();
 			
