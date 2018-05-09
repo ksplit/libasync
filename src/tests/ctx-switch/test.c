@@ -775,7 +775,7 @@ static int test_ctx_switch_to_awe(void)
 static int test_create_awe(void)
 {
     unsigned long t1, t2;
-    unsigned int id[NUM_INNER_ASYNCS];
+    unsigned int id[NUM_AWES];
     int i;
 
     t1 = test_fipc_start_stopwatch();
@@ -783,10 +783,10 @@ static int test_create_awe(void)
     for(i = 0; i < NUM_SWITCH_MEASUREMENTS; i++)
     {
 	int j;
-	for (j = 0; j < NUM_INNER_ASYNCS; j++) {
+	for (j = 0; j < NUM_AWES; j++) {
 		awe_mapper_create_id(&id[j]);
 	}
-	for (j = 0; j < NUM_INNER_ASYNCS; j++) {
+	for (j = 0; j < NUM_AWES; j++) {
 		awe_mapper_remove_id(id[j]);
 	}
 
@@ -794,8 +794,8 @@ static int test_create_awe(void)
 
     t2 = test_fipc_stop_stopwatch();
 
-    printf("Average time to create and remove and awe_ids: %lu cycles\n",
-          (t2 - t1)/NUM_SWITCH_MEASUREMENTS);
+    printf("Average time to create and remove and %d awe_ids: %lu cycles\n",
+          NUM_AWES, (t2 - t1)/NUM_SWITCH_MEASUREMENTS);
 
     return 0;
 }
