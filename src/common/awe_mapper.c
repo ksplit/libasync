@@ -37,6 +37,30 @@
 #define EXPORT_SYMBOL(x)
 #endif
 
+/* Linux kernel only provides ffs variant, which operates on 32-bit registers.
+ * For promoting the bsf instruction to 64-bit, intel manual suggests to use
+ * REX.W prefix to the instruction. However, when the operands are 64-bits, gcc
+ * already promotes bsf to 64-bit.
+ */
+static __always_inline int ffsll(long long x)
+{
+	long long r;
+
+	/*
+	 * AMD64 says BSFL won't clobber the dest reg if x==0; Intel64 says the
+	 * dest reg is undefined if x==0, but their CPU architect says its
+	 * value is written to set it to the same as before, except that the
+	 * top 32 bits will be cleared.
+	 *
+	 * We cannot do this on 32 bits because at the very least some
+	 * 486 CPUs did not behave this way.
+	 */
+	asm("bsf %1,%0"
+	    : "=r" (r)
+	    : "rm" (x), "0" (-1));
+	return r + 1;
+}
+
 /*
  * Initilaizes awe mapper.
  */
@@ -57,8 +81,11 @@ awe_mapper_init(void)
         printf("No space left for awe_map_ptr\n");
         return;
     }
-
-    awe_map->awe_bitmap |= ~0;
+#ifdef LINUX_KERNEL
+    awe_map->awe_bitmap = ~0UL;
+#else
+    awe_map->awe_bitmap = ~0LL;
+#endif
     set_awe_map((awe_table_t*) awe_map);
     current->ptstate = PTS();
 }
@@ -93,12 +120,18 @@ _awe_mapper_create_id(awe_table_t *awe_map)
 {
     int id;
 #ifdef LINUX_KERNEL
-    id = ffs(awe_map->awe_bitmap);
+    id = ffsll(awe_map->awe_bitmap);
 #elif defined(linux)
     id = __builtin_ffsll(awe_map->awe_bitmap);
 #endif
-    awe_map->awe_bitmap &= ~(1 << (id - 1));
-    return id;
+    awe_map->awe_bitmap &= ~(1LL << (id - 1));
+
+    assert(id != 0);
+#ifndef NDEBUG
+    if (!id)
+        printk("%s, id %d, bitmap %016llx\n", __func__, id, awe_map->awe_bitmap);
+#endif
+    return id; 
 }
 
 /*

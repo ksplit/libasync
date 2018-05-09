@@ -17,9 +17,12 @@
 #include <linux/module.h>
 #include "../test_helpers.h"
 
+#define NUM_SWITCH_MEASUREMENTS 1000000
+#define NUM_AWES		64
+#include "./test.c"
+
 MODULE_LICENSE("GPL");
 
-#define NUM_SWITCH_MEASUREMENTS 100000
 #define CPU_NUM 1
 
 static unsigned long ctx_measurements_arr[NUM_SWITCH_MEASUREMENTS];
@@ -27,12 +30,38 @@ static unsigned long thd_measurements_arr[NUM_SWITCH_MEASUREMENTS];
 
 static int test_ctx_switch_and_thd_creation(void)
 {
+#if 0
     unsigned long t1, t2, t3;
     uint32_t msg_id;
     int i;    
     int ret;
-
+#endif
     thc_init();
+
+    test_async();
+    test_async_yield();
+
+    test_basic_do_finish_create();
+    test_basic_nonblocking_async_create();  
+    test_basic_N_nonblocking_asyncs_create();
+
+    test_basic_N_blocking_asyncs_create(); 
+    test_basic_N_blocking_asyncs_create_pts();
+    test_basic_N_blocking_id_asyncs();
+    test_basic_N_blocking_id_asyncs_pts();
+    test_basic_N_blocking_id_asyncs_and_N_yields_back();
+    test_basic_N_blocking_id_asyncs_and_N_yields_back_extrnl_ids();
+
+    test_do_finish_yield();
+    test_do_finish_yield_no_dispatch();
+   // test_create_and_ctx_switch_to_awe();
+
+    test_ctx_switch_no_dispatch();
+    test_ctx_switch_no_dispatch_direct();
+    test_ctx_switch_no_dispatch_direct_trusted();
+    test_ctx_switch_to_awe();
+    test_create_awe();
+#if 0
         for( i = 0; i < NUM_SWITCH_MEASUREMENTS; i++ )
         {
             DO_FINISH_(ctx_switch,{
@@ -55,6 +84,7 @@ static int test_ctx_switch_and_thd_creation(void)
             });
             ctx_measurements_arr[i] = t3 - t2;
         }
+#endif
     thc_done();
 
     return 0;
