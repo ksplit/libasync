@@ -124,13 +124,16 @@ _awe_mapper_create_id(awe_table_t *awe_map)
 #elif defined(linux)
     id = __builtin_ffsll(awe_map->awe_bitmap);
 #endif
-    awe_map->awe_bitmap &= ~(1LL << (id - 1));
 
     assert(id != 0);
 #ifndef NDEBUG
     if (!id)
         printk("%s, id %d, bitmap %016llx\n", __func__, id, awe_map->awe_bitmap);
 #endif
+
+    if (id)
+        awe_map->awe_bitmap &= ~(1LL << (id - 1));
+
     return id; 
 }
 

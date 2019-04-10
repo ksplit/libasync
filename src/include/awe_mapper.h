@@ -65,8 +65,8 @@ static inline void
 _awe_mapper_remove_id(awe_table_t *awe_map, uint32_t id)
 {
     assert(id <= AWE_TABLE_COUNT);
-    assert(!(awe_map->awe_bitmap & (1 << (id - 1))));
-    awe_map->awe_bitmap |= (1 << (id - 1)); 
+    assert(!(awe_map->awe_bitmap & (1LL << (id - 1))));
+    awe_map->awe_bitmap |= (1LL << (id - 1));
 }
 
 /*
@@ -77,7 +77,7 @@ LIBASYNC_FUNC_ATTR
 awe_mapper_remove_id(uint32_t id)
 {
     awe_table_t *awe_map =  get_awe_map();
-    _awe_mapper_remove_id(awe_map, id); 
+    _awe_mapper_remove_id(awe_map, id);
 }
 
 //static inline void
@@ -98,7 +98,7 @@ awe_mapper_remove_id(uint32_t id)
 //}
 static inline int _is_slot_allocated(awe_table_t *awe_map, uint32_t id)
 {
-    return !(awe_map->awe_bitmap & (1 << (id - 1)));
+    return !(awe_map->awe_bitmap & (1LL << (id - 1)));
 }
 
 static inline int is_slot_allocated(uint32_t id)
@@ -125,7 +125,7 @@ _awe_mapper_get_awe(awe_table_t *awe_map, uint32_t id)
     if (!_is_slot_allocated(awe_map, id))
 	return NULL;   
     assert(id <= AWE_TABLE_COUNT);
-    return &(awe_map->awe_list[id]);
+    return &(awe_map->awe_list[id - 1]);
 }
 
 
@@ -155,7 +155,7 @@ static inline awe_t *
 LIBASYNC_FUNC_ATTR 
 _awe_mapper_get_awe_ptr_trusted(awe_table_t *awe_map, uint32_t id)
 {
-    return &(awe_map->awe_list[id]);
+    return &(awe_map->awe_list[id - 1]);
 }
 
 static inline awe_t*
