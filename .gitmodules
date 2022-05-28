@@ -1,4 +1,4 @@
 [submodule "fast-ipc-module"]
 	path = fast-ipc-module
-	url = https://gitlab.flux.utah.edu/ramstore/fast-ipc-module.git
-	branch = one_slot
+	url = https://github.com/ksplit/libfipc.git
+	branch = dev_ksplit
